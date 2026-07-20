@@ -1,10 +1,7 @@
-"""
-Usage:
-    python generate_dataset.py --n-envs 20 --n-pairs 25 --n-trajs 20 --refine chomp
-    python generate_dataset.py --n-envs 20 --n-pairs 25 --n-trajs 20 --reversible
+#python generate_dataset.py --n-envs 20 --n-pairs 25 --n-trajs 20 --refine chomp
+#python generate_dataset.py --n-envs 20 --n-pairs 25 --n-trajs 20 --reversible
 
-    If 2D needs 200 distinct environments, 500 valid start-goal pairs with 20 feasible multimodal trajectories per pair, how much would 3D need?
-"""
+#If 2D needs 200 distinct environments, 500 valid start-goal pairs with 20 feasible multimodal trajectories per pair, how much would 3D need?
 
 import argparse
 import json
@@ -27,8 +24,7 @@ from pointmass3d import (
 
 
 def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, counts):
-    """Plan up to n_trajs distinct (multimodal) trajectories between a fixed
-    start/goal pair, drawing fresh randomness for each attempt."""
+    """plan up to n_trajs trajectories"""
     trajs = []
     attempts = 0
     while len(trajs) < n_trajs and attempts < 5 * n_trajs:
@@ -48,7 +44,7 @@ def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, coun
                 path = refined
                 counts["ok"] += 1
             else:
-                counts["fallback"] += 1  # keep the validated RRT path
+                counts["fallback"] += 1#keep the validated RRT path
         else:
             counts["ok"] += 1
 
@@ -58,15 +54,15 @@ def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, coun
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--n-envs", type=int, default=10, help="number of distinct environments")
-    ap.add_argument("--n-pairs", type=int, default=5, help="start-goal pairs per environment")
-    ap.add_argument("--n-trajs", type=int, default=4, help="multimodal trajectories per start-goal pair")
+    ap.add_argument("--n-envs", type=int, default=10, help="n of distinct environments")
+    ap.add_argument("--n-pairs", type=int, default=5, help="s-g pairs per environment")
+    ap.add_argument("--n-trajs", type=int, default=4, help="trajectories per s-g pair")
     ap.add_argument("--n-waypoints", type=int, default=64)
     ap.add_argument("--refine", choices=["none", "chomp", "trajopt"], default="chomp")
     ap.add_argument(
         "--reversible",
         action="store_true",
-        help="for every sampled pair, also plan trajectories for the swapped (goal, start) pair",
+        help="for every sampled pair, also plan trajectories for the swapped (g, s) pair",
     )
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", type=str, default="data")
