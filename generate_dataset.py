@@ -1,6 +1,7 @@
 """
 Usage:
     python generate_dataset.py --n-envs 20 --n-trajs 25 --refine chomp
+    If 2D needs 200 distinct environments, 500 valid start-goal pairs with 20 feasible multimodal trajectories per pair, how much would 3D need?
 """
 
 import argparse
