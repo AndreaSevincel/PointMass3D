@@ -24,7 +24,7 @@ from pointmass3d import (
 
 
 def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, counts):
-    """plan up to n_trajs trajectories"""
+    #plan up to n_trajs trajectories
     trajs = []
     attempts = 0
     while len(trajs) < n_trajs and attempts < 5 * n_trajs:
