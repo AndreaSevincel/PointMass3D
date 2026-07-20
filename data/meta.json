@@ -1,0 +1,16 @@
+{
+  "n_envs": 5,
+  "n_trajs_per_env": 10,
+  "n_waypoints": 64,
+  "refine": "chomp",
+  "seed": 0,
+  "robot_radius": 0.03,
+  "workspace": [
+    -1.0,
+    1.0
+  ],
+  "refined_ok": 50,
+  "rrt_fallback": 0,
+  "failed": 0,
+  "wall_time_s": 25.1
+}
