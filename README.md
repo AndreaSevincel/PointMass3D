@@ -25,7 +25,7 @@ python3 -m venv .venv
 
 `PointMass3DEnv` (pointmass3d/env.py): a spherical robot (radius 0.03) in the
 workspace `[-1, 1]^3` with sphere and axis-aligned box obstacles. Collision
-checking goes through an analytic **signed distance field** — each obstacle
+checking goes through an analytic **signed distance field**, each obstacle
 implements `sdf(points)`, the environment takes the min over obstacles and the
 workspace walls, and `clearance(q) = sdf(q) - robot_radius` is positive iff q
 is collision-free. `clearance_grad` (central differences on the SDF) drives
@@ -41,11 +41,11 @@ both optimizers. Segments/paths are validated by dense sampling.
   and are preconditioned by the inverse
   finite-difference metric `A⁻¹`, which spreads updates smoothly along the
   trajectory. Local method: may need an RRT initialization in clutter.
-- **TrajOpt** — sequential convex optimization (Schulman et al. 2013): SDF
+- **TrajOpt** — sequential convex optimization: SDF
   constraints `clearance ≥ d_safe` are convexified via their gradient and
   enforced through an escalating penalty loop; each convex subproblem is
   solved in closed form with a proximal trust region. (Simplification vs. the
-  paper: squared-hinge penalties instead of L1 — no external QP solver.)
+  paper: squared-hinge penalties instead of L1, no external QP solver.)
 
 ## Expert data pipeline
 
