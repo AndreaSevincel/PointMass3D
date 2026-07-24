@@ -22,7 +22,7 @@ from torch.utils.data import Dataset
 
 
 class Normalizer:
-    """Isotropic coordinate normalizer: p -> (p - center) / scale."""
+    #isotropic normalizing
 
     def __init__(self, center, scale):
         self.center = np.asarray(center, dtype=np.float32)  # (3,)
@@ -35,14 +35,14 @@ class Normalizer:
         scale = float(pts.std())
         return cls(center, scale)
 
-    # points (..., 3)
+    #points (..., 3)
     def norm_pts(self, p):
         return (p - self.center) / self.scale
 
     def denorm_pts(self, p):
         return p * self.scale + self.center
 
-    # lengths (radii, half-extents) — scale only, no shift
+    #lengths scale only, no shift
     def norm_len(self, x):
         return x / self.scale
 
@@ -55,7 +55,7 @@ class Normalizer:
 
 
 def load_envs(data_dir):
-    """Load every env_*.npz in a directory into plain numpy arrays."""
+    #Load every env_*.npz in a directory into plain numpy arrays
     files = sorted(glob.glob(os.path.join(data_dir, "env_*.npz")))
     if not files:
         raise FileNotFoundError(f"no env_*.npz found in {data_dir}")
@@ -78,18 +78,10 @@ def load_envs(data_dir):
 
 
 class TrajectoryDataset(Dataset):
-    """
-    One item = a single expert trajectory plus the id of its environment.
-    Obstacle tensors are held on the dataset (one row per env) and looked up
-    by env id inside the training step, which keeps collation trivial.
-    """
+    #One item = a single expert trajectory plus the id of its environment
 
     def __init__(self, envs, normalizer, indices=None):
         self.norm = normalizer
-
-        # Per-env obstacle tensors, normalized. Obstacle counts may vary across
-        # envs, so we pad to the global max and carry a boolean mask; the
-        # set encoder max-pools only over the real (unmasked) obstacles.
         S = max(e["spheres"].shape[0] for e in envs)
         B = max(e["boxes"].shape[0] for e in envs)
         E = len(envs)
@@ -114,7 +106,7 @@ class TrajectoryDataset(Dataset):
         self.sphere_mask = torch.from_numpy(sphere_mask)  # (E, S)
         self.box_mask = torch.from_numpy(box_mask)        # (E, B)
 
-        # Flatten trajectories, remembering which env each came from.
+        #flatten trajectories, remembering which env each came from
         trajs, starts, goals, env_ids = [], [], [], []
         for ei, e in enumerate(envs):
             trajs.append(e["trajs"])
@@ -156,12 +148,11 @@ def train_val_split(n, val_frac, seed=0):
 
 
 def build_datasets(data_dir, val_frac=0.05, seed=0):
-    """Load envs, fit the normalizer on the training split, return datasets."""
+    #load envs, fit the normalizer on the training split, return datasets.
     envs = load_envs(data_dir)
     total = sum(len(e["trajs"]) for e in envs)
     train_idx, val_idx = train_val_split(total, val_frac, seed)
 
-    # Fit normalizer on the *training* trajectories only.
     all_trajs = np.concatenate([e["trajs"] for e in envs])
     normalizer = Normalizer.from_trajs(all_trajs[train_idx])
 

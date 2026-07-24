@@ -9,7 +9,7 @@ import torch.nn.functional as F
 
 
 def sinusoidal_embedding(t, dim):
-    """t: (B,) in [0,1] -> (B, dim) sinusoidal features."""
+    #t: (B,) in [0,1] -> (B, dim) sinusoidal features
     half = dim // 2
     freqs = torch.exp(
         -math.log(10000.0) * torch.arange(half, device=t.device) / max(half - 1, 1)
@@ -22,7 +22,7 @@ def sinusoidal_embedding(t, dim):
 
 
 class ObstacleEncoder(nn.Module):
-    """PointNet-lite over spheres (S,4) and boxes (B,6) -> env embedding."""
+    #PointNet-lite over spheres (S,4) and boxes (B,6) -> env embedding
 
     def __init__(self, hidden=128, out_dim=128):
         super().__init__()
@@ -65,7 +65,6 @@ class ConditionEncoder(nn.Module):
 
 
 class FiLMResBlock(nn.Module):
-    """Dilated 1D conv residual block with FiLM (scale/shift) conditioning."""
 
     def __init__(self, channels, cond_dim, dilation, groups=8):
         super().__init__()
@@ -88,7 +87,6 @@ class FiLMResBlock(nn.Module):
 
 
 class FlowVelocityField(nn.Module):
-    #Predicts the flow-matching velocity v(x_t, t, c), x_t of shape (B, N, 3).
 
     def __init__(
         self,

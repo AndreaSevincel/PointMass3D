@@ -1,17 +1,9 @@
-"""
-Pure flow-matching objective and ODE sampler.
+#Pure flow-matching objective and ODE sampler.
 
-Conditional OT / rectified-flow formulation with a *standard Gaussian* prior:
-
-    x0 ~ N(0, I)              (prior — NOT a Brownian bridge)
-    x1  = expert trajectory   (data)
-    t  ~ U(0, 1)
-    xt = (1 - t) x0 + t x1     (straight-line interpolation)
-    target velocity u = x1 - x0
-
-The network regresses u; sampling integrates dx/dt = v_theta(x, t, c) from the
-Gaussian prior at t=0 to the data manifold at t=1 with explicit Euler steps.
-"""
+#Conditional OT / rectified-flow formulation with a *standard Gaussian* prior:
+#target velocity u = x1 - x0
+#The network regresses u; sampling integrates dx/dt = v_theta(x, t, c) from the
+#Gaussian prior at t=0 to the data manifold at t=1 with explicit Euler steps.
 
 import copy
 
@@ -19,12 +11,6 @@ import torch
 
 
 def flow_matching_loss(model, batch, tables):
-    """
-    batch: dict of tensors already on the target device
-      traj (B,N,3), start (B,3), goal (B,3), env_id (B,)
-    tables: dict of per-env obstacle tensors on the same device, keyed
-      spheres (E,S,4), boxes (E,B,6), sphere_mask (E,S), box_mask (E,B).
-    """
     x1 = batch["traj"]
     start, goal, env_id = batch["start"], batch["goal"], batch["env_id"]
     spheres = tables["spheres"][env_id]
