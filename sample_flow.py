@@ -38,7 +38,6 @@ def distinct_pairs(starts, goals, n):
             break
     return idx
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", type=str, default="checkpoints/flow.pt")
