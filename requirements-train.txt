@@ -1,0 +1,4 @@
+# Flow-matching training deps (in addition to requirements.txt).
+# On the cluster install the CUDA build of torch, e.g. for CUDA 12.1:
+#   pip install torch --index-url https://download.pytorch.org/whl/cu121
+torch>=2.2

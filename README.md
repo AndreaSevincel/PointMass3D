@@ -61,5 +61,35 @@ refined one collides). One `.npz` per environment:
 | `trajs` | (T, N, 3) | expert trajectories |
 | `starts`, `goals` | (T, 3) | endpoints |
 
-Fixed-length, smooth, collision-free trajectories — directly usable as
+Fixed-length, smooth, collision-free trajectories, directly usable as
 training data for diffusion / flow-matching planners (MPD, FlowMP style).
+
+## Flow-matching planner (`flowmatch/`)
+
+A **pure, non-SE(3)-equivariant flow-matching** baseline that learns to
+generate trajectories conditioned on (start, goal, obstacles):
+
+- **Prior** standard Gaussian `x0 ~ N(0, I)` over `ℝ^{N×3}` — *not* the
+  Brownian bridge in `brownian.py`.
+- **Path / target** straight-line `xt = (1-t)x0 + t x1`, velocity `u = x1 - x0`
+  (conditional OT / rectified flow); loss `‖v_θ(xt,t,c) - u‖²`.
+- **Backbone** dilated temporal ConvNet (WaveNet-style, FiLM conditioning) on
+  raw world coordinates — deliberately *not* equivariant, no canonicalization.
+- **Conditioning** start, goal, and a permutation-invariant PointNet-style
+  encoder over the sphere/box sets (generalizes to unseen obstacle layouts).
+
+```bash
+.venv/bin/pip install -r requirements-train.txt   # torch (use the CUDA wheel on the cluster)
+
+# train (single GPU); add --multi-gpu for DataParallel across both 4090s
+.venv/bin/python train_flow.py --data data1 --epochs 300 --batch 512 --amp
+
+# sample + evaluate against the real env (collision-free %, clearance, endpoints)
+.venv/bin/python sample_flow.py --ckpt checkpoints/flow.pt --data data1 \
+    --env-idx 0 --n-pairs 5 --n-samples 20 --plot samples.png
+```
+
+Sampling integrates `dx/dt = v_θ` with Euler steps from the Gaussian prior;
+`--anchor-endpoints` holds the first/last waypoints on the flow path so samples
+land exactly on start/goal (flow-matching inpainting). The checkpoint bundles
+weights, EMA weights, the normalizer and model config for standalone sampling.
