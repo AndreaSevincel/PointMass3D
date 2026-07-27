@@ -27,7 +27,6 @@ def build_env(npz, robot_radius):
 
 
 def distinct_pairs(starts, goals, n):
-    """Indices of the first n distinct (start, goal) pairs."""
     seen, idx = set(), []
     for i in range(len(starts)):
         key = np.round(np.concatenate([starts[i], goals[i]]), 4).tobytes()

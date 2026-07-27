@@ -1,31 +1,3 @@
-"""Generate a PointMass3D motion-planning dataset.
-
-The pipeline per (start, goal) pair: RRT-Connect -> shortcut smoothing ->
-resample to N waypoints -> optional CHOMP/TrajOpt refinement -> collision
-re-check. Each environment is independent and deterministically seeded, so the
-whole job parallelizes across environments and is bit-for-bit reproducible
-regardless of --workers.
-
-Tiered presets (all keep 20 multimodal trajectories per pair, matching the 2D
-BridgeFlow spec; they scale total count via environment x pair coverage):
-
-    tiny    1 env    x  1 pair   x 20 =         20   (smoke test)
-    small   20 envs  x 25 pairs  x 20 =     10,000
-    medium  200 envs x 125 pairs x 20 =    500,000   (first trainable tier)
-    big     1000 envs x 250 pairs x 20 =  5,000,000  (3D "above and beyond")
-
-Examples
---------
-# medium tier, all cores, resumable, float32 to halve disk:
-python generate_dataset.py --preset medium --out data_medium --dtype float32
-
-# the full 5M run on a big server, resume after any interruption:
-python generate_dataset.py --preset big --out data_big --dtype float32 --resume
-
-# reproduce the old serial default (10 envs x 5 pairs x 4 trajs, chomp):
-python generate_dataset.py --n-envs 10 --n-pairs 5 --n-trajs 4 --workers 1
-"""
-
 import argparse
 import json
 import os
@@ -60,12 +32,6 @@ _REFINERS = {"chomp": chomp, "trajopt": trajopt, "none": None}
 
 @dataclass
 class EnvConfig:
-    """Everything a worker needs to build one environment's shard.
-
-    Plain dataclass so it pickles cleanly to worker processes. Callables are
-    referenced by name (refine) and resolved inside the worker.
-    """
-
     n_pairs: int
     n_trajs: int
     n_waypoints: int
@@ -80,7 +46,6 @@ class EnvConfig:
 
 
 def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, counts):
-    """Plan up to n_trajs distinct trajectories for one (start, goal) pair."""
     trajs = []
     attempts = 0
     while len(trajs) < n_trajs and attempts < 5 * n_trajs:
@@ -109,12 +74,6 @@ def plan_trajectories(env, start, goal, n_trajs, rng, n_waypoints, refiner, coun
 
 
 def generate_env(task):
-    """Worker: build one environment, plan its trajectories, write a shard.
-
-    task = (env_index, EnvConfig). Returns a small result dict (no big arrays)
-    so the parent aggregates cheaply. Writes atomically (temp file + os.replace)
-    so an interrupted run never leaves a half-written .npz behind.
-    """
     e, cfg = task
     out = Path(cfg.out)
     dst = out / f"env_{e:04d}.npz"
@@ -152,9 +111,6 @@ def generate_env(task):
                 pair_ids.append(n_pairs_done)
                 reversed_flags.append(is_reversed)
                 if cfg.reverse_mode == "flip":
-                    # Time-reversibility of kinematic paths: the reversed
-                    # waypoint sequence is a valid trajectory for the swapped
-                    # endpoints, at ~zero extra planning cost.
                     trajs.append(path[::-1].copy())
                     starts.append(g)
                     goals.append(s)

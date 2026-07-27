@@ -1,8 +1,6 @@
-"""Run RRT-Connect, CHOMP, and TrajOpt on one random PointMass3D problem,
-print a comparison table, and save a 3D visualization.
 
-Usage:  python demo.py [--seed 0] [--n-waypoints 64] [--show]
-"""
+#python demo.py [--seed 0] [--n-waypoints 64] [--show]
+
 
 import argparse
 
