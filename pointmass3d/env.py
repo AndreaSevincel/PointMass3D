@@ -38,12 +38,32 @@ class PointMass3DEnv:
         self.hi = float(hi)
         self.robot_radius = float(robot_radius)
 
+        # Batched obstacle arrays for vectorized sdf() — avoids a Python-level
+        # loop + per-obstacle numpy call for every query (the dominant cost
+        # in RRT collision checks and CHOMP/TrajOpt gradients).
+        spheres = [o for o in self.obstacles if isinstance(o, SphereObstacle)]
+        boxes = [o for o in self.obstacles if isinstance(o, BoxObstacle)]
+        self._sphere_centers = np.array([o.center for o in spheres]).reshape(-1, 3)
+        self._sphere_radii = np.array([o.radius for o in spheres]).reshape(-1)
+        self._box_centers = np.array([o.center for o in boxes]).reshape(-1, 3)
+        self._box_half_extents = np.array([o.half_extents for o in boxes]).reshape(-1, 3)
+
     def sdf(self, points):
         points = np.asarray(points, dtype=float)
         # Distance to the workspace walls, positive inside the workspace box.
         d = np.minimum(points - self.lo, self.hi - points).min(axis=-1)
-        for obs in self.obstacles:
-            d = np.minimum(d, obs.sdf(points))
+
+        if len(self._sphere_radii):
+            diff = points[..., None, :] - self._sphere_centers
+            sd = np.linalg.norm(diff, axis=-1) - self._sphere_radii
+            d = np.minimum(d, sd.min(axis=-1))
+
+        if len(self._box_half_extents):
+            q = np.abs(points[..., None, :] - self._box_centers) - self._box_half_extents
+            outside = np.linalg.norm(np.maximum(q, 0.0), axis=-1)
+            inside = np.minimum(q.max(axis=-1), 0.0)
+            d = np.minimum(d, (outside + inside).min(axis=-1))
+
         return d
 
     def clearance(self, points):

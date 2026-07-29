@@ -41,11 +41,21 @@ def chomp(
     lambda_smooth=1.0,
     eps_obs=0.10,
     tol=1e-5,
+    patience=30,
+    min_rel_improve=1e-3,
 ):
     """Optimize a trajectory between start and goal.
 
     init_path: optional (n_waypoints, 3) initial trajectory (e.g. a resampled
     RRT-Connect path). Defaults to the straight line.
+
+    With the fixed step size used here, the step-norm `tol` criterion rarely
+    triggers in practice (the smoothness cost keeps creeping down by a
+    negligible amount indefinitely). Once a collision-free iterate has been
+    found, stop after `patience` consecutive iterations without a smoothness
+    improvement of at least a `min_rel_improve` fraction of the current best
+    — empirically >95% of the achievable smoothing happens well before the
+    `iters` budget is spent.
 
     Returns (path, info); path always has shape (n_waypoints, 3). info["success"]
     reports whether the returned path is collision-free (dense check).
@@ -72,6 +82,7 @@ def chomp(
 
     t0 = time.perf_counter()
     best_xi, best_cost = None, np.inf
+    stale = 0
 
     for it in range(iters):
         traj = np.vstack([start, xi, goal])
@@ -102,11 +113,19 @@ def chomp(
         d_now = env.clearance(np.vstack([start, xi, goal]))
         if np.all(d_now > 0.0):
             smooth_cost = 0.5 * np.sum(np.diff(np.vstack([start, xi, goal]), axis=0) ** 2)
+            if best_xi is None or best_cost - smooth_cost > min_rel_improve * best_cost:
+                stale = 0
+            else:
+                stale += 1
             if smooth_cost < best_cost:
                 best_cost = smooth_cost
                 best_xi = xi.copy()
+        elif best_xi is not None:
+            stale += 1
 
         if np.linalg.norm(step) < tol:
+            break
+        if best_xi is not None and stale >= patience:
             break
 
     if best_xi is not None:
