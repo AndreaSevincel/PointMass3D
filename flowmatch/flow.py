@@ -5,12 +5,55 @@
 #The network regresses u; sampling integrates dx/dt = v_theta(x, t, c) from the
 #Gaussian prior at t=0 to the data manifold at t=1 with explicit Euler steps.
 
+#Two arms share this code:
+#  control   -- world frame, conditioned on raw (start, goal), sg_dim=6
+#  treatment -- (s,g)-reduced frame with uniform roll augmentation, sg_dim=1
+#The treatment's reduction and roll are composed into ONE per-sample rotation,
+#so there is a single place where the point-vs-vector typing can go wrong.
+
 import copy
+import math
 
 import torch
 
+from .geometry import (
+    apply_points,
+    apply_vectors,
+    check_frame,
+    rotate_box_features,
+    rotate_sphere_features,
+    sg_frame,
+)
 
-def flow_matching_loss(model, batch, tables):
+
+def build_conditioning(start, goal, reduced):
+    #sg vector for ConditionEncoder. Reduced arms keep only the invariant
+    #scalar d = ||g-s||; world-frame arms keep the raw pair.
+    if reduced:
+        return torch.linalg.norm(goal - start, dim=-1, keepdim=True)  # (B,1)
+    return torch.cat([start, goal], dim=-1)                           # (B,6)
+
+
+def reduce_batch(x1, start, goal, spheres, boxes, roll=True, check=False):
+    #World -> (s,g)-reduced frame for a whole batch, with the roll composed in.
+    #Returns (x1_r, sg, spheres_r, boxes_r, R, origin).
+    B = start.shape[0]
+    theta = (
+        torch.rand(B, device=start.device) * 2 * math.pi
+        if roll else torch.zeros(B, device=start.device)
+    )
+    R, origin, d = sg_frame(start, goal, theta)
+    if check:
+        check_frame(R, origin, start, goal, d)
+
+    x1_r = apply_points(R, origin, x1)                       # POINTS
+    spheres_r = rotate_sphere_features(spheres, R, origin)    # center point, radius m=0
+    boxes_r = rotate_box_features(boxes, R, origin)           # center point, edges vectors
+    sg = d[:, None]                                          # invariant scalar
+    return x1_r, sg, spheres_r, boxes_r, R, origin
+
+
+def flow_matching_loss(model, batch, tables, reduced=False, roll=True, check=False):
     x1 = batch["traj"]
     start, goal, env_id = batch["start"], batch["goal"], batch["env_id"]
     spheres = tables["spheres"][env_id]
@@ -18,12 +61,22 @@ def flow_matching_loss(model, batch, tables):
     sphere_mask = tables["sphere_mask"][env_id]
     box_mask = tables["box_mask"][env_id]
 
+    if reduced:
+        #One rotation for the reduction AND the roll augmentation. x0 is drawn
+        #AFTER, and never rotated: an isotropic Gaussian is already invariant,
+        #so rotating it would only add a redundant (and error-prone) step.
+        x1, sg, spheres, boxes, _, _ = reduce_batch(
+            x1, start, goal, spheres, boxes, roll=roll, check=check
+        )
+    else:
+        sg = build_conditioning(start, goal, reduced=False)
+
     x0 = torch.randn_like(x1)
     t = torch.rand(x1.shape[0], device=x1.device)
     xt = (1.0 - t)[:, None, None] * x0 + t[:, None, None] * x1
     target = x1 - x0
 
-    pred = model(xt, t, spheres, boxes, start, goal, sphere_mask, box_mask)
+    pred = model(xt, t, spheres, boxes, sg, sphere_mask, box_mask)
     return ((pred - target) ** 2).mean()
 
 
@@ -32,8 +85,9 @@ def sample(
     model,
     spheres,
     boxes,
-    start,
-    goal,
+    sg,
+    anchor_start=None,
+    anchor_goal=None,
     sphere_mask=None,
     box_mask=None,
     n_waypoints=64,
@@ -42,17 +96,23 @@ def sample(
     device="cpu",
     generator=None,
 ):
-    
-    #Draw trajectories by integrating the learned velocity field
-    
+
+    #Draw trajectories by integrating the learned velocity field.
+    #Everything here is in whatever frame the caller supplies; anchor_start /
+    #anchor_goal must be in that same frame.
+
     model.eval()
-    B = start.shape[0]
+    net = model.module if hasattr(model, "module") else model  # unwrap DataParallel
+    B = sg.shape[0]
     x = torch.randn(B, n_waypoints, 3, device=device, generator=generator)
+
+    # Conditioning is time-independent: encode once, reuse every step.
+    c = net.encode_cond(spheres, boxes, sg, sphere_mask, box_mask)
 
     known_eps = None
     if anchor_endpoints:
         known_eps = x[:, [0, -1], :].clone()  # frozen noise for the endpoints
-        known = torch.stack([start, goal], dim=1)  # (B, 2, 3)
+        known = torch.stack([anchor_start, anchor_goal], dim=1)  # (B, 2, 3)
 
     ts = torch.linspace(0.0, 1.0, n_steps + 1, device=device)
     for i in range(n_steps):
@@ -60,13 +120,116 @@ def sample(
         if anchor_endpoints:
             tt = ts[i]
             x[:, [0, -1], :] = (1.0 - tt) * known_eps + tt * known
-        v = model(x, t, spheres, boxes, start, goal, sphere_mask, box_mask)
+        v = net.decode(x, t, c)
         x = x + (ts[i + 1] - ts[i]) * v
 
     if anchor_endpoints:
-        x[:, 0, :] = start
-        x[:, -1, :] = goal
+        x[:, 0, :] = anchor_start
+        x[:, -1, :] = anchor_goal
     return x
+
+
+def frame_averaged_velocity(net, x, t, c_k, roll, k_fa):
+    #v_bar(x) = (1/K) sum_k roll_k^T f(roll_k x).
+    #Exact C_K-equivariance holds for ANY f: rolling x by 2*pi*j/K permutes the
+    #quadrature points, and reindexing the sum is a bijection on them.
+    #Returns (v_bar (B,N,3), vk (B,K,N,3)).
+    B, N = x.shape[0], x.shape[1]
+    xk = apply_vectors(roll, x.repeat_interleave(k_fa, 0))
+    vk = net.decode(xk, t.repeat_interleave(k_fa, 0) if t.shape[0] == B else t, c_k)
+    vk = torch.einsum("bji,bkj->bki", roll, vk)   # roll^T = un-roll, exact
+    vk = vk.reshape(B, k_fa, N, 3)
+    return vk.mean(dim=1), vk
+
+
+def roll_matrices(start, goal, thetas, k_fa):
+    #Rolls taking reduced frame 0 into each rolled frame k, as (B*K, 3, 3).
+    #Equals R_x(theta_k) exactly, since frame(a) = R_x(a) @ frame(0).
+    R0, _, _ = sg_frame(start, goal, None)
+    flat_start = start.repeat_interleave(k_fa, 0)
+    flat_goal = goal.repeat_interleave(k_fa, 0)
+    Rk, origin_k, dk = sg_frame(flat_start, flat_goal, thetas.reshape(-1))
+    R0f = R0.repeat_interleave(k_fa, 0)
+    return torch.einsum("bij,bkj->bik", Rk, R0f), Rk, origin_k, dk
+
+
+@torch.no_grad()
+def sample_reduced(
+    model,
+    spheres,
+    boxes,
+    start,
+    goal,
+    k_fa=1,
+    sphere_mask=None,
+    box_mask=None,
+    n_waypoints=64,
+    n_steps=100,
+    anchor_endpoints=False,
+    device="cpu",
+    generator=None,
+    phi=None,
+    return_residual=False,
+):
+    #Sample in the (s,g)-reduced frame and map the result back to world.
+    #k_fa > 1 turns on frame averaging over the residual roll: K rolled copies
+    #of the scene are encoded once, then at every ODE step the state is rolled
+    #into each frame, decoded, UN-rolled, and averaged. The un-roll is exact
+    #(an orthogonal matrix), so all residual error is model or pipeline.
+    net = model.module if hasattr(model, "module") else model
+    net.eval()
+    B = start.shape[0]
+
+    R0, origin, d = sg_frame(start, goal, None)
+    sg = d[:, None]
+    #Quadrature offsets. A random phi per query trades exact C_K-equivariance
+    #for equivariance in distribution, which converts systematic aliased bias
+    #into zero-mean scatter -- usually the better trade for a sampler.
+    base = torch.arange(k_fa, device=device, dtype=start.dtype) * (2 * math.pi / k_fa)
+    if phi is None:
+        phi = torch.zeros(B, device=device, dtype=start.dtype)
+    thetas = phi[:, None] + base[None, :]                        # (B, K)
+
+    #K rolled scene encodings, computed ONCE outside the ODE loop.
+    roll, Rk, origin_k, dk = roll_matrices(start, goal, thetas, k_fa)
+    sph_k = rotate_sphere_features(spheres.repeat_interleave(k_fa, 0), Rk, origin_k)
+    box_k = rotate_box_features(boxes.repeat_interleave(k_fa, 0), Rk, origin_k)
+    c_k = net.encode_cond(
+        sph_k, box_k, dk[:, None],
+        None if sphere_mask is None else sphere_mask.repeat_interleave(k_fa, 0),
+        None if box_mask is None else box_mask.repeat_interleave(k_fa, 0),
+    )
+
+    x = torch.randn(B, n_waypoints, 3, device=device, generator=generator)
+    if anchor_endpoints:
+        known_eps = x[:, [0, -1], :].clone()
+        zeros = torch.zeros_like(d)
+        a_s = torch.stack([-0.5 * d, zeros, zeros], dim=-1)
+        a_g = torch.stack([0.5 * d, zeros, zeros], dim=-1)
+        known = torch.stack([a_s, a_g], dim=1)
+
+    residual = []
+    ts = torch.linspace(0.0, 1.0, n_steps + 1, device=device)
+    for i in range(n_steps):
+        if anchor_endpoints:
+            tt = ts[i]
+            x[:, [0, -1], :] = (1.0 - tt) * known_eps + tt * known
+        t = ts[i].expand(B * k_fa)
+        v, vk = frame_averaged_velocity(net, x, t, c_k, roll, k_fa)
+        if return_residual:
+            num = (vk - v[:, None]).norm(dim=-1).mean()
+            residual.append((num / v.norm(dim=-1).mean().clamp_min(1e-9)).item())
+        x = x + (ts[i + 1] - ts[i]) * v
+
+    if anchor_endpoints:
+        x[:, 0, :] = known[:, 0]
+        x[:, -1, :] = known[:, 1]
+
+    #reduced -> world: R0^T @ x + origin
+    x_world = torch.einsum("bji,bkj->bki", R0, x) + origin[:, None, :]
+    if return_residual:
+        return x_world, residual
+    return x_world
 
 
 class EMA:

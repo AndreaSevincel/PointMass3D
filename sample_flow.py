@@ -6,9 +6,9 @@ import argparse
 import numpy as np
 import torch
 
-from flowmatch.data import Normalizer
-from flowmatch.flow import sample
-from flowmatch.model import FlowVelocityField
+from flowmatch.data import Normalizer, env_features
+from flowmatch.flow import sample, sample_reduced
+from flowmatch.model import build_model
 from pointmass3d import (
     BoxObstacle,
     PointMass3DEnv,
@@ -45,6 +45,10 @@ def main():
     ap.add_argument("--n-pairs", type=int, default=5)
     ap.add_argument("--n-samples", type=int, default=20)
     ap.add_argument("--steps", type=int, default=100)
+    ap.add_argument("--k-fa", type=int, default=1,
+                    help="frame-averaging width (reduced-frame checkpoints only)")
+    ap.add_argument("--random-phi", action="store_true",
+                    help="randomize the quadrature offset per query")
     ap.add_argument("--anchor-endpoints", action="store_true")
     ap.add_argument("--plot", type=str, default=None)
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
@@ -56,21 +60,24 @@ def main():
     norm = Normalizer.from_dict(ckpt["normalizer"])
     N = ckpt["n_waypoints"]
 
-    model = FlowVelocityField(**ckpt["model_config"]).to(device)
+    model = build_model(ckpt["model_config"]).to(device)
     model.load_state_dict(ckpt["ema"])
     model.eval()
+    #A checkpoint trained with sg_dim=1 was reduced; it can only be sampled in
+    #the reduced frame, and only that arm supports frame averaging.
+    reduced = model.cond_enc.sg_dim == 1
+    if args.k_fa > 1 and not reduced:
+        raise SystemExit("--k-fa > 1 requires a reduced-frame checkpoint (sg_dim=1)")
+    print(f"arm={'treatment (reduced)' if reduced else 'control (world)'} "
+          f"box_dim={model.obstacle_enc.box_dim} k_fa={args.k_fa}")
 
     npz = np.load(f"{args.data}/env_{args.env_idx:04d}.npz", allow_pickle=True)
     robot_radius = float(npz["robot_radius"])
     env = build_env(npz, robot_radius)
 
     # Normalized, batched obstacle tensors (shared across every sample).
-    sp = npz["spheres"].astype(np.float32).copy()
-    sp[:, :3] = norm.norm_pts(sp[:, :3]); sp[:, 3] = norm.norm_len(sp[:, 3])
-    bx = npz["boxes"].astype(np.float32).copy()
-    bx[:, :3] = norm.norm_pts(bx[:, :3]); bx[:, 3:] = norm.norm_len(bx[:, 3:])
-    sp_t = torch.from_numpy(sp).to(device)
-    bx_t = torch.from_numpy(bx).to(device)
+    sp_t, bx_t = env_features(npz, norm, box_dim=model.obstacle_enc.box_dim)
+    sp_t, bx_t = sp_t.to(device), bx_t.to(device)
 
     starts, goals, trajs = npz["starts"], npz["goals"], npz["trajs"]
     pair_idx = distinct_pairs(starts, goals, args.n_pairs)
@@ -89,11 +96,23 @@ def main():
         sp_b = sp_t.unsqueeze(0).expand(B, -1, -1)
         bx_b = bx_t.unsqueeze(0).expand(B, -1, -1)
 
-        x = sample(
-            model, sp_b, bx_b, s_b, g_b,
-            n_waypoints=N, n_steps=args.steps,
-            anchor_endpoints=args.anchor_endpoints, device=device, generator=gen,
-        )
+        if reduced:
+            phi = None
+            if args.random_phi:
+                phi = torch.rand(B, device=device, generator=gen) * 2 * np.pi
+            x = sample_reduced(
+                model, sp_b, bx_b, s_b, g_b, k_fa=args.k_fa,
+                n_waypoints=N, n_steps=args.steps,
+                anchor_endpoints=args.anchor_endpoints, device=device,
+                generator=gen, phi=phi,
+            )
+        else:
+            x = sample(
+                model, sp_b, bx_b, torch.cat([s_b, g_b], dim=-1),
+                anchor_start=s_b, anchor_goal=g_b,
+                n_waypoints=N, n_steps=args.steps,
+                anchor_endpoints=args.anchor_endpoints, device=device, generator=gen,
+            )
         paths = norm.denorm_pts(x.cpu().numpy())  # (B, N, 3)
 
         free = [env.path_free(p) for p in paths]

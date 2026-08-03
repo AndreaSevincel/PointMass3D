@@ -2,3 +2,10 @@
 # On the cluster install the CUDA build of torch, e.g. for CUDA 12.1:
 #   pip install torch --index-url https://download.pytorch.org/whl/cu121
 torch>=2.2
+
+# Experiment tracking. Optional at runtime: flowmatch/tracking.py no-ops if
+# wandb is absent or unauthenticated, so training never dies on a logging
+# problem. Needed for the 2x4 grid, where runs are compared by wandb group.
+#   wandb login          (or export WANDB_API_KEY=...)
+# Air-gapped nodes: pass --wandb-offline and `wandb sync` the run dirs later.
+wandb>=0.16

@@ -93,3 +93,18 @@ Sampling integrates `dx/dt = v_θ` with Euler steps from the Gaussian prior;
 `--anchor-endpoints` holds the first/last waypoints on the flow path so samples
 land exactly on start/goal (flow-matching inpainting). The checkpoint bundles
 weights, EMA weights, the normalizer and model config for standalone sampling.
+
+Push: laptop → cluster
+
+cd /home/andrea/Downloads/SJTU/PointMass3D
+rsync -avz --exclude-from=.rsync-exclude \
+  ./ andreone@10.181.6.34:/home/andreone/PointMass3D_new/
+
+
+
+Pull: cluster → laptop
+
+
+cd /home/andrea/Downloads/SJTU/PointMass3D
+rsync -avz andreone@10.181.6.34:/home/andreone/PointMass3D_new/checkpoints/ ./checkpoints/
+rsync -avz andreone@10.181.6.34:/home/andreone/PointMass3D_new/wandb/       

@@ -22,15 +22,18 @@ def sinusoidal_embedding(t, dim):
 
 
 class ObstacleEncoder(nn.Module):
-    #PointNet-lite over spheres (S,4) and boxes (B,6) -> env embedding
+    #PointNet-lite over spheres (S,4) and boxes (B,box_dim) -> env embedding.
+    #box_dim=12 is center + three half-edge vectors (an OBB); 6 is the legacy
+    #axis-aligned center + half-extents form.
 
-    def __init__(self, hidden=128, out_dim=128):
+    def __init__(self, hidden=128, out_dim=128, box_dim=12):
         super().__init__()
+        self.box_dim = box_dim
         self.sphere_mlp = nn.Sequential(
             nn.Linear(4, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
         )
         self.box_mlp = nn.Sequential(
-            nn.Linear(6, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
+            nn.Linear(box_dim, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
         )
         self.out = nn.Sequential(
             nn.Linear(2 * hidden, out_dim), nn.SiLU(), nn.Linear(out_dim, out_dim)
@@ -52,16 +55,23 @@ class ObstacleEncoder(nn.Module):
 
 
 class ConditionEncoder(nn.Module):
-    """(env_emb, start, goal) -> conditioning vector."""
+    """(env_emb, sg) -> conditioning vector.
 
-    def __init__(self, env_dim=128, out_dim=256):
+    sg is the raw (start, goal) pair concatenated (sg_dim=6) for world-frame
+    arms, or just ||g-s|| (sg_dim=1) after the (s,g) reduction -- which is all
+    that survives it, since start and goal then land on (-+d/2, 0, 0) and the
+    other five numbers are structurally constant.
+    """
+
+    def __init__(self, env_dim=128, out_dim=256, sg_dim=6):
         super().__init__()
+        self.sg_dim = sg_dim
         self.net = nn.Sequential(
-            nn.Linear(env_dim + 6, out_dim), nn.SiLU(), nn.Linear(out_dim, out_dim)
+            nn.Linear(env_dim + sg_dim, out_dim), nn.SiLU(), nn.Linear(out_dim, out_dim)
         )
 
-    def forward(self, env_emb, start, goal):
-        return self.net(torch.cat([env_emb, start, goal], dim=-1))
+    def forward(self, env_emb, sg):
+        return self.net(torch.cat([env_emb, sg], dim=-1))
 
 
 class FiLMResBlock(nn.Module):
@@ -98,14 +108,16 @@ class FlowVelocityField(nn.Module):
         env_dim=128,
         cond_dim=256,
         groups=8,
+        box_dim=12,
+        sg_dim=6,
     ):
         super().__init__()
         self.time_dim = time_dim
         self.time_mlp = nn.Sequential(
             nn.Linear(time_dim, time_dim), nn.SiLU(), nn.Linear(time_dim, time_dim)
         )
-        self.obstacle_enc = ObstacleEncoder(env_hidden, env_dim)
-        self.cond_enc = ConditionEncoder(env_dim, cond_dim)
+        self.obstacle_enc = ObstacleEncoder(env_hidden, env_dim, box_dim)
+        self.cond_enc = ConditionEncoder(env_dim, cond_dim, sg_dim)
 
         global_dim = time_dim + cond_dim
         self.init_conv = nn.Conv1d(3, channels, 5, padding=2)
@@ -123,17 +135,32 @@ class FlowVelocityField(nn.Module):
         nn.init.zeros_(self.out_conv.weight)
         nn.init.zeros_(self.out_conv.bias)
 
-    def forward(self, x, t, spheres, boxes, start, goal, sphere_mask=None, box_mask=None):
-        # x: (B, N, 3) -> (B, 3, N)
-        h = x.transpose(1, 2)
-        h = self.init_conv(h)
-
-        t_emb = self.time_mlp(sinusoidal_embedding(t, self.time_dim))
+    def encode_cond(self, spheres, boxes, sg, sphere_mask=None, box_mask=None):
+        #Time-independent conditioning: compute once per query, reuse across
+        #every ODE step (and every frame-averaging rotation of the state).
         env_emb = self.obstacle_enc(spheres, boxes, sphere_mask, box_mask)
-        c = self.cond_enc(env_emb, start, goal)
-        cond = torch.cat([t_emb, c], dim=-1)
+        return self.cond_enc(env_emb, sg)  # (B, cond_dim)
 
+    def decode(self, x, t, c):
+        # x: (B, N, 3), t: (B,), c: (B, cond_dim) from encode_cond
+        h = self.init_conv(x.transpose(1, 2))
+        t_emb = self.time_mlp(sinusoidal_embedding(t, self.time_dim))
+        cond = torch.cat([t_emb, c], dim=-1)
         for blk in self.blocks:
             h = blk(h, cond)
         h = self.out_conv(F.silu(self.out_norm(h)))
         return h.transpose(1, 2)  # (B, N, 3)
+
+    def forward(self, x, t, spheres, boxes, sg, sphere_mask=None, box_mask=None):
+        return self.decode(
+            x, t, self.encode_cond(spheres, boxes, sg, sphere_mask, box_mask)
+        )
+
+
+def build_model(cfg):
+    #Instantiate from a checkpoint's model_config, filling in keys that
+    #predate the OBB box features and the reduced conditioning vector.
+    cfg = dict(cfg)
+    cfg.setdefault("box_dim", 6)   # legacy: center + half-extents
+    cfg.setdefault("sg_dim", 6)    # legacy: raw (start, goal)
+    return FlowVelocityField(**cfg)
