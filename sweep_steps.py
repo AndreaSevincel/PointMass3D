@@ -41,6 +41,10 @@ def main():
     ap.add_argument("--steps", type=int, nargs="+", default=[100, 50, 20, 10, 8, 4])
     ap.add_argument("--k-fa", type=int, default=1,
                     help="frame-averaging width (reduced checkpoints only)")
+    ap.add_argument("--residual", action="store_true",
+                    help="also report std(v_k)/||mean(v_k)||, the non-equivariance "
+                         "frame averaging is removing. 0 => already equivariant, "
+                         "so a larger K_FA cannot help. Needs --k-fa > 1")
     ap.add_argument("--anchor-endpoints", action="store_true")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--seed", type=int, default=0)
@@ -79,7 +83,9 @@ def main():
         ))
 
     header = (f"{'steps':>6} {'free%':>7} {'clearance':>10} {'ep_err':>8} "
-              f"{'length':>8} {'sq_accel':>9} {'disp_ref':>9} {'s/query':>8}")
+              f"{'length':>8} {'sq_accel':>9} {'disp_ref':>9} {'s/query':>8}"
+              + (f" {'residual':>9}" if (args.residual and reduced and args.k_fa > 1)
+                 else ""))
     print(f"\nenvs [{args.env_start}, {args.env_start + args.n_envs}) x "
           f"{args.n_pairs} pairs x {args.n_samples} samples, "
           f"seed-matched (anchor={args.anchor_endpoints})")
@@ -89,7 +95,10 @@ def main():
     rows = []
     for n_steps in args.steps:
         free, clear, ep, length, acc = [], [], [], [], []
-        paths_all = []
+        paths_all, residuals = [], []
+        #The residual is identically 0 at K=1 (nothing to disagree with), so
+        #only ask for it when there are multiple frames to compare.
+        want_residual = args.residual and reduced and args.k_fa > 1
         t0 = time.time()
         n_queries = 0
         for env, sp_t, bx_t, pairs in problems:
@@ -104,12 +113,18 @@ def main():
                     args.seed * 100003 + n_queries
                 )
                 if reduced:
-                    x = sample_reduced(
+                    out = sample_reduced(
                         model, sp_b, bx_b, s_b, g_b, k_fa=args.k_fa,
                         n_waypoints=N, n_steps=n_steps,
                         anchor_endpoints=args.anchor_endpoints,
                         device=device, generator=gen,
+                        return_residual=want_residual,
                     )
+                    if want_residual:
+                        x, res = out
+                        residuals.extend(res)
+                    else:
+                        x = out
                 else:
                     x = sample(
                         model, sp_b, bx_b, torch.cat([s_b, g_b], dim=-1),
@@ -144,10 +159,13 @@ def main():
             length=float(np.mean(length)), sq_accel=float(np.mean(acc)),
             disp_ref=disp, s_per_query=secs,
         )
+        if want_residual:
+            row["residual"] = float(np.mean(residuals))
         rows.append(row)
         print(f"{n_steps:>6} {row['free']:>6.1f}% {row['clearance']:>10.4f} "
               f"{row['ep_err']:>8.4f} {row['length']:>8.4f} {row['sq_accel']:>9.5f} "
-              f"{row['disp_ref']:>9.4f} {row['s_per_query']:>8.3f}")
+              f"{row['disp_ref']:>9.4f} {row['s_per_query']:>8.3f}"
+              + (f" {row['residual']:>9.4f}" if want_residual else ""))
         run.log({f"sweep/{k}": v for k, v in row.items()}, step=n_steps)
 
     ref = rows[0]
