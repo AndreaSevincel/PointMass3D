@@ -27,9 +27,19 @@ from .geometry import rotate_box_features, rotate_sphere_features, sg_frame
 def cosine_schedule(T, s=0.008, device="cpu", dtype=torch.float32):
     #Nichol & Dhariwal cosine schedule -- the one Diffuser/MPD use. Returns
     #alpha_bar of length T+1 with alpha_bar[0] = 1 (clean data).
+
+    #The raw cosine gives f(T) = cos(pi/2)^2 = 0 exactly, so alpha_bar[T] would
+    #be 0 and the x0 reconstruction (x - sqrt(1-ab) eps)/sqrt(ab) would divide
+    #by ~0 on the FIRST sampling step, amplifying model error without bound.
+    #The reference implementation avoids this by clipping the betas at 0.999
+    #and rebuilding alpha_bar from them, which is what we do here -- clipping
+    #alpha_bar directly (to 1e-8, say) does not fix the conditioning.
     t = torch.arange(T + 1, device=device, dtype=torch.float64) / T
     f = torch.cos((t + s) / (1 + s) * math.pi / 2) ** 2
-    ab = (f / f[0]).clamp(1e-8, 1.0)
+    ab_raw = f / f[0]
+    beta = (1.0 - ab_raw[1:] / ab_raw[:-1].clamp_min(1e-12)).clamp(0.0, 0.999)
+    ab = torch.cat([torch.ones(1, dtype=torch.float64, device=device),
+                    torch.cumprod(1.0 - beta, dim=0)])
     return ab.to(dtype)
 
 
@@ -99,7 +109,11 @@ def _step(x, eps, i, i_prev, sch, eta, generator):
     ab_t = sch.ab[i]
     ab_p = sch.ab[i_prev]
     x0 = (x - (1 - ab_t).sqrt() * eps) / ab_t.sqrt()
-    x0 = x0.clamp(-4.0, 4.0)  # data is normalised; keeps few-step runs stable
+    #Normalised trajectories live in about [-2.2, 2.2], and 1/sqrt(alpha_bar)
+    #reaches ~2000 at the top of the schedule, so an unclipped x0 estimate is
+    #pure amplified model error on the first step. Clipping to just outside the
+    #data range is what keeps that step bounded; it is not cosmetic.
+    x0 = x0.clamp(-3.0, 3.0)
     if i_prev == 0:
         return x0
     #eta=0 is deterministic DDIM, eta=1 recovers the DDPM ancestral variance

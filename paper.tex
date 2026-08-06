@@ -127,10 +127,11 @@ this model can spend. We propose the residual as a one-line pre-flight check for
 equivariant design: measure it first, and build the constrained architecture only
 if it is large.
 
-We report classical planners on the same $500$ problems to fix the scale
-(RRT-Connect $99.6\%$, CHOMP $88.8\%$, all under $0.4$\,s on one CPU core). The
-learned sampler does not approach them, and we present this as a controlled study
-of representation choices, not as a planner proposal.
+We calibrate both ends on the same $500$ problems: an untrained Brownian-bridge
+prior, swept over widths, never exceeds $15.8\%$ at best-of-$20$, while classical
+planners reach $74$--$100\%$ in under $0.4$\,s on one CPU core. The learned sampler
+does not approach the latter, and we present this as a controlled study of
+representation choices, not as a planner proposal.
 \end{abstract}
 
 \section{Introduction}
@@ -208,7 +209,11 @@ classical planners ($74$--$100\%$, all under $0.4$\,s on a single CPU core) boun
 the other side and show that the learned sampler, at $45.6\%$, is not competitive
 with them here. Because a generative planner is deployed as best-of-$N$ behind a
 collision check, we also report that per-query metric against the honest control
-for it --- the model's own untrained prior, sampled $N$ times.
+for it --- the model's own untrained prior, sampled $N$ times, at its best width.
+That comparison separates two things the per-sample number conflates: the
+world-frame arm is at the straight-line floor per sample, but well above the
+untrained prior per query, so it has learned sample \emph{diversity} without
+learning sample \emph{quality}.
 
 We regard (iii) as the transferable contribution. The residual is a few lines of
 code, costs one forward pass, requires no retraining, and can be computed on any
@@ -467,6 +472,7 @@ small $r$ does establish is that the model's residual error is overwhelmingly
 membership of that subspace is addressing a constraint that is already satisfied.
 
 \subsection{Implementation}
+\label{sec:impl}
 
 Three changes make the reduction representable, and one class of error had to be
 designed out.
@@ -546,7 +552,11 @@ result gets overstated: at $N=20$ they differ by tens of points.
 the sample size rather than the number of trajectories ($10{,}000$), since samples
 within a problem and problems within an environment are correlated. This gives a
 standard error of $\approx 2$ percentage points, and $\approx 2.7$ for a
-difference of two arms.
+difference of two arms. We checked that assumption rather than asserting it: a
+bootstrap that resamples whole \emph{environments} --- the outermost correlated
+unit --- gives a standard error of $2.2$ points on the $15.6\%$ straight-line rate
+and $2.9$ on the $74.0\%$ TrajOpt rate (10{,}000 resamples), so the nominal figure
+is if anything slightly conservative at the rates that matter here.
 
 \textbf{Loss is not comparable across arms.} The treatment regresses targets in
 the reduced frame, where trajectories are canonicalised along $+\xhat$, so its
@@ -560,24 +570,24 @@ quantities are world-frame task metrics.
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-Planner & Free (\%) & Clear. & Len. & s/query \\
+Planner & Free (\%) & Clearance & s/query \\
 \midrule
-straight line               & 15.6 & 0.055 & 1.68 & $<0.001$ \\
-TrajOpt                     & 74.0 & 0.026 & 1.82 & 0.352 \\
-CHOMP                       & 88.8 & 0.019 & 1.83 & 0.394 \\
-RRT-Connect                 & 99.6 & 0.017 & 1.97 & 0.284 \\
-expert (RRT+CHOMP)          & 100.0 & 0.037 & 1.95 & 0.342 \\
+straight line                   & 15.6 & 0.055 & $<0.001$ \\
+TrajOpt                         & 74.0 & 0.026 & 0.352 \\
+CHOMP                           & 88.8 & 0.019 & 0.394 \\
+RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
+expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
 \midrule
-flow, world frame           & 15.4 & $-0.070$ & --- & 0.067 \\
-flow, $(\svec,\gvec)$ reduction & \textbf{45.6} & $-0.010$ & --- & 0.067 \\
+flow, world frame               & 15.4 & $-0.070$ & 0.067 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{45.6} & $-0.010$ & 0.067 \\
 \bottomrule
 \end{tabular}
 \caption{The same $500$ held-out problems, solved five other ways. Classical
 timings are one CPU core and one query; the learned rows are one GPU and $20$
-samples per query, so the columns are not a like-for-like speed comparison.
-Clearance and length are averaged over solved problems only. The learned rows are
+samples per query, so the time column is not a like-for-like comparison.
+Classical clearance is averaged over solved problems; the learned rows are
 per-sample rates at $250$ training environments}
 \label{tab:baselines}
 \end{table}
@@ -604,10 +614,52 @@ Two facts frame everything that follows.
 $15.6\%$ of these problems --- the clutter is dense, but not so dense that the
 direct path is usually blocked. The world-frame model reaches $15.4\%$ per sample.
 The two are within $0.2$ points, an order of magnitude inside the standard error.
-Whatever the world-frame arm has learned, on a per-sample basis it is worth
-nothing over connecting the endpoints with a line. This is the sharpest available
+On a per-sample basis, whatever the world-frame arm has learned is worth nothing
+over connecting the endpoints with a line. This is the sharpest available
 statement of the problem the reduction solves, and it is invisible without the
 trivial baseline.
+
+\textbf{The stochastic floor.} A straight line has one sample, so it cannot be
+compared against a best-of-$N$ number. The honest control there is the model's own
+prior with the learning removed: Brownian bridges pinned at start and goal, drawn
+$N=20$ times, filtered by the same collision check. We sweep the prior width and
+report the \emph{best} setting, so the baseline is steel-manned
+(Table~\ref{tab:prior}). Perturbing the straight line does not help. The best
+best-of-$20$ result over the whole sweep is $15.8\%$ at $\sigma=0.05$, against
+$15.6\%$ for the unperturbed line: random detours leave the workspace faster than
+they route around anything, and by $\sigma=0.3$ the mean path is nine times longer
+than the direct one and solves $2.2\%$. The $\sigma=0$ row also reproduces the
+straight-line rate to the digit through an independent code path, which is a check
+on both harnesses.
+
+This changes the reading of the world-frame result in a way worth stating
+carefully. Per sample, that arm is at the straight-line floor. Per query at $N=20$
+it is not: the world-frame model trained on $20$ environments solves $44.8\%$ of
+queries with at least one free sample, against $15.8\%$ for the best untrained
+prior at the same $N$. So the world-frame model has learned something real --- its
+samples are diverse in an informative way rather than a random one --- but it has
+not learned to make any \emph{individual} sample better than a straight line. The
+reduction is what closes that second gap.
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Prior width $\sigma$ & 0 & 0.05 & 0.10 & 0.30 \\
+\midrule
+per-sample free (\%)  & 15.6 & 11.5 & 7.4 & 0.4 \\
+best-of-20 (\%)       & 15.6 & \textbf{15.8} & 13.4 & 2.2 \\
+mean path length      & 1.79 & 3.31 & 5.86 & 16.85 \\
+\bottomrule
+\end{tabular}
+\caption{The untrained stochastic baseline: Brownian bridges pinned at the
+endpoints, $20$ samples per query, same collision check. Widening the prior buys
+nothing at any setting, so best-of-$N$ over random detours is not what a learned
+sampler is competing against}
+\label{tab:prior}
+\end{table}
 
 \textbf{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline $100\%$,
 in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
@@ -755,12 +807,17 @@ removed and, here, does not need to be --- a contingent empirical fact rather th
 a theorem, but one supported by three independent measurements: the ablation, the
 $K$ sweep, and the residual.
 
-\textbf{Absolute performance is poor.} Forty obstacles in a two-unit cube is dense,
-and the model is small ($2.16$M parameters) and briefly trained ($20$ epochs). No
-train--validation gap appeared in any run, indicating underfitting. The comparison
-between arms is sound --- identical data, identical budget, identical obstacle
-representation --- but the level indicates substantial headroom in capacity and
-training budget, and we do not claim a state-of-the-art planner.
+\textbf{The learned planner loses to the classical ones.} Table~\ref{tab:baselines}
+is unambiguous: RRT-Connect solves essentially every problem in $0.28$\,s of
+single-core CPU time, and the best learned arm solves $45.6\%$ per sample. Part of
+this is budget --- the model is small ($2.16$M parameters), briefly trained ($20$
+epochs), and no train--validation gap appeared in any run, so it is underfitting
+rather than overfitting --- and part is that a $64$-waypoint unconditional-prior
+sampler is simply a weaker instrument than a complete planner on a problem with an
+exact SDF. We draw the comparison anyway, because a representation result that is
+only ever measured against other configurations of itself is not anchored to
+anything. The claim we make is comparative and holds at every point of the scaling
+curve; the claim we do not make is that this planner should be used.
 
 \textbf{Scope of the negative result.} The claim that the sixth degree of freedom
 needs no treatment is specific to this setting, and relies on the training
@@ -790,10 +847,30 @@ generated --- cutting trajectories per pair from $30$ to $5$ would buy roughly s
 times the environments for the same generation cost, and Fig.~\ref{fig:scaling}
 says environments are the binding constraint.
 
+\textbf{One generative objective, one seed.} Every learned number here comes from
+conditional flow matching at a single training seed. The reduction is a statement
+about the problem rather than about the interpolant, so it should transfer
+unchanged to a denoising-diffusion objective of the Diffuser/MPD
+family~\cite{janner2022diffuser,carvalho2023mpd}; we have not measured that, and
+until it is measured the possibility that the effect is specific to straight-line
+interpolants cannot be excluded. Likewise, the reported standard errors come from
+the spread over held-out problems, not over training seeds, so they do not capture
+run-to-run variance in optimisation. Both are cheap to close and both belong in a
+camera-ready version.
+
 \textbf{Single benchmark.} Results are from one workspace family and one planner
 architecture. We report the reduction and the diagnostic in enough detail to be
 reimplemented elsewhere; whether the $30$-point gap survives in a manipulator
 configuration space is open.
+
+\textbf{Reproducibility.} The benchmark, the expert pipeline, both learned arms,
+the classical baselines, and the residual diagnostic are one codebase; every
+number in this paper is produced by a script that takes the checkpoint and the
+held-out shard range as arguments, and the figures are regenerated from those
+outputs rather than transcribed. The equivariance and geometry test suites
+described in Sec.~\ref{sec:impl} run in seconds and are the intended entry point
+for anyone reimplementing the reduction, since they encode the failure modes that
+are silent at training time.
 
 \textbf{Future work.} Beyond more environments and capacity, one option is now
 open that was previously excluded. The flow begins from an isotropic Gaussian that
