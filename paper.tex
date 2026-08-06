@@ -1,0 +1,886 @@
+% Conference submission version of main.tex.
+% Two-column, ~8 pages. Written against a minimal TeX Live: no IEEEtran, no
+% booktabs, no caption/xcolor, so the conference look is hand-rolled here and
+% every optional package degrades gracefully.
+%
+%   pdflatex paper && pdflatex paper
+%
+% Figures come from make_figures.py so the plotted numbers and the numbers in
+% the text have a single source.
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[margin=0.75in,columnsep=0.25in]{geometry}
+% Times metrics are missing from this machine's TeX Live; uncomment on a full
+% installation for the usual conference typeface.
+\IfFileExists{ptmr7t.tfm}{\usepackage{times}}{}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+
+\IfFileExists{booktabs.sty}{\usepackage{booktabs}}{%
+  \newcommand{\toprule}{\hline}
+  \newcommand{\midrule}{\hline}
+  \newcommand{\bottomrule}{\hline}
+}
+\IfFileExists{microtype.sty}{\usepackage{microtype}}{}
+
+% --- conference-style captions (caption.sty is not available here) ---------
+\makeatletter
+\long\def\@makecaption#1#2{%
+  \vskip\abovecaptionskip
+  \small
+  \sbox\@tempboxa{\textbf{#1.} #2}%
+  \ifdim\wd\@tempboxa >\hsize
+    \textbf{#1.} #2\par
+  \else
+    \global\@minipagefalse\hb@xt@\hsize{\hfil\box\@tempboxa\hfil}%
+  \fi
+  \vskip\belowcaptionskip}
+\makeatother
+
+% --- conference-style section headings ------------------------------------
+\makeatletter
+\renewcommand\section{\@startsection{section}{1}{\z@}%
+  {-2.0ex \@plus -0.7ex \@minus -.2ex}{1.2ex \@plus.2ex}%
+  {\centering\normalfont\large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {-1.8ex\@plus -0.6ex \@minus -.2ex}{0.9ex \@plus .2ex}%
+  {\normalfont\normalsize\bfseries}}
+\makeatother
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\Alph{subsection}}
+% headings print "A. Protocol"; cross-references read "Sec. V-A", as in IEEEtran
+\makeatletter
+\renewcommand{\p@subsection}{\thesection-}
+\makeatother
+
+\theoremstyle{plain}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}[proposition]{Corollary}
+
+\newcommand{\xhat}{\hat{\mathbf{x}}}
+\newcommand{\yhat}{\hat{\mathbf{y}}}
+\newcommand{\zhat}{\hat{\mathbf{z}}}
+\newcommand{\svec}{\mathbf{s}}
+\newcommand{\gvec}{\mathbf{g}}
+\newcommand{\SE}{\mathrm{SE}(3)}
+\newcommand{\SOth}{\mathrm{SO}(3)}
+
+\setlength{\abovecaptionskip}{6pt}
+\setlength{\belowcaptionskip}{0pt}
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+
+\title{\vspace{-1.2em}\bfseries\Large
+Canonicalise What You Can, Measure What You Cannot:\\
+Rigid-Body Symmetry in Flow-Matching Motion Planning}
+
+\author{Andrea Sevincel\\[2pt]
+{\normalsize Shanghai Jiao Tong University}\\
+{\normalsize\texttt{aemirsevincel@gmail.com}}}
+
+\date{}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Motion planning is exactly equivariant under rigid transformations, and a
+substantial literature builds this symmetry into network architectures. We show
+that on a generative planning problem, almost all of the available benefit is
+obtained without touching the architecture at all --- and we give a cheap
+measurement that says, \emph{before} an equivariant model is built, how much
+benefit is left for it to capture.
+
+Our starting point is that the start and goal of a planning query themselves
+define a frame, and that this frame removes five of the six degrees of freedom of
+$\SE$ exactly, at zero computational cost. The sixth --- a roll about the
+start--goal axis --- cannot be removed by any continuous rule; we give two
+independent obstructions, one topological and one distributional. We therefore
+treat the sixth by symmetry: roll augmentation during training and frame
+averaging at inference.
+
+On a cluttered 3D point-mass benchmark the reduction raises the held-out
+collision-free rate from $15.4\%$ to $45.6\%$ ($\approx\!11$ standard errors),
+and, contrary to the hypothesis that canonicalisation is a small-data crutch, the
+gap \emph{widens} monotonically with training data: the world-frame baseline gains
+$2.6$ points across a $12.5\times$ increase in training environments while the
+canonicalised model gains $26.6$ and has not plateaued. The two symmetry
+mechanisms contribute $+1.2$ and $+0.2$ points, both inside noise. We explain this
+rather than merely reporting it, by measuring the \emph{non-equivariance
+residual}: only $1.6\%$ of the learned velocity field lies outside the equivariant
+subspace, and that fraction \emph{decreases} with scale. Because frame averaging
+is the orthogonal projection onto that subspace, $1.6\%$ is the entire budget any
+post-hoc symmetrisation of this model can spend. We propose the residual as a
+one-line pre-flight check for equivariant design: measure it first, and build the
+constrained architecture only if it is large.
+\end{abstract}
+
+\section{Introduction}
+
+A motion planning problem consists of a workspace populated with obstacles, a
+start configuration $\svec$, and a goal configuration $\gvec$; its solution is a
+path $\tau$ joining them and avoiding the obstacles. The problem carries an exact
+symmetry: for any rigid transformation $T \in \SE$,
+\begin{equation}
+  \tau\bigl(T\!\cdot\!\mathcal{O},\, T\svec,\, T\gvec\bigr)
+  \;=\; T \cdot \tau\bigl(\mathcal{O},\, \svec,\, \gvec\bigr),
+  \label{eq:equivariance}
+\end{equation}
+where $\mathcal{O}$ denotes the obstacle set. Nothing about the geometry changes
+when the problem is picked up and moved.
+
+A neural planner trained on raw world coordinates has no access to
+Eq.~\eqref{eq:equivariance}. As far as its weights are concerned, planning
+left-to-right near the ceiling is an unrelated task from planning front-to-back
+near the floor, and the same skill must be relearned at every pose. The dominant
+response in the literature is architectural: constrain the layers so that
+equivariance holds by construction~\cite{cohen2016gcnn,thomas2018tfn,fuchs2020se3t,
+deng2021vn,geiger2022e3nn}, an approach that has been carried into robot learning
+with real success~\cite{ryu2023edf,wang2024equidp,simeonov2022ndf,yang2024equibot}.
+That success comes at a price that is rarely quantified: constrained layers cost
+expressiveness, are laborious to implement, and fail in ways that are silent.
+
+There is a second route, older and much cheaper: build the symmetry into the
+\emph{representation of the problem}, so that the network is never shown the pose
+and therefore cannot be sensitive to it~\cite{puny2022fa,kaba2023canon}. This
+paper asks how far that route goes on a generative motion planning problem, and
+--- more importantly --- how one can \emph{know in advance} whether the expensive
+route is worth taking.
+
+Our answer has three parts.
+
+\textbf{(i) Five of six degrees of freedom are free.} The query supplies a frame.
+Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the first
+axis with the start--goal direction removes three translational and two rotational
+degrees of freedom, exactly and at no cost. The resulting representation is
+\emph{bit-identical} under any rigid transformation of the problem
+(Proposition~\ref{prop:exact}) --- a stronger guarantee than a trained equivariant
+architecture provides, since it holds to floating-point precision rather than to
+optimisation tolerance. As a side effect the six numbers previously used to
+condition the network on the query collapse to a single invariant scalar.
+
+\textbf{(ii) The sixth is provably not removable, for two unrelated reasons.} No
+continuous rule can fix the roll about the start--goal axis: such a rule is a
+nowhere-vanishing tangent field on $S^2$, which the hairy ball theorem forbids
+(Proposition~\ref{prop:hairy}). Deriving the roll from the scene instead also
+fails, because the obstacle distribution is $C_4$-symmetric in every coordinate
+plane and its low-order angular moments vanish identically
+(Proposition~\ref{prop:moments}). We therefore handle the sixth degree of freedom
+by symmetry rather than canonicalisation.
+
+\textbf{(iii) The symmetry machinery is inert here, and we measure why.} Roll
+augmentation and frame averaging contribute $+1.2$ and $+0.2$ percentage points,
+both inside noise, while the reduction contributes $+30.2$. Rather than infer
+inertness from flat curves --- a weak conclusion --- we measure the quantity frame
+averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
+among rotated copies of the velocity field, is $1.6\%$. Since frame averaging is
+the orthogonal projection onto the equivariant subspace
+(Proposition~\ref{prop:fa}), that $1.6\%$ is the complete budget available to any
+post-hoc symmetrisation of this model (Corollary~\ref{cor:budget}). The residual
+moreover \emph{shrinks} with training data, from $1.86\%$ to $1.57\%$: the
+property an equivariant architecture would impose is arriving on its own and
+strengthening.
+
+We regard (iii) as the transferable contribution. The residual is a few lines of
+code, costs one forward pass, requires no retraining, and can be computed on any
+model with a group action on its inputs. It converts ``we tried equivariance and
+it did not help'' --- an anecdote --- into a quantitative statement about how much
+headroom a symmetry-based method has on a given problem. We recommend it as a
+pre-flight check before committing to a constrained architecture.
+
+\section{Related Work}
+
+\textbf{Equivariant architectures.} Group-equivariant convolution~\cite{cohen2016gcnn}
+generalises translation weight-sharing to larger groups; for $\SOth$ and $\SE$ the
+standard constructions are tensor field networks~\cite{thomas2018tfn},
+$\SE$-Transformers~\cite{fuchs2020se3t}, vector neurons~\cite{deng2021vn}, and the
+\texttt{e3nn} framework~\cite{geiger2022e3nn}; \cite{bronstein2021gdl} surveys the
+area. In robot learning these ideas underpin neural descriptor
+fields~\cite{simeonov2022ndf}, equivariant descriptor fields~\cite{ryu2023edf},
+equivariant diffusion policy~\cite{wang2024equidp}, and $\mathrm{SIM}(3)$-equivariant
+policies~\cite{yang2024equibot}. This work does not dispute those results; it
+provides a measurement that indicates when they are the right instrument.
+
+\textbf{Canonicalisation and frame averaging.} Frame averaging~\cite{puny2022fa}
+obtains equivariance by averaging an unconstrained network over a set of frames
+derived from the input, and learned canonicalisation~\cite{kaba2023canon} predicts
+a single frame with a small auxiliary network. Both leave the backbone
+unconstrained. Our $(\svec,\gvec)$ reduction is a canonicalisation in this sense,
+with the distinguishing feature that the frame is not learned or searched but read
+directly off the query, so five degrees of freedom are removed in closed form; the
+obstruction of Proposition~\ref{prop:hairy} is precisely the reason the sixth
+cannot be handled the same way, and is why we fall back to frame averaging there.
+
+\textbf{Generative motion planning.} Diffusion and flow models over whole
+trajectories have become a standard planning
+substrate~\cite{janner2022diffuser,chi2023dp,carvalho2023mpd,urain2023se3dif}. We
+use the conditional flow matching / rectified flow
+formulation~\cite{lipman2023fm,liu2023rectified,albergo2023interpolants} for its
+straight-line interpolants and few-step sampling. Learned planners that regress
+directly to paths~\cite{qureshi2019mpnet,fishman2022mpinets} form the
+non-generative counterpart. To our knowledge, none of this line reports a direct
+measurement of how far its learned field departs from equivariance.
+
+\textbf{Classical planners} supply our supervision: RRT-Connect~\cite{kuffner2000rrtconnect}
+for feasibility, then shortcutting and CHOMP~\cite{zucker2013chomp} refinement, with
+TrajOpt~\cite{schulman2014trajopt} available in the benchmark.
+
+\section{Problem Setup}
+
+\subsection{Benchmark}
+
+Experiments use PointMass3D, a benchmark we built for this study. A spherical
+robot of radius $0.03$ moves in the workspace $[-1,1]^3$ populated with $20$
+spheres and $20$ axis-aligned boxes per environment, obstacle centres drawn
+uniformly in $[-0.75,0.75]^3$. Collision checking uses an analytic signed distance
+field: the environment SDF is the minimum over obstacle SDFs and the workspace
+walls, and clearance subtracts the robot radius. Start and goal are drawn
+uniformly subject to a collision margin and a minimum separation
+$\|\gvec-\svec\| \ge 1.5$. Forty obstacles in a two-unit cube is dense clutter;
+absolute success rates are correspondingly low and should be read comparatively.
+
+Expert demonstrations come from RRT-Connect, random shortcutting, uniform
+resampling to $64$ waypoints, and CHOMP refinement, with dense collision
+validation and fallback to the raw RRT path. The dataset is $300$ environments
+$\times\ 600$ start--goal pairs $\times\ 30$ trajectories, doubled by
+time-reversal.
+
+\subsection{Flow-matching planner}
+
+The planner is a conditional flow-matching model over whole trajectories. A
+trajectory is $N=64$ waypoints in $\mathbb{R}^3$. Training draws
+$\mathbf{x}_0\sim\mathcal{N}(0,I)$ and $t\sim\mathcal{U}[0,1]$, forms the
+interpolant $\mathbf{x}_t=(1-t)\mathbf{x}_0+t\,\mathbf{x}_1$ with $\mathbf{x}_1$
+an expert trajectory, and regresses the velocity target:
+\begin{equation}
+  \mathcal{L}=\mathbb{E}_{\mathbf{x}_0,\mathbf{x}_1,t}
+  \bigl\|v_\theta(\mathbf{x}_t,t,c)-(\mathbf{x}_1-\mathbf{x}_0)\bigr\|^2 ,
+  \label{eq:cfm}
+\end{equation}
+where $c$ encodes the obstacles and the query. Sampling integrates
+$\dot{\mathbf{x}}=v_\theta(\mathbf{x},t,c)$ from $t=0$ to $1$ by explicit Euler.
+The network is a dilated temporal convolutional trunk with FiLM
+conditioning~\cite{oord2016wavenet,perez2018film} fed by a PointNet-style
+permutation-invariant obstacle encoder~\cite{qi2017pointnet}; $2.16$M parameters
+throughout.
+
+\section{Method}
+
+\subsection{Decomposing the group}
+
+$\SE$ has six degrees of freedom. The query supplies a frame, and that frame
+consumes five of them:
+\begin{itemize}\itemsep2pt
+  \item \textbf{Three translations}, removed by placing the origin at the midpoint
+        $\mathbf{o}=\tfrac12(\svec+\gvec)$.
+  \item \textbf{Two rotations}, removed by aligning the first axis with
+        $\xhat=(\gvec-\svec)/\|\gvec-\svec\|$. Specifying a direction on $S^2$
+        costs exactly two degrees of freedom.
+  \item \textbf{One rotation remains}: the roll about $\xhat$. Having fixed which
+        way the path runs, nothing in the problem specifies which way is ``up''
+        around that axis.
+\end{itemize}
+
+Concretely, let $d=\|\gvec-\svec\|$, let $i^\ast=\arg\min_i|\xhat_i|$, and set
+\begin{equation}
+  \yhat \propto \xhat\times\mathbf{e}_{i^\ast},
+  \qquad
+  \zhat = \xhat\times\yhat ,
+  \label{eq:frame}
+\end{equation}
+with $R$ the rotation whose rows are $\xhat,\yhat,\zhat$. A point $\mathbf{p}$ maps
+to $R(\mathbf{p}-\mathbf{o})$. Because the smallest component of a unit vector
+satisfies $|\xhat_{i^\ast}|\le 1/\sqrt3$, the cross product in
+Eq.~\eqref{eq:frame} has norm $\ge\sqrt{2/3}\approx0.816$ everywhere, so the
+construction is well-conditioned over the entire domain with no threshold or
+fallback branch, and $\det R=+1$ by construction.
+
+\begin{proposition}[Exactness]
+\label{prop:exact}
+For every $T=(Q,\mathbf{t})\in\SE$, the reduced representation of the transformed
+problem $(T\mathcal{O},T\svec,T\gvec)$ equals that of $(\mathcal{O},\svec,\gvec)$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Under $T$ the midpoint maps to $Q\mathbf{o}+\mathbf{t}$ and the direction to
+$Q\xhat$. The tie-break index $i^\ast$ is the only discontinuous element of the
+construction; away from its measure-zero tie set the frame transforms as
+$R\mapsto RQ^\top$, so
+$RQ^\top\!\left(Q\mathbf{p}+\mathbf{t}-Q\mathbf{o}-\mathbf{t}\right)=R(\mathbf{p}-\mathbf{o})$.
+\end{proof}
+
+The consequence worth stating plainly: the network never observes the pose, so it
+cannot be sensitive to it. This is not an approximation that training tightens ---
+it holds identically, to floating-point precision, at initialisation. Two further
+consequences follow. The six numbers $(\svec,\gvec)$ collapse to the single
+invariant scalar $d$, and every pair of training examples that were ``the same
+problem in a different pose'' now coincide, raising the effective density of the
+training set without generating a single new trajectory.
+
+\subsection{Why the sixth degree of freedom is not removable}
+
+\begin{proposition}[Topological obstruction]
+\label{prop:hairy}
+There is no continuous map $\yhat:S^2\to S^2$ with $\yhat(\xhat)\perp\xhat$ for
+all $\xhat$.
+\end{proposition}
+
+\begin{proof}
+Such a map is a continuous nowhere-vanishing unit tangent vector field on $S^2$,
+whose existence the hairy ball theorem denies~\cite{milnor1978hairy}.
+\end{proof}
+
+Every deterministic gauge therefore carries a discontinuity; one may relocate it
+but never remove it. The escape route of restricting to a contractible subdomain
+is closed here: the minimum separation $1.5$ along an axis of extent $2.0$ still
+admits axis-aligned start--goal directions, so the domain is the whole sphere. Our
+$i^\ast$ tie-break is exactly such a relocated discontinuity, placed on a
+measure-zero set.
+
+\begin{proposition}[Distributional obstruction]
+\label{prop:moments}
+Let obstacle centres be i.i.d.\ uniform on a cube and let $\varphi_j$ be their
+angles in the plane normal to $\xhat$, with weights $w_j$ depending only on
+radius. Then the angular moments $c_m=\sum_j w_j e^{im\varphi_j}$ satisfy
+$\mathbb{E}[c_m]=0$ for all $m\not\equiv 0 \pmod 4$; in particular
+$\mathbb{E}[c_1]=\mathbb{E}[c_2]=0$.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+The cube-uniform law is invariant under the $C_4$ rotation of any coordinate
+plane, and a $C_4$-invariant angular density has vanishing Fourier coefficients
+except at multiples of $4$.
+\end{proof}
+
+So a scene-derived gauge --- ``point $\yhat$ at the obstacle mass'' --- is not
+merely occasionally ill-conditioned but degenerate in expectation. Under the null,
+$|c_1|^2/\sum_j w_j^2$ is $\mathrm{Exp}(1)$ with median $\approx 0.69$, so
+near-degenerate configurations are the typical case rather than a rare tail. The
+first surviving moment, $m=4$, is an artefact of cube sampling, is fourfold
+ambiguous by construction, and would not transfer to a realistic scene
+distribution. Both routes to a canonical roll are closed, for unrelated reasons.
+
+\subsection{Handling the sixth by symmetry}
+
+\textbf{Roll augmentation.} During training a uniform $\theta\sim\mathcal{U}[0,2\pi)$
+is composed into $R$, so reduction and roll are applied as a single rotation. The
+prior $\mathbf{x}_0$ is drawn \emph{after} this rotation and never rotated: an
+isotropic Gaussian is already rotation-invariant, so rotating it is a redundant
+step capable only of introducing error.
+
+\textbf{Frame averaging.} At inference the field is evaluated at $K$ rolled copies
+of the state, each result rotated back, and averaged:
+\begin{equation}
+  (\mathcal{A}f)(\mathbf{x}) = \frac{1}{K}\sum_{k=0}^{K-1}
+  \rho(\theta_k)^{-1} f\bigl(\rho(\theta_k)\mathbf{x}\bigr),
+  \quad \theta_k=\frac{2\pi k}{K}.
+  \label{eq:fa}
+\end{equation}
+
+\begin{proposition}[Exact $C_K$ equivariance and projection]
+\label{prop:fa}
+For any $f$, $\mathcal{A}f$ is exactly $C_K$-equivariant. Moreover $\mathcal{A}$
+is linear, idempotent, and self-adjoint with respect to
+$\langle f,g\rangle=\mathbb{E}_{\mathbf{x}}\left[f(\mathbf{x})^\top g(\mathbf{x})\right]$
+for any $C_K$-invariant law on $\mathbf{x}$; hence it is the orthogonal projection
+onto the subspace of $C_K$-equivariant fields.
+\end{proposition}
+
+\begin{proof}[Proof sketch]
+Rolling the input by $\theta_j$ permutes the quadrature points, and reindexing a
+finite sum is a bijection on them, giving equivariance and $\mathcal{A}^2=\mathcal{A}$.
+Self-adjointness follows by substituting $\mathbf{x}\mapsto\rho(\theta_k)\mathbf{x}$
+in the expectation, which the invariance of the law leaves unchanged, together
+with $\rho(\theta_k)^\top=\rho(\theta_k)^{-1}$.
+\end{proof}
+
+Two properties of Eq.~\eqref{eq:fa} matter in practice. The guarantee requires no
+architectural constraint and no training assumption --- it is a property of the
+operator, and holds for an untrained network. And because the obstacle encoding is
+time-independent, the $K$ rolled scene encodings are computed once outside the ODE
+loop and reused at every integration step, which is why $K{=}9$ costs $1.05\times$
+the wall-clock time of $K{=}1$ (Sec.~\ref{sec:cost}).
+
+\subsection{The non-equivariance residual}
+\label{sec:residual}
+
+Proposition~\ref{prop:fa} turns a qualitative question --- ``is symmetry worth
+enforcing here?'' --- into a measurable one. Write $v_k=\rho_k^{-1}f(\rho_k\mathbf{x})$
+and $\bar v=\mathcal{A}f(\mathbf{x})$, and define
+\begin{equation}
+  r \;=\; \frac{\mathbb{E}\bigl\|v_k-\bar v\bigr\|}{\mathbb{E}\bigl\|\bar v\bigr\|} .
+  \label{eq:resid}
+\end{equation}
+This is the relative norm of the component of the learned field that lies outside
+the equivariant subspace.
+
+\begin{corollary}[Symmetrisation budget]
+\label{cor:budget}
+The orthogonal decomposition $f=\mathcal{A}f+(I-\mathcal{A})f$ gives
+$\|f-\mathcal{A}f\|/\|f\| = r/\sqrt{1+r^2}$, and $\mathcal{A}f$ is the closest
+$C_K$-equivariant field to $f$ in $\|\cdot\|$. Hence any procedure that
+post-processes $f$ into an equivariant field changes it by at most a relative $r$,
+and the remaining error of $f$ is equivariant error.
+\end{corollary}
+
+The practical reading is a decision rule. Measure $r$; if it is small, the model's
+error is not a symmetry violation, and symmetrising it --- by frame averaging, by
+augmentation, or by any other post-hoc projection --- cannot remove more than $r$
+of the field. The measurement costs one forward pass and no retraining.
+
+We state the limit of this argument explicitly, because it is the objection a
+reader should raise. Corollary~\ref{cor:budget} bounds what can be gained by
+symmetrising \emph{this} model. It does not bound what an equivariant architecture
+could achieve, since such an architecture searches a different hypothesis class
+and may converge to a different --- possibly better --- equivariant field. What a
+small $r$ does establish is that the model's residual error is overwhelmingly
+\emph{within} the equivariant subspace, so an architecture that merely enforces
+membership of that subspace is addressing a constraint that is already satisfied.
+
+\subsection{Implementation}
+
+Three changes make the reduction representable, and one class of error had to be
+designed out.
+
+\textbf{Oriented boxes.} The reduction is a general $\SOth$ rotation, under which
+an axis-aligned box becomes oriented. The usual six-number representation (centre,
+half-extents) cannot express this. We use twelve numbers: a centre and three
+half-edge \emph{vectors}, which in the world frame are $(h_x,0,0)$, $(0,h_y,0)$,
+$(0,0,h_z)$, so the re-encoding is lossless. The environment SDF is unchanged,
+since collision checking happens in the world frame after the inverse transform.
+
+\textbf{Points and free vectors transform differently.} This is the error the
+implementation is principally designed to prevent, because it fails silently.
+Waypoints, endpoints, and obstacle centres are \emph{points} and take the affine
+map $R(\mathbf{p}-\mathbf{o})$; the box half-edges are \emph{free vectors} and take
+the rotation only, $R\mathbf{v}$. Applying the affine map to a half-edge adds
+$-R\mathbf{o}$ to every edge --- identically --- so box \emph{position} survives
+while box \emph{extent} is swamped by a common offset. The model goes blind to
+obstacle size while the loss curve stays healthy. The severity scales with
+$\|\mathbf{o}\|$, so the defect is invisible on exactly those problems whose
+endpoints straddle the origin.
+
+\textbf{Verification.} Eighteen tests cover deliberately disjoint failure classes.
+Asserting $\svec,\gvec\mapsto(\mp d/2,0,0)$ catches translation errors, axis
+ordering, and $R$ versus $R^\top$, but is blind to handedness, since a reflection
+in the $y$--$z$ plane fixes the $x$-axis pointwise; $\det R>0$ covers that. Neither
+detects the point/vector confusion, so a third test asserts
+$\mathrm{featurise}(\rho\cdot S)=\mathrm{typed\_rotate}(\mathrm{featurise}(S),\rho)$
+with the reference side written as explicit loops rather than the batched
+operations under test, so it catches indexing and reshaping errors instead of
+agreeing with them. A separate suite verifies Eq.~\eqref{eq:fa} against a
+deliberately \emph{untrained} network --- the hard case, since
+Proposition~\ref{prop:fa} should not depend on $f$.
+
+One subtlety is worth recording for anyone measuring $r$. The group acts on the
+whole input, scene and state together. An early version of our equivariance test
+rolled only the state while leaving the conditioning in its original frame, and
+reported a large violation from a correct implementation. A diagnostic written
+that way manufactures the non-equivariance it claims to find.
+
+\section{Experiments}
+
+\subsection{Protocol}
+
+All results use environments $250$--$299$, which no model was trained on,
+evaluated as $50$ environments $\times\ 10$ start--goal pairs $\times\ 20$ samples
+with $8$ Euler steps. The two arms are:
+
+\begin{itemize}\itemsep2pt
+  \item \textbf{Control}: world frame, conditioned on the raw pair $(\svec,\gvec)$.
+  \item \textbf{Treatment}: the $(\svec,\gvec)$ reduction with uniform roll
+        augmentation, conditioned on the invariant scalar $d$.
+\end{itemize}
+
+Both arms use the twelve-dimensional oriented-box representation, so it is not a
+confound; both train on identical trajectories for $20$ epochs.
+
+\textbf{Validation split.} Within training environments, validation holds out
+whole start--goal pairs. A per-trajectory split leaks badly here: the $30$
+trajectories per pair are near-duplicates (within-pair standard deviation $0.054$
+against an overall $0.426$, because CHOMP is a local optimiser and converges to
+the same route from similar initialisations). Under a per-trajectory split a
+held-out trajectory has a training neighbour at RMS distance $0.030$; under the
+pair split this rises to $0.162$.
+
+\textbf{Statistics.} We treat the number of \emph{distinct problems} ($500$) as
+the sample size rather than the number of trajectories ($10{,}000$), since samples
+within a problem and problems within an environment are correlated. This gives a
+standard error of $\approx 2$ percentage points, and $\approx 2.7$ for a
+difference of two arms.
+
+\textbf{Loss is not comparable across arms.} The treatment regresses targets in
+the reduced frame, where trajectories are canonicalised along $+\xhat$, so its
+target variance and hence its MSE are mechanically smaller. All reported
+quantities are world-frame task metrics.
+
+\subsection{The reduction scales; the baseline does not}
+
+\begin{table}[t]
+\centering
+\small
+\setlength{\tabcolsep}{4.5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Training & \multicolumn{2}{c}{Collision-free (\%)}
+         & \multicolumn{2}{c}{Min.\ clearance} \\
+envs & Control & Ours & Control & Ours \\
+\midrule
+20  & 12.8 & 19.0 & $-0.0776$ & $-0.0583$ \\
+60  & 13.5 & 31.3 & $-0.0746$ & $-0.0312$ \\
+150 & 14.6 & 41.0 & $-0.0726$ & $-0.0163$ \\
+250 & 15.4 & \textbf{45.6} & $-0.0697$ & $\mathbf{-0.0095}$ \\
+\bottomrule
+\end{tabular}
+\caption{Held-out performance against training-set size. The control gains $2.6$
+points across a $12.5\times$ increase in environments; the reduction gains $26.6$
+and has not plateaued. Minimum clearance is an independent, continuous measure and
+tells the same story}
+\label{tab:main}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_scaling_col.pdf}
+\caption{The gap widens with data. If canonicalisation were compensating for a
+shortage of training data one would expect it to close; instead the world-frame
+baseline is nearly flat while the reduced model continues to improve. The hollow
+marker is the no-roll ablation, drawn on the treatment line because it is the same
+arm with one component removed}
+\label{fig:scaling}
+\end{figure}
+
+Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
+$250$ environments the reduction reaches $45.6\%$ against $15.4\%$, a gap of
+$30.2$ points, or roughly $11$ standard errors.
+
+The trend is more informative than the endpoint. The baseline improves by $2.6$
+points across a $12.5\times$ increase in training environments: it is close to
+unable to exploit additional layouts, because each new layout arrives at poses it
+must learn about separately. The reduction improves by $26.6$ points over the same
+range and has not levelled off. This is the opposite of what a small-data-crutch
+account predicts, under which the advantage should shrink as data accumulates.
+Minimum clearance corroborates through an independent continuous measure: the
+treatment moves from $-0.058$ toward $-0.0095$, approaching feasibility, while the
+baseline is static.
+
+Endpoint error falls by a factor of three to five under the reduction
+($0.0101\!\to\!0.0041$ at $20$ environments, $0.0059\!\to\!0.0020$ at $250$), a
+direct consequence of canonicalisation: with endpoints always at $(\mp d/2,0,0)$
+the model no longer spends capacity on \emph{where} they are.
+
+\subsection{The mechanisms for the sixth degree of freedom are inert}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrl}
+\toprule
+Mechanism & $\Delta$ free & Assessment \\
+\midrule
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx11$ SE; grows \\
+Roll augmentation                 & $+1.2$ pp  & $0.4$ SE (noise) \\
+Frame averaging ($K{:}1\!\to\!9$) & $+0.2$ pp  & $0.09$ SE ($\approx 0$) \\
+\bottomrule
+\end{tabular}
+\caption{Decomposition by mechanism on the same held-out set. The entire effect is
+attributable to canonicalisation}
+\label{tab:ablation}
+\end{table}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=0.92\textwidth]{fig_mechanisms.pdf}
+\caption{(a) Only the canonicalisation clears the noise floor; the two mechanisms
+built for the sixth degree of freedom sit inside it. (b) The non-equivariance
+residual of Eq.~\eqref{eq:resid} falls as training data grows, so the property an
+equivariant architecture would impose is emerging on its own; the hollow marker
+shows that removing roll augmentation raises the residual but leaves it small, so
+augmentation was not the cause of the near-equivariance}
+\label{fig:mechanisms}
+\end{figure*}
+
+Table~\ref{tab:ablation} and Fig.~\ref{fig:mechanisms}a decompose the result.
+Removing roll augmentation (the reduction with a fixed gauge) costs
+$31.3\%\!\to\!30.1\%$ at $60$ environments. Frame averaging on the best model
+gives $45.6/45.7/45.8\%$ for $K=1,3,9$ --- $0.09$ standard errors.
+
+Rather than infer inertness from flat curves, we measure $r$. On the best model
+$r=0.0157$ at $K{=}3$ and $0.0174$ at $K{=}9$: under $2\%$ of the field is
+non-equivariant. By Corollary~\ref{cor:budget} that is the whole budget, and the
+remaining error --- with the model at $45.6\%$ collision-free, there is a great
+deal of it --- respects the symmetry and is untouchable by symmetrisation.
+
+Two observations sharpen this. First, the residual barely moves when roll
+augmentation is removed ($0.0186\!\to\!0.0292$ at $60$ environments, both small),
+so augmentation did not cause the near-equivariance. The explanation is that the
+gauge is a deterministic function of $\xhat$, and $600$ start--goal pairs per
+environment supply $600$ distinct directions; the reduced-frame data already spans
+a wide spread of rolls, and explicit augmentation was solving a problem the data
+had already solved. Second, the residual \emph{falls} with scale, from $0.0186$ at
+$60$ environments to $0.0157$ at $250$ (Fig.~\ref{fig:mechanisms}b): the model
+becomes more equivariant as it sees more layouts.
+
+The second observation is the strongest available argument against building the
+constrained architecture for this problem. The property such an architecture would
+enforce by construction is emerging on its own and strengthening with data, so
+imposing it would trade expressiveness for something obtained free of charge.
+
+\subsection{Cost}
+\label{sec:cost}
+
+Frame averaging at $K{=}9$ costs $1.05\times$ the wall-clock time of $K{=}1$
+($0.070$ vs $0.067$\,s per query). At $64$ waypoints and batch size $1$ the sampler
+is bound by kernel launch overhead rather than arithmetic, so a ninefold increase
+in width is nearly free. This matters for the interpretation: the finding that
+frame averaging does not help is not a budget trade-off. It was affordable, and we
+adopted it anyway for the measurement.
+
+Separately, reducing the integrator from $20$ to $8$ Euler steps costs $0.4$--$0.8$
+points and runs $1.4\times$ faster, so $8$ steps is used throughout.
+
+\section{Discussion and Limitations}
+
+\textbf{What the technique contributes.} Of the six degrees of freedom of $\SE$,
+five can be removed exactly by a frame read off the query, at no computational
+cost and with no architectural constraint. Doing so roughly triples the
+collision-free rate on this benchmark and, more importantly, converts a model that
+cannot use additional training environments into one that can. The sixth cannot be
+removed and, here, does not need to be --- a contingent empirical fact rather than
+a theorem, but one supported by three independent measurements: the ablation, the
+$K$ sweep, and the residual.
+
+\textbf{Absolute performance is poor.} Forty obstacles in a two-unit cube is dense,
+and the model is small ($2.16$M parameters) and briefly trained ($20$ epochs). No
+train--validation gap appeared in any run, indicating underfitting. The comparison
+between arms is sound --- identical data, identical budget, identical obstacle
+representation --- but the level indicates substantial headroom in capacity and
+training budget, and we do not claim a state-of-the-art planner.
+
+\textbf{Scope of the negative result.} The claim that the sixth degree of freedom
+needs no treatment is specific to this setting, and relies on the training
+distribution supplying implicit roll diversity through many start--goal directions.
+A dataset with few directions per environment, or a task whose angular structure is
+genuinely richer --- manipulation with a gripper, or non-holonomic dynamics --- could
+plausibly reverse it. That is precisely why we advocate measuring $r$ rather than
+generalising our answer: the diagnostic transfers even where the conclusion does not.
+
+\textbf{What the residual does and does not bound.} As stated in
+Sec.~\ref{sec:residual}, Corollary~\ref{cor:budget} only bounds post-hoc symmetrisation
+of a given model, not the achievable performance of a differently-parameterised
+equivariant model. A conclusive test would train an $\mathrm{SO}(2)$-equivariant
+backbone and compare; our argument is that a small and shrinking $r$ makes that
+experiment low-yield, not that it is uninformative.
+
+\textbf{One honest asterisk.} Frame averaging \emph{does} consistently improve
+endpoint error, by roughly $35\%$ ($0.0020\!\to\!0.0013$), on every checkpoint
+tested. This is a real effect. It simply does not propagate to the collision-free
+rate, because endpoint precision was not the failure mode.
+
+\textbf{Dataset diversity.} The dataset is less diverse than its nominal size
+suggests: $30$ near-duplicate trajectories per pair means $10.8$M paths carry on
+the order of $360$k distinct queries. This does not affect the comparison, since
+both arms train on identical data, but it bears on how additional data should be
+generated --- cutting trajectories per pair from $30$ to $5$ would buy roughly six
+times the environments for the same generation cost, and Fig.~\ref{fig:scaling}
+says environments are the binding constraint.
+
+\textbf{Single benchmark.} Results are from one workspace family and one planner
+architecture. We report the reduction and the diagnostic in enough detail to be
+reimplemented elsewhere; whether the $30$-point gap survives in a manipulator
+configuration space is open.
+
+\textbf{Future work.} Beyond more environments and capacity, one option is now
+open that was previously excluded. The flow begins from an isotropic Gaussian that
+knows nothing of the query, so it must learn both to produce a path and to place
+its endpoints. A Brownian-bridge prior pinned at start and goal would leave only
+the obstacle-avoidance detour to be learned. We had excluded it because such a
+prior is not isotropic in the plane normal to $\xhat$ and would break the
+distributional equivariance guarantee at $t=0$; since that guarantee has now been
+measured to be worth $0.2$ points, the trade is available.
+
+\section{Conclusion}
+
+The model presented here is exactly $\SE$-equivariant by construction for five of
+six degrees of freedom, and measured to be $98\%$ equivariant for the sixth
+without any mechanism enforcing it. All of the measured benefit lies in the five.
+
+The recommendation is correspondingly simple, and we believe it applies beyond
+this benchmark: canonicalise the degrees of freedom that admit a continuous
+canonical form --- the query usually supplies more of them than one expects --- and
+then \emph{measure} the residual non-equivariance before building machinery for
+the remainder. The measurement costs one forward pass. On this problem it would
+have saved the effort of an equivariant architecture, and it said so before any of
+that effort was spent.
+
+\small
+\bibliographystyle{plain}
+\begin{thebibliography}{99}
+
+\bibitem{albergo2023interpolants}
+M.~S. Albergo and E.~Vanden-Eijnden.
+\newblock Building normalizing flows with stochastic interpolants.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{bronstein2021gdl}
+M.~M. Bronstein, J.~Bruna, T.~Cohen, and P.~Veli\v{c}kovi\'{c}.
+\newblock Geometric deep learning: Grids, groups, graphs, geodesics, and gauges.
+\newblock {\em arXiv:2104.13478}, 2021.
+
+\bibitem{carvalho2023mpd}
+J.~Carvalho, A.~T. Le, M.~Baierl, D.~Koert, and J.~Peters.
+\newblock Motion planning diffusion: Learning and planning of robot motions with
+  diffusion models.
+\newblock In {\em IROS}, 2023.
+
+\bibitem{chi2023dp}
+C.~Chi, S.~Feng, Y.~Du, Z.~Xu, E.~Cousineau, B.~Burchfiel, and S.~Song.
+\newblock Diffusion policy: Visuomotor policy learning via action diffusion.
+\newblock In {\em RSS}, 2023.
+
+\bibitem{cohen2016gcnn}
+T.~S. Cohen and M.~Welling.
+\newblock Group equivariant convolutional networks.
+\newblock In {\em ICML}, 2016.
+
+\bibitem{deng2021vn}
+C.~Deng, O.~Litany, Y.~Duan, A.~Poulenard, A.~Tagliasacchi, and L.~Guibas.
+\newblock Vector neurons: A general framework for {SO(3)}-equivariant networks.
+\newblock In {\em ICCV}, 2021.
+
+\bibitem{fishman2022mpinets}
+A.~Fishman, A.~Murali, C.~Eppner, B.~Peele, B.~Boots, and D.~Fox.
+\newblock Motion policy networks.
+\newblock In {\em CoRL}, 2022.
+
+\bibitem{fuchs2020se3t}
+F.~B. Fuchs, D.~E. Worrall, V.~Fischer, and M.~Welling.
+\newblock {SE(3)}-transformers: 3{D} roto-translation equivariant attention
+  networks.
+\newblock In {\em NeurIPS}, 2020.
+
+\bibitem{geiger2022e3nn}
+M.~Geiger and T.~Smidt.
+\newblock e3nn: Euclidean neural networks.
+\newblock {\em arXiv:2207.09453}, 2022.
+
+\bibitem{janner2022diffuser}
+M.~Janner, Y.~Du, J.~B. Tenenbaum, and S.~Levine.
+\newblock Planning with diffusion for flexible behavior synthesis.
+\newblock In {\em ICML}, 2022.
+
+\bibitem{kaba2023canon}
+S.-O. Kaba, A.~K. Mondal, Y.~Zhang, Y.~Bengio, and S.~Ravanbakhsh.
+\newblock Equivariance with learned canonicalization functions.
+\newblock In {\em ICML}, 2023.
+
+\bibitem{kuffner2000rrtconnect}
+J.~J. Kuffner and S.~M. LaValle.
+\newblock {RRT}-connect: An efficient approach to single-query path planning.
+\newblock In {\em ICRA}, 2000.
+
+\bibitem{lipman2023fm}
+Y.~Lipman, R.~T.~Q. Chen, H.~Ben-Hamu, M.~Nickel, and M.~Le.
+\newblock Flow matching for generative modeling.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{liu2023rectified}
+X.~Liu, C.~Gong, and Q.~Liu.
+\newblock Flow straight and fast: Learning to generate and transfer data with
+  rectified flow.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{milnor1978hairy}
+J.~Milnor.
+\newblock Analytic proofs of the ``hairy ball theorem'' and the {B}rouwer fixed
+  point theorem.
+\newblock {\em American Mathematical Monthly}, 85(7):521--524, 1978.
+
+\bibitem{oord2016wavenet}
+A.~van~den Oord, S.~Dieleman, H.~Zen, K.~Simonyan, O.~Vinyals, A.~Graves,
+  N.~Kalchbrenner, A.~Senior, and K.~Kavukcuoglu.
+\newblock {W}ave{N}et: A generative model for raw audio.
+\newblock {\em arXiv:1609.03499}, 2016.
+
+\bibitem{perez2018film}
+E.~Perez, F.~Strub, H.~de~Vries, V.~Dumoulin, and A.~Courville.
+\newblock {FiLM}: Visual reasoning with a general conditioning layer.
+\newblock In {\em AAAI}, 2018.
+
+\bibitem{puny2022fa}
+O.~Puny, M.~Atzmon, H.~Ben-Hamu, I.~Misra, A.~Grover, E.~J. Smith, and
+  Y.~Lipman.
+\newblock Frame averaging for invariant and equivariant network design.
+\newblock In {\em ICLR}, 2022.
+
+\bibitem{qi2017pointnet}
+C.~R. Qi, H.~Su, K.~Mo, and L.~J. Guibas.
+\newblock {P}oint{N}et: Deep learning on point sets for 3{D} classification and
+  segmentation.
+\newblock In {\em CVPR}, 2017.
+
+\bibitem{qureshi2019mpnet}
+A.~H. Qureshi, A.~Simeonov, M.~J. Bency, and M.~C. Yip.
+\newblock Motion planning networks.
+\newblock In {\em ICRA}, 2019.
+
+\bibitem{ryu2023edf}
+H.~Ryu, H.-i. Lee, J.-H. Lee, and J.~Choi.
+\newblock Equivariant descriptor fields: {SE(3)}-equivariant energy-based models
+  for end-to-end visual robotic manipulation learning.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{schulman2014trajopt}
+J.~Schulman, Y.~Duan, J.~Ho, A.~Lee, I.~Awwal, H.~Bradlow, J.~Pan, S.~Patil,
+  K.~Goldberg, and P.~Abbeel.
+\newblock Motion planning with sequential convex optimization and convex
+  collision checking.
+\newblock {\em IJRR}, 33(9):1251--1270, 2014.
+
+\bibitem{simeonov2022ndf}
+A.~Simeonov, Y.~Du, A.~Tagliasacchi, J.~B. Tenenbaum, A.~Rodriguez, P.~Agrawal,
+  and V.~Sitzmann.
+\newblock Neural descriptor fields: {SE(3)}-equivariant object representations
+  for manipulation.
+\newblock In {\em ICRA}, 2022.
+
+\bibitem{thomas2018tfn}
+N.~Thomas, T.~Smidt, S.~Kearnes, L.~Yang, L.~Li, K.~Kohlhoff, and P.~Riley.
+\newblock Tensor field networks: Rotation- and translation-equivariant neural
+  networks for 3{D} point clouds.
+\newblock {\em arXiv:1802.08219}, 2018.
+
+\bibitem{urain2023se3dif}
+J.~Urain, N.~Funk, J.~Peters, and G.~Chalvatzaki.
+\newblock {SE(3)}-{D}iffusion{F}ields: Learning smooth cost functions for joint
+  grasp and motion optimization through diffusion.
+\newblock In {\em ICRA}, 2023.
+
+\bibitem{wang2024equidp}
+D.~Wang, S.~Hart, D.~Surovik, T.~Kelestemur, H.~Huang, H.~Zhao, M.~Yeatman,
+  J.~Wang, R.~Walters, and R.~Platt.
+\newblock Equivariant diffusion policy.
+\newblock In {\em CoRL}, 2024.
+
+\bibitem{yang2024equibot}
+J.~Yang, Z.~Cao, C.~Deng, R.~Antonova, S.~Song, and J.~Bohg.
+\newblock {E}qui{B}ot: {SIM(3)}-equivariant diffusion policy for generalizable
+  and data efficient learning.
+\newblock In {\em CoRL}, 2024.
+
+\bibitem{zucker2013chomp}
+M.~Zucker, N.~Ratliff, A.~D. Dragan, M.~Pivtoraiko, M.~Klingensmith, C.~M.
+  Dellin, J.~A. Bagnell, and S.~S. Srinivasa.
+\newblock {CHOMP}: Covariant Hamiltonian optimization for motion planning.
+\newblock {\em IJRR}, 32(9-10):1164--1193, 2013.
+
+\end{thebibliography}
+
+\end{document}
