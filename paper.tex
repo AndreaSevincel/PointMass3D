@@ -109,8 +109,8 @@ The size of the effect is best read against a floor rather than in isolation. On
 a cluttered 3D point-mass benchmark, world-frame flow matching reaches $15.4\%$
 of individual samples collision-free on held-out environments --- statistically
 indistinguishable from the $15.6\%$ obtained by joining start to goal with a
-straight line, measured on the identical problems. Per sample, the default
-configuration a practitioner would reach for does not beat a straight line. With
+straight line, measured on the identical problems. Per sample, training on raw
+world coordinates buys nothing over joining the endpoints with a line. With
 the reduction, the same network, data and budget reach $45.6\%$, and,
 contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
 \emph{widens} monotonically with training data: the world-frame arm gains $2.6$
@@ -120,8 +120,8 @@ canonicalised arm gains $26.6$ and has not plateaued.
 The two mechanisms built for the sixth degree of freedom contribute $+1.2$ and
 $+0.2$ points, both inside noise. We explain this rather than merely reporting it,
 by measuring the \emph{non-equivariance residual}: only $1.6\%$ of the learned
-velocity field lies outside the equivariant subspace, and that fraction
-\emph{decreases} with scale. Because frame averaging is the orthogonal projection
+velocity field lies outside the equivariant subspace. Because frame averaging is
+the orthogonal projection
 onto that subspace, $1.6\%$ is the entire budget any post-hoc symmetrisation of
 this model can spend. We propose the residual as a one-line pre-flight check for
 equivariant design: measure it first, and build the constrained architecture only
@@ -256,8 +256,24 @@ use the conditional flow matching / rectified flow
 formulation~\cite{lipman2023fm,liu2023rectified,albergo2023interpolants} for its
 straight-line interpolants and few-step sampling. Learned planners that regress
 directly to paths~\cite{qureshi2019mpnet,fishman2022mpinets} form the
-non-generative counterpart. To our knowledge, none of this line reports a direct
-measurement of how far its learned field departs from equivariance.
+non-generative counterpart. Within this planning literature we are not aware of a
+reported measurement of how far the learned field departs from equivariance.
+
+\textbf{Measuring learned equivariance.} The idea of measuring, rather than
+assuming, how equivariant a trained network is, is not new, and the closest
+work to ours is outside planning. Gruver et al.~\cite{gruver2023lie} measure
+learned equivariance through the Lie derivative of a trained model with respect
+to the group action, and find that unconstrained architectures often acquire
+substantial equivariance from data alone --- the same qualitative phenomenon our
+residual reports, in a different parameterisation and for continuous groups.
+Elesedy and Zaidi~\cite{elesedy2021strict} analyse the generalisation benefit of
+equivariance using the orthogonal decomposition of a function into equivariant
+and anti-equivariant parts, which is the decomposition
+Corollary~\ref{cor:budget} is stated in. Relative to these, what we add is
+narrow and practical: the residual is a single forward pass with no
+differentiation and no retraining, and we use it \emph{prospectively}, as a
+go/no-go test before committing to an architecture, on a robotics problem where
+that decision is being made.
 
 \textbf{Classical planners} supply our supervision: RRT-Connect~\cite{kuffner2000rrtconnect}
 for feasibility, then shortcutting and CHOMP~\cite{zucker2013chomp} refinement, with
@@ -437,6 +453,11 @@ of the state, each result rotated back, and averaged:
   \label{eq:fa}
 \end{equation}
 
+%TODO(before submission): r was measured with the pre-2026-08 mean-of-norms
+%ratio, not Eq. (6). The harness now emits both (sweep_steps.py --residual
+%reports `residual` = Hilbert and `residual_meannorm` = legacy). Re-run the
+%K sweep on the existing checkpoints -- eval only, no retraining -- and update
+%1.57 / 1.74 / 1.86 / 2.92 here and in make_figures.py.
 \begin{proposition}[Exact $C_K$ equivariance and projection]
 \label{prop:fa}
 For any $f$, $\mathcal{A}f$ is exactly $C_K$-equivariant. Moreover $\mathcal{A}$
@@ -454,6 +475,17 @@ in the expectation, which the invariance of the law leaves unchanged, together
 with $\rho(\theta_k)^\top=\rho(\theta_k)^{-1}$.
 \end{proof}
 
+We claim no novelty for Proposition~\ref{prop:fa} or for
+Corollary~\ref{cor:budget} below. That group averaging is the orthogonal
+projection onto the equivariant subspace, and that a function decomposes
+orthogonally into equivariant and anti-equivariant parts, are established
+results in the analysis of equivariant
+learning~\cite{elesedy2021strict,puny2022fa}; we restate them because the
+decision rule we are proposing is read off them. The contribution here is that
+rule --- measure the anti-equivariant component \emph{first}, and let its size
+decide whether the constrained architecture is worth building --- together with
+the measurement on a planning problem.
+
 Two properties of Eq.~\eqref{eq:fa} matter in practice. The guarantee requires no
 architectural constraint and no training assumption --- it is a property of the
 operator, and holds for an untrained network. And because the obstacle encoding is
@@ -468,11 +500,17 @@ Proposition~\ref{prop:fa} turns a qualitative question --- ``is symmetry worth
 enforcing here?'' --- into a measurable one. Write $v_k=\rho_k^{-1}f(\rho_k\mathbf{x})$
 and $\bar v=\mathcal{A}f(\mathbf{x})$, and define
 \begin{equation}
-  r \;=\; \frac{\mathbb{E}\bigl\|v_k-\bar v\bigr\|}{\mathbb{E}\bigl\|\bar v\bigr\|} .
+  r \;=\;
+  \frac{\bigl(\mathbb{E}_{\mathbf{x},k}\bigl\|v_k-\bar v\bigr\|^2\bigr)^{1/2}}
+       {\bigl(\mathbb{E}_{\mathbf{x}}\bigl\|\bar v\bigr\|^2\bigr)^{1/2}} .
   \label{eq:resid}
 \end{equation}
 This is the relative norm of the component of the learned field that lies outside
-the equivariant subspace.
+the equivariant subspace. The norms must be the Hilbert norms of
+Proposition~\ref{prop:fa}, i.e.\ root-mean-square rather than mean-of-norms;
+Jensen's inequality separates the two, and only the form in
+Eq.~\eqref{eq:resid} makes Corollary~\ref{cor:budget} an identity rather than an
+approximation.
 
 \begin{corollary}[Symmetrisation budget]
 \label{cor:budget}
@@ -645,6 +683,16 @@ over connecting the endpoints with a line. This is the sharpest available
 statement of the problem the reduction solves, and it is invisible without the
 trivial baseline.
 
+One scope restriction on that sentence. The world-frame arm here is trained on
+raw coordinates with no augmentation, so what the comparison establishes is that
+\emph{ignoring} the symmetry leaves the model at the trivial floor. It does not
+establish that the reduction beats the other standard way of exploiting the
+symmetry, which is to augment the training distribution with random rigid
+motions of the whole problem. That arm is a different mechanism --- it makes
+equivariance likely rather than certain, and spends capacity to do it --- and it
+is the comparison a practitioner who already knows about the symmetry would want.
+We flag it as untested here rather than assume its outcome.
+
 \textbf{The stochastic floor.} A straight line has one sample, so it cannot be
 compared against a best-of-$N$ number. The honest control there is the model's own
 prior with the learning removed: Brownian bridges pinned at start and goal, drawn
@@ -776,8 +824,9 @@ attributable to canonicalisation}
 \includegraphics[width=0.92\textwidth]{fig_mechanisms.pdf}
 \caption{(a) Only the canonicalisation clears the noise floor; the two mechanisms
 built for the sixth degree of freedom sit inside it. (b) The non-equivariance
-residual of Eq.~\eqref{eq:resid} falls as training data grows, so the property an
-equivariant architecture would impose is emerging on its own; the hollow marker
+residual of Eq.~\eqref{eq:resid} is smaller at the larger scale --- two points at
+one seed, so read it as consistent with the property arriving on its own rather
+than as establishing it; the hollow marker
 shows that removing roll augmentation raises the residual but leaves it small, so
 augmentation was not the cause of the near-equivariance}
 \label{fig:mechanisms}
@@ -804,10 +853,20 @@ had already solved. Second, the residual \emph{falls} with scale, from $0.0186$ 
 $60$ environments to $0.0157$ at $250$ (Fig.~\ref{fig:mechanisms}b): the model
 becomes more equivariant as it sees more layouts.
 
-The second observation is the strongest available argument against building the
-constrained architecture for this problem. The property such an architecture would
-enforce by construction is emerging on its own and strengthening with data, so
-imposing it would trade expressiveness for something obtained free of charge.
+The second observation is suggestive, and we deliberately state it at that
+strength rather than as the argument against building the constrained
+architecture. Two points at one seed with no interval do not establish a trend.
+There is also a competing explanation we cannot presently rule out: this model is
+underfitting, an under-resolved field sits closer to the conditional mean, and
+the conditional mean is the more symmetric object, so part of the apparent gain
+in equivariance may be a symptom of not having fit the data yet rather than of
+having absorbed the symmetry. The measurement is \emph{consistent with} the
+property arriving on its own; it does not establish it. What settles the
+direction is the residual at every scale tier across several seeds, which is an
+eval-only sweep over checkpoints that already exist. The case against the
+constrained architecture therefore rests on the size of $r$ and
+Corollary~\ref{cor:budget}, which do not depend on the trend, and not on the
+trend itself.
 
 \subsection{Cost}
 \label{sec:cost}
@@ -872,6 +931,17 @@ both arms train on identical data, but it bears on how additional data should be
 generated --- cutting trajectories per pair from $30$ to $5$ would buy roughly six
 times the environments for the same generation cost, and Fig.~\ref{fig:scaling}
 says environments are the binding constraint.
+
+\textbf{Two arms the comparison still needs.} The first is the augmented control
+described in Sec.~\ref{sec:baselines}: a world-frame model trained with random
+$T\in\SE$ applied to the whole problem. Until it is run, the claim supported here
+is that ignoring the symmetry costs $30$ points, not that canonicalisation beats
+augmentation. The second is a translation-only reduction, which recentres on the
+midpoint without rotating; it would split the $30.2$ points between the three
+translational and the two rotational degrees of freedom, which the present
+experiment reports only in aggregate. Both are single training runs against the
+existing pipeline, and both are more informative per unit compute than any
+further scaling of the arms already reported.
 
 \textbf{One generative objective, one seed.} Every learned number here comes from
 conditional flow matching at a single training seed. The reduction is a statement
@@ -956,6 +1026,11 @@ C.~Deng, O.~Litany, Y.~Duan, A.~Poulenard, A.~Tagliasacchi, and L.~Guibas.
 \newblock Vector neurons: A general framework for {SO(3)}-equivariant networks.
 \newblock In {\em ICCV}, 2021.
 
+\bibitem{elesedy2021strict}
+B.~Elesedy and S.~Zaidi.
+\newblock Provably strict generalisation benefit for equivariant models.
+\newblock In {\em ICML}, 2021.
+
 \bibitem{fishman2022mpinets}
 A.~Fishman, A.~Murali, C.~Eppner, B.~Peele, B.~Boots, and D.~Fox.
 \newblock Motion policy networks.
@@ -971,6 +1046,11 @@ F.~B. Fuchs, D.~E. Worrall, V.~Fischer, and M.~Welling.
 M.~Geiger and T.~Smidt.
 \newblock e3nn: Euclidean neural networks.
 \newblock {\em arXiv:2207.09453}, 2022.
+
+\bibitem{gruver2023lie}
+N.~Gruver, M.~Finzi, M.~Goldblum, and A.~G. Wilson.
+\newblock The {L}ie derivative for measuring learned equivariance.
+\newblock In {\em ICLR}, 2023.
 
 \bibitem{janner2022diffuser}
 M.~Janner, Y.~Du, J.~B. Tenenbaum, and S.~Levine.

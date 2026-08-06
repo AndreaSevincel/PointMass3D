@@ -16,7 +16,7 @@ import torch
 from flowmatch import tracking
 from flowmatch.data import Normalizer, env_features
 from flowmatch.diffusion import Schedule, sample_diffusion, sample_diffusion_reduced
-from flowmatch.flow import sample, sample_reduced
+from flowmatch.flow import sample, sample_reduced, sample_translation_reduced
 from flowmatch.model import build_model
 from pointmass3d import (
     BoxObstacle,
@@ -63,7 +63,13 @@ def main():
     model = build_model(ckpt["model_config"]).to(device)
     model.load_state_dict(ckpt["ema"])
     model.eval()
+    #sg_dim identifies the arm: 6 = world frame, 1 = full reduction,
+    #3 = translation-only reduction (the direction g-s is still informative)
     reduced = model.cond_enc.sg_dim == 1
+    translation_only = model.cond_enc.sg_dim == 3
+    if translation_only and args.k_fa > 1:
+        raise SystemExit("frame averaging needs the rotational reduction; "
+                         "the translation-only arm has no roll gauge")
     #Checkpoints predating the diffusion arm have no "objective" key.
     objective = ckpt.get("objective", "flow")
     schedule = (Schedule(ckpt.get("diffusion_steps", 100), device=device)
@@ -110,7 +116,7 @@ def main():
         #deployed as best-of-N behind a collision check, so also track whether
         #ANY of the N samples for a query is free
         solved_any = []
-        paths_all, residuals = [], []
+        paths_all, residuals, residuals_l1 = [], [], []
         #The residual is identically 0 at K=1 (nothing to disagree with), so
         #only ask for it when there are multiple frames to compare.
         want_residual = args.residual and reduced and args.k_fa > 1
@@ -144,6 +150,12 @@ def main():
                             anchor_endpoints=args.anchor_endpoints,
                             device=device, generator=gen,
                         )
+                elif translation_only:
+                    x = sample_translation_reduced(
+                        model, sp_b, bx_b, s_b, g_b, n_waypoints=N,
+                        n_steps=n_steps, anchor_endpoints=args.anchor_endpoints,
+                        device=device, generator=gen,
+                    )
                 elif reduced:
                     out = sample_reduced(
                         model, sp_b, bx_b, s_b, g_b, k_fa=args.k_fa,
@@ -153,8 +165,9 @@ def main():
                         return_residual=want_residual,
                     )
                     if want_residual:
-                        x, res = out
+                        x, res, res_l1 = out
                         residuals.extend(res)
+                        residuals_l1.extend(res_l1)
                     else:
                         x = out
                 else:
@@ -195,7 +208,10 @@ def main():
             disp_ref=disp, s_per_query=secs,
         )
         if want_residual:
+            #Hilbert norm, the quantity the projection bound is stated in
             row["residual"] = float(np.mean(residuals))
+            #the pre-2026-08 definition, kept so older numbers stay comparable
+            row["residual_meannorm"] = float(np.mean(residuals_l1))
         rows.append(row)
         print(f"{n_steps:>6} {row['free']:>6.1f}% {row['solved_any']:>5.1f}% "
               f"{row['clearance']:>10.4f} "

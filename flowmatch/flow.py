@@ -34,10 +34,66 @@ def build_conditioning(start, goal, reduced):
     return torch.cat([start, goal], dim=-1)                           # (B,6)
 
 
-def reduce_batch(x1, start, goal, spheres, boxes, roll=True, check=False):
+def random_rotations(B, device, dtype=torch.float32, generator=None):
+    #Uniform on SO(3) by QR of a Gaussian, sign-fixed so det = +1.
+    a = torch.randn(B, 3, 3, device=device, dtype=dtype, generator=generator)
+    q, r = torch.linalg.qr(a)
+    q = q * torch.sign(torch.diagonal(r, dim1=-2, dim2=-1))[:, None, :]
+    #a reflection has det -1; flipping one column repairs it
+    flip = torch.sign(torch.linalg.det(q))
+    q[:, :, 0] = q[:, :, 0] * flip[:, None]
+    return q
+
+
+def augment_se3(x1, start, goal, spheres, boxes, trans=0.25, generator=None):
+    """Random rigid motion of the WHOLE problem, for the augmented control arm.
+
+    This is the honest competitor to canonicalisation: the practitioner who
+    knows the problem is SE(3)-equivariant and reaches for data augmentation
+    instead of a frame. It is a different mechanism -- it makes equivariance
+    likely rather than certain, and it costs training signal, since the network
+    must spend capacity learning what the reduction gets for free.
+
+    Translation is drawn in a box of half-width `trans` in NORMALISED units.
+    Unbounded translation would be the mathematically complete group, but it
+    would also present scenes displaced far outside the workspace the model is
+    evaluated in, which tests out-of-distribution behaviour rather than
+    equivariance. 0.25 is a quarter of the workspace half-width.
+    """
+    B = start.shape[0]
+    Q = random_rotations(B, start.device, start.dtype, generator)
+    t = (torch.rand(B, 3, device=start.device, dtype=start.dtype,
+                    generator=generator) * 2 - 1) * trans
+    #apply_points(R, o, p) = R(p - o), so T = (Q, t) is R=Q with o = -Q^T t
+    o = -torch.einsum("bji,bj->bi", Q, t)
+    return (
+        apply_points(Q, o, x1),
+        apply_points(Q, o, start[:, None, :])[:, 0],
+        apply_points(Q, o, goal[:, None, :])[:, 0],
+        rotate_sphere_features(spheres, Q, o),
+        rotate_box_features(boxes, Q, o),
+    )
+
+
+def reduce_batch(x1, start, goal, spheres, boxes, roll=True, check=False,
+                 mode="full"):
     #World -> (s,g)-reduced frame for a whole batch, with the roll composed in.
     #Returns (x1_r, sg, spheres_r, boxes_r, R, origin).
+
+    #mode="translation" is the ablation that splits the five removable degrees
+    #of freedom: it recentres on the midpoint but does NOT rotate, so the three
+    #translations are canonicalised and the two rotations are not. The query
+    #direction then still carries information, so the conditioning is the full
+    #vector g-s (3 numbers) rather than the invariant scalar d.
     B = start.shape[0]
+    if mode == "translation":
+        origin = 0.5 * (start + goal)
+        R = torch.eye(3, device=start.device, dtype=start.dtype).expand(B, 3, 3)
+        x1_r = apply_points(R, origin, x1)
+        spheres_r = rotate_sphere_features(spheres, R, origin)
+        boxes_r = rotate_box_features(boxes, R, origin)
+        return x1_r, goal - start, spheres_r, boxes_r, R, origin
+
     theta = (
         torch.rand(B, device=start.device) * 2 * math.pi
         if roll else torch.zeros(B, device=start.device)
@@ -53,7 +109,8 @@ def reduce_batch(x1, start, goal, spheres, boxes, roll=True, check=False):
     return x1_r, sg, spheres_r, boxes_r, R, origin
 
 
-def flow_matching_loss(model, batch, tables, reduced=False, roll=True, check=False):
+def flow_matching_loss(model, batch, tables, reduced=False, roll=True,
+                       check=False, mode="full", augment=0.0):
     x1 = batch["traj"]
     start, goal, env_id = batch["start"], batch["goal"], batch["env_id"]
     spheres = tables["spheres"][env_id]
@@ -61,12 +118,20 @@ def flow_matching_loss(model, batch, tables, reduced=False, roll=True, check=Fal
     sphere_mask = tables["sphere_mask"][env_id]
     box_mask = tables["box_mask"][env_id]
 
+    #Augmentation is applied to the WORLD-frame problem, before any reduction.
+    #On the reduced arm it would be a no-op up to the roll gauge, which is the
+    #point of the reduction; it exists for the world-frame arm.
+    if augment > 0.0:
+        x1, start, goal, spheres, boxes = augment_se3(
+            x1, start, goal, spheres, boxes, trans=augment
+        )
+
     if reduced:
         #One rotation for the reduction AND the roll augmentation. x0 is drawn
         #AFTER, and never rotated: an isotropic Gaussian is already invariant,
         #so rotating it would only add a redundant (and error-prone) step.
         x1, sg, spheres, boxes, _, _ = reduce_batch(
-            x1, start, goal, spheres, boxes, roll=roll, check=check
+            x1, start, goal, spheres, boxes, roll=roll, check=check, mode=mode
         )
     else:
         sg = build_conditioning(start, goal, reduced=False)
@@ -154,6 +219,34 @@ def roll_matrices(start, goal, thetas, k_fa):
 
 
 @torch.no_grad()
+def sample_translation_reduced(
+    model, spheres, boxes, start, goal, sphere_mask=None, box_mask=None,
+    n_waypoints=64, n_steps=100, anchor_endpoints=False, device="cpu",
+    generator=None,
+):
+    #Sampler for the translation-only ablation. No frame averaging: that
+    #mechanism exists for the roll gauge introduced by the ROTATIONAL part of
+    #the reduction, which this arm does not perform.
+    net = model.module if hasattr(model, "module") else model
+    net.eval()
+    B = start.shape[0]
+    origin = 0.5 * (start + goal)
+    sg = goal - start                                     # (B,3), not invariant
+    R = torch.eye(3, device=device, dtype=start.dtype).expand(B, 3, 3)
+    sph_r = rotate_sphere_features(spheres, R, origin)
+    box_r = rotate_box_features(boxes, R, origin)
+
+    x = sample(
+        net, sph_r, box_r, sg,
+        anchor_start=start - origin, anchor_goal=goal - origin,
+        sphere_mask=sphere_mask, box_mask=box_mask, n_waypoints=n_waypoints,
+        n_steps=n_steps, anchor_endpoints=anchor_endpoints, device=device,
+        generator=generator,
+    )
+    return x + origin[:, None, :]
+
+
+@torch.no_grad()
 def sample_reduced(
     model,
     spheres,
@@ -208,7 +301,7 @@ def sample_reduced(
         a_g = torch.stack([0.5 * d, zeros, zeros], dim=-1)
         known = torch.stack([a_s, a_g], dim=1)
 
-    residual = []
+    residual, residual_l1 = [], []
     ts = torch.linspace(0.0, 1.0, n_steps + 1, device=device)
     for i in range(n_steps):
         if anchor_endpoints:
@@ -217,8 +310,20 @@ def sample_reduced(
         t = ts[i].expand(B * k_fa)
         v, vk = frame_averaged_velocity(net, x, t, c_k, roll, k_fa)
         if return_residual:
-            num = (vk - v[:, None]).norm(dim=-1).mean()
-            residual.append((num / v.norm(dim=-1).mean().clamp_min(1e-9)).item())
+            #The Hilbert norm, NOT a ratio of mean norms. The projection
+            #identity ||f - Af|| / ||f|| = r / sqrt(1 + r^2) holds in
+            #<f,g> = E_x[f(x)^T g(x)], so r must be
+            #   sqrt(E_{x,k} ||v_k - vbar||^2) / sqrt(E_x ||vbar||^2).
+            #The earlier version used mean(||.||) in both places; Jensen makes
+            #the two differ, and the identity is then only approximate.
+            num = ((vk - v[:, None]).pow(2).sum(-1).mean()).sqrt()
+            den = (v.pow(2).sum(-1).mean()).sqrt().clamp_min(1e-9)
+            residual.append((num / den).item())
+            #kept alongside so numbers measured before the fix stay comparable
+            num_l1 = (vk - v[:, None]).norm(dim=-1).mean()
+            residual_l1.append(
+                (num_l1 / v.norm(dim=-1).mean().clamp_min(1e-9)).item()
+            )
         x = x + (ts[i + 1] - ts[i]) * v
 
     if anchor_endpoints:
@@ -228,7 +333,8 @@ def sample_reduced(
     #reduced -> world: R0^T @ x + origin
     x_world = torch.einsum("bji,bkj->bki", R0, x) + origin[:, None, :]
     if return_residual:
-        return x_world, residual
+        #(Hilbert-norm residual, legacy mean-norm ratio)
+        return x_world, residual, residual_l1
     return x_world
 
 

@@ -51,6 +51,16 @@ def parse_args():
                     help="assert the reduction is well-formed on every batch (slow)")
     #generative-model control: same backbone, same conditioning, same frame
     #options, different objective. See flowmatch/diffusion.py.
+    #The two arms a referee asks for: augmentation is the practitioner's
+    #alternative to canonicalisation, and translation-only splits the five
+    #removable DOF into 3 translations vs 2 rotations.
+    ap.add_argument("--augment", type=float, default=0.0,
+                    help="world-frame arm: random SE(3) augmentation per batch. "
+                         "The value is the translation half-width in normalised "
+                         "units (0.25 is a quarter of the workspace). 0 = off")
+    ap.add_argument("--reduce-mode", choices=["full", "translation"], default="full",
+                    help="with --reduced: full removes 3 translations + 2 "
+                         "rotations; translation removes only the translations")
     ap.add_argument("--domain", choices=["pointmass", "se3"], default="pointmass",
                     help="pointmass: 3-dim waypoints. se3: 9-dim poses "
                          "(position + 6D rotation), see se3body/")
@@ -72,6 +82,10 @@ def default_run_name(args):
         arm = f"{args.objective}-{arm}"
     if args.domain != "pointmass":
         arm = f"{args.domain}-{arm}"
+    if args.reduced and args.reduce_mode != "full":
+        arm = f"{arm}-{args.reduce_mode}"
+    if args.augment > 0:
+        arm = f"{arm}-aug"
     envs = f"e{args.n_envs}" if args.n_envs else f"e{Path(args.data).name}"
     return f"{arm}-{envs}-c{args.channels}-b{args.n_blocks}-s{args.seed}"
 
@@ -93,8 +107,11 @@ def make_model_config(args):
         #point mass: 6 raw numbers, or the single invariant d after reduction.
         #SE(3): 18 raw (two poses), or d plus both orientations = 13, since the
         #reduction canonicalises the positions but not the orientations.
-        sg_dim=(1 if args.reduced else 6) if args.domain == "pointmass"
-        else (13 if args.reduced else 18),
+        #translation-only leaves the query DIRECTION informative, so the
+        #conditioning is the full vector g-s rather than the scalar d
+        sg_dim=(
+            (3 if args.reduce_mode == "translation" else 1) if args.reduced else 6
+        ) if args.domain == "pointmass" else (13 if args.reduced else 18),
         state_dim=3 if args.domain == "pointmass" else 9,
     )
 
@@ -111,7 +128,8 @@ def compute_loss(net, batch, tables, args, schedule, check=False):
         return diffusion_loss(net, batch, tables, schedule, reduced=args.reduced,
                               roll=not args.no_roll, check=check)
     return flow_matching_loss(net, batch, tables, reduced=args.reduced,
-                              roll=not args.no_roll, check=check)
+                              roll=not args.no_roll, check=check,
+                              mode=args.reduce_mode, augment=args.augment)
 
 
 def evaluate(net, loader, tables, device, args, schedule):
@@ -261,6 +279,8 @@ def main():
                     #eval needs to know which sampler to use; absent => "flow"
                     "objective": args.objective,
                     "domain": args.domain,
+                    "reduce_mode": args.reduce_mode,
+                    "augment": args.augment,
                     "diffusion_steps": args.diffusion_steps,
                     "reduced": args.reduced,
                 },
