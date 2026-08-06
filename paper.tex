@@ -107,10 +107,11 @@ averaging at inference.
 
 The size of the effect is best read against a floor rather than in isolation. On
 a cluttered 3D point-mass benchmark, world-frame flow matching reaches $15.4\%$
-collision-free on held-out environments --- statistically indistinguishable from
-the $15.6\%$ obtained by joining start to goal with a straight line, measured on
-the identical problems. Without the reduction the learned model does not beat the
-trivial baseline. With it, the same network, data and budget reach $45.6\%$, and,
+of individual samples collision-free on held-out environments --- statistically
+indistinguishable from the $15.6\%$ obtained by joining start to goal with a
+straight line, measured on the identical problems. Per sample, the default
+configuration a practitioner would reach for does not beat a straight line. With
+the reduction, the same network, data and budget reach $45.6\%$, and,
 contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
 \emph{widens} monotonically with training data: the world-frame arm gains $2.6$
 points across a $12.5\times$ increase in training environments while the
@@ -202,11 +203,12 @@ strengthening.
 uninterpretable on a new benchmark, so we measure, on the identical $500$ held-out
 problems, both a trivial lower bound and four classical planners. The trivial
 bound is the finding: a straight line from start to goal is collision-free on
-$15.6\%$ of problems, and the world-frame model scores $15.4\%$. The baseline arm
-of the comparison --- the configuration a practitioner would reach for by default
---- has learned nothing that beats a straight line. The classical planners
-($74$--$100\%$, all under $0.4$\,s on a single CPU core) bound the other side and
-show that the learned sampler, at $45.6\%$, is not competitive with them here.
+$15.6\%$ of problems, and the world-frame model scores $15.4\%$ per sample. The
+classical planners ($74$--$100\%$, all under $0.4$\,s on a single CPU core) bound
+the other side and show that the learned sampler, at $45.6\%$, is not competitive
+with them here. Because a generative planner is deployed as best-of-$N$ behind a
+collision check, we also report that per-query metric against the honest control
+for it --- the model's own untrained prior, sampled $N$ times.
 
 We regard (iii) as the transferable contribution. The residual is a few lines of
 code, costs one forward pass, requires no retraining, and can be computed on any
@@ -530,6 +532,16 @@ the same route from similar initialisations). Under a per-trajectory split a
 held-out trajectory has a training neighbour at RMS distance $0.030$; under the
 pair split this rises to $0.162$.
 
+\textbf{Two success metrics.} A sample is \emph{free} if the whole path is
+collision-free. We report the per-sample rate throughout, because it is the
+quantity the ablations compare and it is not inflated by drawing more samples.
+The deployment metric is different: a generative planner is run as best-of-$N$
+behind a collision check, so what a user experiences is the fraction of
+\emph{queries} for which at least one of $N$ samples is free. We report that
+separately in Sec.~\ref{sec:baselines}, where it can be compared against a
+baseline that is also stochastic. Mixing the two is the main way this kind of
+result gets overstated: at $N=20$ they differ by tens of points.
+
 \textbf{Statistics.} We treat the number of \emph{distinct problems} ($500$) as
 the sample size rather than the number of trajectories ($10{,}000$), since samples
 within a problem and problems within an environment are correlated. This gives a
@@ -540,6 +552,71 @@ difference of two arms.
 the reduced frame, where trajectories are canonicalised along $+\xhat$, so its
 target variance and hence its MSE are mechanically smaller. All reported
 quantities are world-frame task metrics.
+
+\subsection{Calibration: floors and ceilings}
+\label{sec:baselines}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lrrrr}
+\toprule
+Planner & Free (\%) & Clear. & Len. & s/query \\
+\midrule
+straight line               & 15.6 & 0.055 & 1.68 & $<0.001$ \\
+TrajOpt                     & 74.0 & 0.026 & 1.82 & 0.352 \\
+CHOMP                       & 88.8 & 0.019 & 1.83 & 0.394 \\
+RRT-Connect                 & 99.6 & 0.017 & 1.97 & 0.284 \\
+expert (RRT+CHOMP)          & 100.0 & 0.037 & 1.95 & 0.342 \\
+\midrule
+flow, world frame           & 15.4 & $-0.070$ & --- & 0.067 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{45.6} & $-0.010$ & --- & 0.067 \\
+\bottomrule
+\end{tabular}
+\caption{The same $500$ held-out problems, solved five other ways. Classical
+timings are one CPU core and one query; the learned rows are one GPU and $20$
+samples per query, so the columns are not a like-for-like speed comparison.
+Clearance and length are averaged over solved problems only. The learned rows are
+per-sample rates at $250$ training environments}
+\label{tab:baselines}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_baselines.pdf}
+\caption{Where the learned planner actually sits. The world-frame arm lies on the
+straight-line floor; the reduction lifts it by $30.2$ points; the classical
+planners remain far above. We show this rather than omit it: the contribution
+here is the representation result, not a competitive planner}
+\label{fig:baselines}
+\end{figure}
+
+A collision-free rate on a new benchmark means nothing without a scale, so we
+built one. Table~\ref{tab:baselines} and Fig.~\ref{fig:baselines} report four
+classical planners and a trivial baseline on the identical $500$ problems, using
+the same collision checker. Classical planners are given one query at a time and
+run single-threaded on one CPU core.
+
+Two facts frame everything that follows.
+
+\textbf{The floor.} A straight line from start to goal is collision-free on
+$15.6\%$ of these problems --- the clutter is dense, but not so dense that the
+direct path is usually blocked. The world-frame model reaches $15.4\%$ per sample.
+The two are within $0.2$ points, an order of magnitude inside the standard error.
+Whatever the world-frame arm has learned, on a per-sample basis it is worth
+nothing over connecting the endpoints with a line. This is the sharpest available
+statement of the problem the reduction solves, and it is invisible without the
+trivial baseline.
+
+\textbf{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline $100\%$,
+in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
+initialisation solves $88.8\%$. The learned sampler at $45.6\%$ is not competitive
+with any of them. We report this plainly because the alternative --- comparing a
+learned planner only against other learned planners --- is how a benchmark stops
+measuring anything. The contribution of this paper is that the representation
+change is worth $30$ points and the symmetry machinery is worth none; that
+contribution does not require the planner to win, and we do not claim it does.
 
 \subsection{The reduction scales; the baseline does not}
 
