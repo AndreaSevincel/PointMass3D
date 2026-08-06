@@ -110,8 +110,12 @@ class FlowVelocityField(nn.Module):
         groups=8,
         box_dim=12,
         sg_dim=6,
+        #3 for a point-mass trajectory; 9 for an SE(3) pose trajectory
+        #(3 position + a 6D rotation representation). See se3body/.
+        state_dim=3,
     ):
         super().__init__()
+        self.state_dim = state_dim
         self.time_dim = time_dim
         self.time_mlp = nn.Sequential(
             nn.Linear(time_dim, time_dim), nn.SiLU(), nn.Linear(time_dim, time_dim)
@@ -120,7 +124,7 @@ class FlowVelocityField(nn.Module):
         self.cond_enc = ConditionEncoder(env_dim, cond_dim, sg_dim)
 
         global_dim = time_dim + cond_dim
-        self.init_conv = nn.Conv1d(3, channels, 5, padding=2)
+        self.init_conv = nn.Conv1d(state_dim, channels, 5, padding=2)
         self.blocks = nn.ModuleList(
             [
                 FiLMResBlock(
@@ -130,7 +134,7 @@ class FlowVelocityField(nn.Module):
             ]
         )
         self.out_norm = nn.GroupNorm(groups, channels)
-        self.out_conv = nn.Conv1d(channels, 3, 1)
+        self.out_conv = nn.Conv1d(channels, state_dim, 1)
         # Start near the identity velocity field.
         nn.init.zeros_(self.out_conv.weight)
         nn.init.zeros_(self.out_conv.bias)
@@ -142,14 +146,14 @@ class FlowVelocityField(nn.Module):
         return self.cond_enc(env_emb, sg)  # (B, cond_dim)
 
     def decode(self, x, t, c):
-        # x: (B, N, 3), t: (B,), c: (B, cond_dim) from encode_cond
+        # x: (B, N, state_dim), t: (B,), c: (B, cond_dim) from encode_cond
         h = self.init_conv(x.transpose(1, 2))
         t_emb = self.time_mlp(sinusoidal_embedding(t, self.time_dim))
         cond = torch.cat([t_emb, c], dim=-1)
         for blk in self.blocks:
             h = blk(h, cond)
         h = self.out_conv(F.silu(self.out_norm(h)))
-        return h.transpose(1, 2)  # (B, N, 3)
+        return h.transpose(1, 2)  # (B, N, state_dim)
 
     def forward(self, x, t, spheres, boxes, sg, sphere_mask=None, box_mask=None):
         return self.decode(
@@ -163,4 +167,5 @@ def build_model(cfg):
     cfg = dict(cfg)
     cfg.setdefault("box_dim", 6)   # legacy: center + half-extents
     cfg.setdefault("sg_dim", 6)    # legacy: raw (start, goal)
+    cfg.setdefault("state_dim", 3)  # legacy: point-mass trajectories
     return FlowVelocityField(**cfg)

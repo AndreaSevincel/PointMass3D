@@ -47,6 +47,8 @@ def main():
                          "frame averaging is removing. 0 => already equivariant, "
                          "so a larger K_FA cannot help. Needs --k-fa > 1")
     ap.add_argument("--anchor-endpoints", action="store_true")
+    ap.add_argument("--out-json", type=str, default=None,
+                    help="write the rows to JSON for aggregate_runs.py")
     ap.add_argument("--eta", type=float, default=0.0,
                     help="ddpm arm only: 0 = deterministic DDIM, 1 = ancestral")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
@@ -209,6 +211,15 @@ def main():
     print(f"budget: {budget['steps']} steps holds within 2% "
           f"({budget['free']:.1f}% free, {budget['s_per_query']:.3f}s/query, "
           f"{ref['s_per_query']/max(budget['s_per_query'],1e-9):.1f}x faster)")
+    if args.out_json:
+        import json
+        from pathlib import Path as _Path
+        _Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
+        with open(args.out_json, "w") as f:
+            json.dump({"config": vars(args), "objective": objective,
+                       "reduced": reduced, "rows": rows}, f, indent=1)
+        print(f"wrote {args.out_json}")
+
     run.summary(budget_steps=budget["steps"], budget_free=budget["free"])
     run.finish()
 

@@ -59,7 +59,15 @@ def main():
     ap.add_argument("--lr", type=float, default=2e-4)
     ap.add_argument("--channels", type=int, default=128)
     ap.add_argument("--n-blocks", type=int, default=8)
-    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--seeds", type=int, nargs="+", default=[0],
+                    help="training seeds; the grid is run once per seed and the "
+                         "checkpoint name is suffixed -sN for N>0. Reported "
+                         "error bars should be across THESE, not across "
+                         "held-out problems -- the two measure different things")
+    ap.add_argument("--objectives", type=str, nargs="+", default=["flow"],
+                    choices=["flow", "ddpm"],
+                    help="generative objective per cell; ddpm is the "
+                         "Diffuser/MPD-style baseline sharing the backbone")
     ap.add_argument("--num-workers", type=int, default=8)
     ap.add_argument("--amp", action="store_true")
     ap.add_argument("--multi-gpu", action="store_true")
@@ -91,15 +99,23 @@ def main():
     #Cheap cells first: if something is wrong with the pipeline, it surfaces on
     #a 20-env run in minutes rather than after hours on the largest cell.
     cells = sorted(
-        itertools.product(args.arms, args.n_envs), key=lambda c: (c[1], c[0])
+        itertools.product(args.arms, args.n_envs, args.seeds, args.objectives),
+        key=lambda c: (c[1], c[0], c[2], c[3]),
     )
-    print(f"{len(cells)} cells: {args.arms} x {args.n_envs}  group={args.group}")
+    print(f"{len(cells)} cells: {args.arms} x {args.n_envs} x seeds {args.seeds}"
+          f" x {args.objectives}  group={args.group}")
     print(f"{total} shards: train from [0, {train_cap}), "
           f"held-out test [{train_cap}, {total})  split_by={args.split_by}\n")
 
     failures = []
-    for i, (arm, n_envs) in enumerate(cells, 1):
+    for i, (arm, n_envs, seed, objective) in enumerate(cells, 1):
         tag = f"{'treat' if arm == 'treatment' else 'ctrl'}-e{n_envs}"
+        #seed 0 keeps its historic name so existing checkpoints and the
+        #numbers already reported against them stay addressable
+        if objective != "flow":
+            tag = f"{objective}-{tag}"
+        if seed != 0:
+            tag = f"{tag}-s{seed}"
         cmd = [
             sys.executable, "train_flow.py",
             "--data", args.data,
@@ -110,10 +126,11 @@ def main():
             "--lr", str(args.lr),
             "--channels", str(args.channels),
             "--n-blocks", str(args.n_blocks),
-            "--seed", str(args.seed),
+            "--seed", str(seed),
             "--num-workers", str(args.num_workers),
             "--split-by", args.split_by,
             "--env-start", "0",
+            "--objective", objective,
         ]
         if arm == "treatment":
             cmd.append("--reduced")
@@ -126,7 +143,8 @@ def main():
         if not args.no_wandb:
             cmd += ["--wandb", "--wandb-group", args.group,
                     "--wandb-name", tag,
-                    "--wandb-tags", f"arm-{arm},envs-{n_envs}"]
+                    "--wandb-tags",
+                    f"arm-{arm},envs-{n_envs},seed-{seed},obj-{objective}"]
             if args.wandb_offline:
                 cmd.append("--wandb-offline")
 
