@@ -1,4 +1,5 @@
 from .body import L_SHAPE, SPHERE_RADIUS, RigidBody, SE3Env
+from .flow import decode_poses, flow_matching_loss_se3, sample_se3
 from .planner import (
     plan_se3,
     resample_se3,
@@ -28,6 +29,9 @@ __all__ = [
     "SPHERE_RADIUS",
     "RigidBody",
     "SE3Env",
+    "decode_poses",
+    "flow_matching_loss_se3",
+    "sample_se3",
     "STATE_DIM",
     "build_conditioning_se3",
     "geodesic_angle",

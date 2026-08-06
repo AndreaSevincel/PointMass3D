@@ -23,12 +23,10 @@ from pathlib import Path
 
 import numpy as np
 
-from flowmatch.geometry import aabb_edges, box_features
 from pointmass3d import make_random_env
 from se3body.body import RigidBody, SE3Env
 from se3body.planner import plan_se3
 from se3body.rotation import matrix_to_6d
-import torch
 
 
 def _scene_arrays(env):
@@ -37,9 +35,10 @@ def _scene_arrays(env):
     sph = [o for o in env.obstacles if isinstance(o, SphereObstacle)]
     box = [o for o in env.obstacles if isinstance(o, BoxObstacle)]
     spheres = np.array([[*o.center, o.radius] for o in sph], dtype=np.float64)
-    centers = torch.tensor(np.array([o.center for o in box], dtype=np.float64))
-    half = torch.tensor(np.array([o.half_extents for o in box], dtype=np.float64))
-    boxes = box_features(centers[None], aabb_edges(half)[None])[0].numpy()
+    #centre + half-extents, exactly as the point-mass generator writes them,
+    #so flowmatch.data loads these shards with no special case: it re-encodes
+    #to the 12-dim oriented form itself
+    boxes = np.array([[*o.center, *o.half_extents] for o in box], dtype=np.float64)
     return spheres, boxes
 
 

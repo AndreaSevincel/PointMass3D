@@ -113,11 +113,22 @@ def rrt_connect_se3(env, start, goal, step=0.12, margin=0.0, resolution=0.02,
 
         j, status = _extend(env, ta, p_rand, R_rand, step, w, margin, resolution)
         if status != "trapped":
-            #connect the other tree all the way to the new node
-            while True:
+            #Connect the other tree all the way to the new node. This loop MUST
+            #be bounded: the outer timeout is only checked once per iteration,
+            #so an inner loop that keeps advancing overruns the deadline by
+            #however long it takes to terminate. The cap is the number of steps
+            #needed to cross the workspace diagonal plus a half turn, which is
+            #the most any single connect can legitimately need.
+            span = np.sqrt(3.0) * (env.hi - env.lo) + w * np.pi
+            max_connect = int(span / step) + 2
+            for _ in range(max_connect):
                 k, st = _extend(env, tb, ta.pos[j], ta.rot[j], step, w, margin, resolution)
                 if st != "advanced":
                     break
+                if timeout is not None and time.perf_counter() - t0 > timeout:
+                    return None, None, {"success": False, "reason": "timeout",
+                                        "time": time.perf_counter() - t0,
+                                        "iters": it}
             if st == "reached":
                 pa = ta.path_to_root(j)
                 pb = tb.path_to_root(k)[::-1]

@@ -51,6 +51,9 @@ def parse_args():
                     help="assert the reduction is well-formed on every batch (slow)")
     #generative-model control: same backbone, same conditioning, same frame
     #options, different objective. See flowmatch/diffusion.py.
+    ap.add_argument("--domain", choices=["pointmass", "se3"], default="pointmass",
+                    help="pointmass: 3-dim waypoints. se3: 9-dim poses "
+                         "(position + 6D rotation), see se3body/")
     ap.add_argument("--objective", choices=["flow", "ddpm"], default="flow",
                     help="flow: conditional OT velocity regression. "
                          "ddpm: Diffuser/MPD-style eps-prediction")
@@ -67,6 +70,8 @@ def default_run_name(args):
         arm += "-noroll"
     if args.objective != "flow":
         arm = f"{args.objective}-{arm}"
+    if args.domain != "pointmass":
+        arm = f"{args.domain}-{arm}"
     envs = f"e{args.n_envs}" if args.n_envs else f"e{Path(args.data).name}"
     return f"{arm}-{envs}-c{args.channels}-b{args.n_blocks}-s{args.seed}"
 
@@ -85,11 +90,23 @@ def make_model_config(args):
         #After the reduction start/goal are (-+d/2, 0, 0), so the six numbers
         #collapse to the one invariant scalar d. The control genuinely needs
         #the raw pair -- this asymmetry is intrinsic to the treatment.
-        sg_dim=1 if args.reduced else 6,
+        #point mass: 6 raw numbers, or the single invariant d after reduction.
+        #SE(3): 18 raw (two poses), or d plus both orientations = 13, since the
+        #reduction canonicalises the positions but not the orientations.
+        sg_dim=(1 if args.reduced else 6) if args.domain == "pointmass"
+        else (13 if args.reduced else 18),
+        state_dim=3 if args.domain == "pointmass" else 9,
     )
 
 
 def compute_loss(net, batch, tables, args, schedule, check=False):
+    if args.domain == "se3":
+        if args.objective == "ddpm":
+            raise SystemExit("the ddpm arm is implemented for the point-mass "
+                             "domain only; use --objective flow with --domain se3")
+        from se3body.flow import flow_matching_loss_se3
+        return flow_matching_loss_se3(net, batch, tables, reduced=args.reduced,
+                                      roll=not args.no_roll, check=check)
     if args.objective == "ddpm":
         return diffusion_loss(net, batch, tables, schedule, reduced=args.reduced,
                               roll=not args.no_roll, check=check)
@@ -243,6 +260,7 @@ def main():
                     "val_loss": best_val,
                     #eval needs to know which sampler to use; absent => "flow"
                     "objective": args.objective,
+                    "domain": args.domain,
                     "diffusion_steps": args.diffusion_steps,
                     "reduced": args.reduced,
                 },

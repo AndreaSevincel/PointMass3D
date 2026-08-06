@@ -180,11 +180,23 @@ class TrajectoryDataset(Dataset):
         starts = np.concatenate([e["starts"] for e in envs])  # (M, 3) small
         goals = np.concatenate([e["goals"] for e in envs])
 
-        #normalize the big array in place — no full-size temporaries
-        trajs -= normalizer.center
-        trajs /= normalizer.scale
-        starts = normalizer.norm_pts(starts).astype(np.float32)
-        goals = normalizer.norm_pts(goals).astype(np.float32)
+        #normalize the big array in place — no full-size temporaries.
+        #A state is 3 numbers (a point-mass waypoint) or 9 (an SE(3) pose:
+        #position + 6D rotation). Only the POSITION is normalized; the rotation
+        #columns are unit vectors that are already O(1) and would be corrupted
+        #by a shift -- the same points-vs-vectors distinction as the box edges.
+        if trajs.shape[-1] == 3:
+            trajs -= normalizer.center
+            trajs /= normalizer.scale
+            starts = normalizer.norm_pts(starts).astype(np.float32)
+            goals = normalizer.norm_pts(goals).astype(np.float32)
+        else:
+            trajs[..., :3] -= normalizer.center
+            trajs[..., :3] /= normalizer.scale
+            starts = starts.copy().astype(np.float32)
+            goals = goals.copy().astype(np.float32)
+            starts[..., :3] = normalizer.norm_pts(starts[..., :3])
+            goals[..., :3] = normalizer.norm_pts(goals[..., :3])
 
         if indices is None:
             indices = np.arange(len(trajs))
