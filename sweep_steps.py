@@ -15,6 +15,7 @@ import torch
 
 from flowmatch import tracking
 from flowmatch.data import Normalizer, env_features
+from flowmatch.diffusion import Schedule, sample_diffusion, sample_diffusion_reduced
 from flowmatch.flow import sample, sample_reduced
 from flowmatch.model import build_model
 from pointmass3d import (
@@ -46,6 +47,8 @@ def main():
                          "frame averaging is removing. 0 => already equivariant, "
                          "so a larger K_FA cannot help. Needs --k-fa > 1")
     ap.add_argument("--anchor-endpoints", action="store_true")
+    ap.add_argument("--eta", type=float, default=0.0,
+                    help="ddpm arm only: 0 = deterministic DDIM, 1 = ancestral")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--seed", type=int, default=0)
     tracking.add_args(ap)
@@ -59,13 +62,19 @@ def main():
     model.load_state_dict(ckpt["ema"])
     model.eval()
     reduced = model.cond_enc.sg_dim == 1
+    #Checkpoints predating the diffusion arm have no "objective" key.
+    objective = ckpt.get("objective", "flow")
+    schedule = (Schedule(ckpt.get("diffusion_steps", 100), device=device)
+                if objective == "ddpm" else None)
+    if objective == "ddpm" and args.k_fa > 1:
+        raise SystemExit("frame averaging is implemented for the flow arm only")
     if args.k_fa > 1 and not reduced:
         raise SystemExit("--k-fa > 1 requires a reduced-frame checkpoint (sg_dim=1)")
     box_dim = model.obstacle_enc.box_dim
 
     run = tracking.from_args(
         args,
-        name=f"sweep-steps-{'treat' if reduced else 'ctrl'}-k{args.k_fa}",
+        name=f"sweep-steps-{objective}-{'treat' if reduced else 'ctrl'}-k{args.k_fa}",
         config={**vars(args), "reduced": reduced, "box_dim": box_dim},
     )
 
@@ -82,7 +91,7 @@ def main():
             [(starts[i], goals[i]) for i in idx],
         ))
 
-    header = (f"{'steps':>6} {'free%':>7} {'clearance':>10} {'ep_err':>8} "
+    header = (f"{'steps':>6} {'free%':>7} {'any%':>6} {'clearance':>10} {'ep_err':>8} "
               f"{'length':>8} {'sq_accel':>9} {'disp_ref':>9} {'s/query':>8}"
               + (f" {'residual':>9}" if (args.residual and reduced and args.k_fa > 1)
                  else ""))
@@ -95,6 +104,10 @@ def main():
     rows = []
     for n_steps in args.steps:
         free, clear, ep, length, acc = [], [], [], [], []
+        #per-sample free% is what the ablations compare, but a sampler is
+        #deployed as best-of-N behind a collision check, so also track whether
+        #ANY of the N samples for a query is free
+        solved_any = []
         paths_all, residuals = [], []
         #The residual is identically 0 at K=1 (nothing to disagree with), so
         #only ask for it when there are multiple frames to compare.
@@ -112,7 +125,24 @@ def main():
                 gen = torch.Generator(device=device).manual_seed(
                     args.seed * 100003 + n_queries
                 )
-                if reduced:
+                if objective == "ddpm":
+                    #Same NFE as the flow arm: n_steps network evaluations.
+                    if reduced:
+                        x = sample_diffusion_reduced(
+                            model, sp_b, bx_b, s_b, g_b, schedule,
+                            n_waypoints=N, n_steps=n_steps, eta=args.eta,
+                            anchor_endpoints=args.anchor_endpoints,
+                            device=device, generator=gen,
+                        )
+                    else:
+                        x = sample_diffusion(
+                            model, sp_b, bx_b, torch.cat([s_b, g_b], dim=-1),
+                            schedule, anchor_start=s_b, anchor_goal=g_b,
+                            n_waypoints=N, n_steps=n_steps, eta=args.eta,
+                            anchor_endpoints=args.anchor_endpoints,
+                            device=device, generator=gen,
+                        )
+                elif reduced:
                     out = sample_reduced(
                         model, sp_b, bx_b, s_b, g_b, k_fa=args.k_fa,
                         n_waypoints=N, n_steps=n_steps,
@@ -135,7 +165,9 @@ def main():
                     )
                 paths = norm.denorm_pts(x.cpu().numpy())
                 paths_all.append(paths)
-                free.extend(env.path_free(p) for p in paths)
+                free_q = [env.path_free(p) for p in paths]
+                free.extend(free_q)
+                solved_any.append(any(free_q))
                 clear.extend(min_clearance(env, p) for p in paths)
                 ep.extend(
                     0.5 * (np.linalg.norm(p[0] - start) + np.linalg.norm(p[-1] - goal))
@@ -155,6 +187,7 @@ def main():
 
         row = dict(
             steps=n_steps, free=100 * float(np.mean(free)),
+            solved_any=100 * float(np.mean(solved_any)),
             clearance=float(np.mean(clear)), ep_err=float(np.mean(ep)),
             length=float(np.mean(length)), sq_accel=float(np.mean(acc)),
             disp_ref=disp, s_per_query=secs,
@@ -162,7 +195,8 @@ def main():
         if want_residual:
             row["residual"] = float(np.mean(residuals))
         rows.append(row)
-        print(f"{n_steps:>6} {row['free']:>6.1f}% {row['clearance']:>10.4f} "
+        print(f"{n_steps:>6} {row['free']:>6.1f}% {row['solved_any']:>5.1f}% "
+              f"{row['clearance']:>10.4f} "
               f"{row['ep_err']:>8.4f} {row['length']:>8.4f} {row['sq_accel']:>9.5f} "
               f"{row['disp_ref']:>9.4f} {row['s_per_query']:>8.3f}"
               + (f" {row['residual']:>9.4f}" if want_residual else ""))

@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader
 
 from flowmatch import tracking
 from flowmatch.data import build_datasets
+from flowmatch.diffusion import Schedule, diffusion_loss
 from flowmatch.flow import EMA, flow_matching_loss
 from flowmatch.model import FlowVelocityField
 
@@ -48,6 +49,13 @@ def parse_args():
                          "(30 near-duplicate paths per pair); pair is the default")
     ap.add_argument("--check-frame", action="store_true",
                     help="assert the reduction is well-formed on every batch (slow)")
+    #generative-model control: same backbone, same conditioning, same frame
+    #options, different objective. See flowmatch/diffusion.py.
+    ap.add_argument("--objective", choices=["flow", "ddpm"], default="flow",
+                    help="flow: conditional OT velocity regression. "
+                         "ddpm: Diffuser/MPD-style eps-prediction")
+    ap.add_argument("--diffusion-steps", type=int, default=100,
+                    help="T for --objective ddpm (sampling NFE is set at eval)")
     tracking.add_args(ap)
     return ap.parse_args()
 
@@ -57,6 +65,8 @@ def default_run_name(args):
     arm = "treat" if args.reduced else "ctrl"
     if args.reduced and args.no_roll:
         arm += "-noroll"
+    if args.objective != "flow":
+        arm = f"{args.objective}-{arm}"
     envs = f"e{args.n_envs}" if args.n_envs else f"e{Path(args.data).name}"
     return f"{arm}-{envs}-c{args.channels}-b{args.n_blocks}-s{args.seed}"
 
@@ -79,13 +89,21 @@ def make_model_config(args):
     )
 
 
-def evaluate(net, loader, tables, device, reduced=False, roll=True):
+def compute_loss(net, batch, tables, args, schedule, check=False):
+    if args.objective == "ddpm":
+        return diffusion_loss(net, batch, tables, schedule, reduced=args.reduced,
+                              roll=not args.no_roll, check=check)
+    return flow_matching_loss(net, batch, tables, reduced=args.reduced,
+                              roll=not args.no_roll, check=check)
+
+
+def evaluate(net, loader, tables, device, args, schedule):
     net.eval()
     total, n = 0.0, 0
     with torch.no_grad():
         for batch in loader:
             batch = {k: v.to(device) for k, v in batch.items()}
-            loss = flow_matching_loss(net, batch, tables, reduced=reduced, roll=roll)
+            loss = compute_loss(net, batch, tables, args, schedule)
             bs = batch["traj"].shape[0]
             total += loss.item() * bs
             n += bs
@@ -151,6 +169,9 @@ def main():
     if run.active:
         print(f"wandb: {run.url}")
 
+    #Noise schedule for --objective ddpm; unused by the flow arm.
+    schedule = Schedule(args.diffusion_steps, device=device)
+
     opt = torch.optim.AdamW(core.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     use_amp = args.amp and device.type == "cuda"
     try:  # current API (torch >= 2.3); fall back for older builds
@@ -171,10 +192,8 @@ def main():
             batch = {k: v.to(device, non_blocking=True) for k, v in batch.items()}
             opt.zero_grad(set_to_none=True)
             with torch.autocast(device_type=device.type, enabled=use_amp):
-                loss = flow_matching_loss(
-                    net, batch, tables, reduced=args.reduced,
-                    roll=not args.no_roll, check=args.check_frame,
-                )
+                loss = compute_loss(net, batch, tables, args, schedule,
+                                    check=args.check_frame)
             scaler.scale(loss).backward()
             scaler.step(opt)
             scaler.update()
@@ -191,10 +210,8 @@ def main():
         train_loss = running / max(seen, 1)
         msg = f"epoch {epoch:03d}  train {train_loss:.4f}"
         if val_loader is not None:
-            val_loss = evaluate(
-                ema.shadow, val_loader, tables, device,
-                reduced=args.reduced, roll=not args.no_roll,
-            )
+            val_loss = evaluate(ema.shadow, val_loader, tables, device,
+                                args, schedule)
             msg += f"  val(ema) {val_loss:.4f}"
         else:
             val_loss = train_loss
@@ -224,6 +241,10 @@ def main():
                     "n_waypoints": train_ds.trajs.shape[1],
                     "epoch": epoch,
                     "val_loss": best_val,
+                    #eval needs to know which sampler to use; absent => "flow"
+                    "objective": args.objective,
+                    "diffusion_steps": args.diffusion_steps,
+                    "reduced": args.reduced,
                 },
                 args.out,
             )

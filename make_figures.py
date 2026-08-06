@@ -29,6 +29,21 @@ RESID_ENVS = [60, 250]
 RESID = [0.0186, 0.0157]
 RESID_NOROLL = (60, 0.0292)
 
+# classical reference points, measured by baselines_classical.py on the SAME
+# 500 held-out problems (envs 250-299 x 10 pairs). Times are single-core CPU.
+CLASSICAL = [
+    ("RRT-Connect", 99.6, 0.284),
+    ("expert (RRT+CHOMP)", 100.0, 0.342),
+    ("CHOMP", 88.8, 0.394),
+    ("TrajOpt", 74.0, 0.352),
+]
+STRAIGHT_LINE = 15.6           # trivial baseline: the segment start -> goal
+# learned arms at 250 training envs, 8 Euler steps, 20 samples/query on one GPU
+LEARNED = [
+    (r"world frame", 15.4, 0.067),
+    (r"$(s,g)$ reduction", 45.6, 0.067),
+]
+
 C_CTRL = "#3E6DA8"
 C_TREAT = "#C2560F"
 INK = "#333333"
@@ -151,7 +166,75 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     print(f"wrote {out}")
 
 
+def fig_baselines(out="fig_baselines.pdf"):
+    """Where the learned planner actually sits. Success against wall-clock,
+    with the straight-line floor drawn as a reference: the world-frame arm is
+    on it, which is the finding, and the classical planners are far above."""
+    fig, ax = plt.subplots(figsize=(3.35, 2.75))
+
+    #the trivial baseline is a threshold, not a competitor -- draw it as a rule
+    ax.axhline(STRAIGHT_LINE, color=MUTED, linewidth=1, linestyle=(0, (4, 3)),
+               zorder=1)
+    ax.annotate(f"straight line ({STRAIGHT_LINE}%)", xy=(1.35, STRAIGHT_LINE),
+                xytext=(0, -9), textcoords="offset points", fontsize=6.5,
+                color=MUTED, ha="right")
+
+    #hand-placed so no label touches another; the points are too clustered in
+    #x for any single rule to work
+    PLACE = {
+        "RRT-Connect":        (-9, 3, "right", "bottom"),
+        "expert (RRT+CHOMP)": (9, 2, "left", "bottom"),
+        "CHOMP":              (9, 0, "left", "center"),
+        "TrajOpt":            (9, 0, "left", "center"),
+        "world frame":        (9, 1, "left", "bottom"),
+        r"$(s,g)$ reduction": (9, 0, "left", "center"),
+    }
+
+    xs = [t for _, _, t in CLASSICAL]
+    ys = [s for _, s, _ in CLASSICAL]
+    ax.plot(xs, ys, "s", color=C_CTRL, markersize=6, zorder=3,
+            label="classical (1 CPU core)")
+    xs = [t for _, _, t in LEARNED]
+    ys = [s for _, s, _ in LEARNED]
+    ax.plot(xs, ys, "o", color=C_TREAT, markersize=7, zorder=3,
+            label="learned (1 GPU, 20 samples)")
+
+    for name, s, t in CLASSICAL + LEARNED:
+        dx, dy, ha, va = PLACE[name]
+        ax.annotate(name, xy=(t, s), xytext=(dx, dy), textcoords="offset points",
+                    fontsize=6.5, color=INK, ha=ha, va=va)
+
+    #the gap the paper closes, and the gap it does not
+    ax.annotate("", xy=(0.067, 45.6), xytext=(0.067, 15.4),
+                arrowprops=dict(arrowstyle="<->", color=C_TREAT, linewidth=1.1,
+                                shrinkA=3, shrinkB=3))
+    ax.annotate("+30.2", xy=(0.067, 30), xytext=(-4, 0),
+                textcoords="offset points", fontsize=7, color=C_TREAT,
+                ha="right", va="center", fontweight="bold")
+
+    ax.set_xscale("log")
+    ax.set_xlim(0.035, 2.6)
+    ax.set_xticks([0.05, 0.1, 0.3, 1.0])
+    ax.set_xticklabels(["0.05", "0.1", "0.3", "1.0"])
+    ax.minorticks_off()
+    ax.set_ylim(0, 108)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.set_xlabel("Wall-clock per query (s, log scale)", fontsize=7.5)
+    ax.set_ylabel("Collision-free rate (%)", fontsize=7.5)
+    ax.tick_params(labelsize=7)
+    ax.grid(axis="y", color="0.9", linewidth=0.7)
+    _despine(ax)
+    #empty mid-left region; anywhere lower collides with the world-frame point
+    ax.legend(frameon=False, fontsize=6.5, loc="center left", handletextpad=0.4,
+              bbox_to_anchor=(-0.02, 0.66))
+
+    fig.tight_layout(pad=0.4)
+    fig.savefig(out)
+    print(f"wrote {out}")
+
+
 if __name__ == "__main__":
     fig_scaling()                                        # main.tex, 0.82\textwidth
     fig_scaling("fig_scaling_col.pdf", size=(3.35, 2.45), fs=7.0)   # paper.tex, one column
     fig_mechanisms()                                     # paper.tex, figure* (both columns)
+    fig_baselines()                                      # paper.tex, one column

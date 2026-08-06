@@ -105,20 +105,31 @@ independent obstructions, one topological and one distributional. We therefore
 treat the sixth by symmetry: roll augmentation during training and frame
 averaging at inference.
 
-On a cluttered 3D point-mass benchmark the reduction raises the held-out
-collision-free rate from $15.4\%$ to $45.6\%$ ($\approx\!11$ standard errors),
-and, contrary to the hypothesis that canonicalisation is a small-data crutch, the
-gap \emph{widens} monotonically with training data: the world-frame baseline gains
-$2.6$ points across a $12.5\times$ increase in training environments while the
-canonicalised model gains $26.6$ and has not plateaued. The two symmetry
-mechanisms contribute $+1.2$ and $+0.2$ points, both inside noise. We explain this
-rather than merely reporting it, by measuring the \emph{non-equivariance
-residual}: only $1.6\%$ of the learned velocity field lies outside the equivariant
-subspace, and that fraction \emph{decreases} with scale. Because frame averaging
-is the orthogonal projection onto that subspace, $1.6\%$ is the entire budget any
-post-hoc symmetrisation of this model can spend. We propose the residual as a
-one-line pre-flight check for equivariant design: measure it first, and build the
-constrained architecture only if it is large.
+The size of the effect is best read against a floor rather than in isolation. On
+a cluttered 3D point-mass benchmark, world-frame flow matching reaches $15.4\%$
+collision-free on held-out environments --- statistically indistinguishable from
+the $15.6\%$ obtained by joining start to goal with a straight line, measured on
+the identical problems. Without the reduction the learned model does not beat the
+trivial baseline. With it, the same network, data and budget reach $45.6\%$, and,
+contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
+\emph{widens} monotonically with training data: the world-frame arm gains $2.6$
+points across a $12.5\times$ increase in training environments while the
+canonicalised arm gains $26.6$ and has not plateaued.
+
+The two mechanisms built for the sixth degree of freedom contribute $+1.2$ and
+$+0.2$ points, both inside noise. We explain this rather than merely reporting it,
+by measuring the \emph{non-equivariance residual}: only $1.6\%$ of the learned
+velocity field lies outside the equivariant subspace, and that fraction
+\emph{decreases} with scale. Because frame averaging is the orthogonal projection
+onto that subspace, $1.6\%$ is the entire budget any post-hoc symmetrisation of
+this model can spend. We propose the residual as a one-line pre-flight check for
+equivariant design: measure it first, and build the constrained architecture only
+if it is large.
+
+We report classical planners on the same $500$ problems to fix the scale
+(RRT-Connect $99.6\%$, CHOMP $88.8\%$, all under $0.4$\,s on one CPU core). The
+learned sampler does not approach them, and we present this as a controlled study
+of representation choices, not as a planner proposal.
 \end{abstract}
 
 \section{Introduction}
@@ -153,7 +164,7 @@ paper asks how far that route goes on a generative motion planning problem, and
 --- more importantly --- how one can \emph{know in advance} whether the expensive
 route is worth taking.
 
-Our answer has three parts.
+Our answer has four parts.
 
 \textbf{(i) Five of six degrees of freedom are free.} The query supplies a frame.
 Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the first
@@ -186,6 +197,16 @@ post-hoc symmetrisation of this model (Corollary~\ref{cor:budget}). The residual
 moreover \emph{shrinks} with training data, from $1.86\%$ to $1.57\%$: the
 property an equivariant architecture would impose is arriving on its own and
 strengthening.
+
+\textbf{(iv) Calibration against floors and ceilings.} A collision-free rate is
+uninterpretable on a new benchmark, so we measure, on the identical $500$ held-out
+problems, both a trivial lower bound and four classical planners. The trivial
+bound is the finding: a straight line from start to goal is collision-free on
+$15.6\%$ of problems, and the world-frame model scores $15.4\%$. The baseline arm
+of the comparison --- the configuration a practitioner would reach for by default
+--- has learned nothing that beats a straight line. The classical planners
+($74$--$100\%$, all under $0.4$\,s on a single CPU core) bound the other side and
+show that the learned sampler, at $45.6\%$, is not competitive with them here.
 
 We regard (iii) as the transferable contribution. The residual is a few lines of
 code, costs one forward pass, requires no retraining, and can be computed on any
