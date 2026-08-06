@@ -15,6 +15,7 @@ import torch
 from flowmatch.geometry import (
     aabb_edges,
     apply_points,
+    apply_vectors,
     box_features,
     check_frame,
     rotate_box_features,
@@ -236,6 +237,69 @@ def test_inverse_recovers_world():
     back = torch.einsum("bji,bkj->bki", R, p_r) + origin[:, None, :]  # R^T @ p + o
     assert torch.allclose(back, centers, atol=1e-5), (back - centers).abs().max()
     print("ok  reduced -> world round-trip exact")
+
+
+def test_se3_reduces_to_a_single_roll():
+    #Proposition 1 of the writeup, stated as it is actually true. Moving the
+    #whole problem by a rigid T does NOT leave the reduced representation
+    #unchanged: y_hat is built from a FIXED world axis e_{i*}, so a global
+    #rotation changes which axis is chosen and rolls the frame. What must hold
+    #-- and what the roll augmentation and frame averaging are premised on --
+    #is that the entire residual is ONE roll about x_hat, shared by the
+    #trajectory, the sphere centres and the box edges alike. The claim
+    #"the reduced representation is bit-identical under SE(3)" is too strong;
+    #this is the correct version, and it says SE(3) collapses to SO(2).
+    from flowmatch.flow import reduce_batch
+
+    rng = np.random.default_rng(21)
+    B, N, K = 6, 16, 7
+    traj = torch.tensor(rng.standard_normal((B, N, 3)) * 0.3)
+    start, goal = traj[:, 0, :] - 1.0, traj[:, -1, :] + 1.0
+    traj[:, 0, :], traj[:, -1, :] = start, goal
+    spheres = torch.tensor(np.concatenate(
+        [rng.standard_normal((B, K, 3)), rng.uniform(0.05, 0.2, (B, K, 1))], -1))
+    boxes = box_features(torch.tensor(rng.standard_normal((B, K, 3))),
+                         aabb_edges(torch.tensor(rng.uniform(0.05, 0.2, (B, K, 3)))))
+
+    #a random rigid motion, written through apply_points as R=Q, origin=-Q^T t
+    Q, _ = torch.linalg.qr(torch.tensor(rng.standard_normal((B, 3, 3))))
+    Q = Q * torch.sign(torch.linalg.det(Q))[:, None, None]
+    t = torch.tensor(rng.standard_normal((B, 3)) * 3.0)
+    o = -torch.einsum("bji,bj->bi", Q, t)
+    moved = (
+        apply_points(Q, o, traj),
+        apply_points(Q, o, start[:, None, :])[:, 0],
+        apply_points(Q, o, goal[:, None, :])[:, 0],
+        torch.cat([apply_points(Q, o, spheres[..., :3]), spheres[..., 3:]], -1),
+        torch.cat([apply_points(Q, o, boxes[..., :3]),
+                   apply_vectors(Q, boxes[..., 3:].reshape(B, K * 3, 3)
+                                 ).reshape(B, K, 9)], -1),
+    )
+
+    a = reduce_batch(traj, start, goal, spheres, boxes, roll=False)
+    b = reduce_batch(*moved, roll=False)
+    Ra, _, da = sg_frame(start, goal, None)
+    Rb, _, db = sg_frame(moved[1], moved[2], None)
+    M = torch.einsum("bij,bjk,blk->bil", Rb, Q, Ra)          # a-frame -> b-frame
+
+    e1 = torch.zeros(B, 3, dtype=M.dtype); e1[:, 0] = 1.0
+    assert torch.allclose(M[:, 0, :], e1, atol=1e-9), "residual is not a roll about x"
+    assert torch.allclose(torch.einsum("bij,bkj->bik", M, M),
+                          torch.eye(3, dtype=M.dtype).expand(B, 3, 3), atol=1e-9)
+
+    def rot(v):
+        return torch.einsum("bij,bkj->bki", M, v)
+
+    assert torch.allclose(rot(a[0]), b[0], atol=1e-9)
+    assert torch.allclose(rot(a[2][..., :3]), b[2][..., :3], atol=1e-9)
+    assert torch.allclose(rot(a[3][..., 3:].reshape(B, K * 3, 3)),
+                          b[3][..., 3:].reshape(B, K * 3, 3), atol=1e-9)
+    #and the roll-invariant coordinates are preserved outright
+    assert torch.allclose(a[0][..., 0], b[0][..., 0], atol=1e-9)
+    assert torch.allclose(a[0][..., 1:3].norm(dim=-1),
+                          b[0][..., 1:3].norm(dim=-1), atol=1e-9)
+    assert torch.allclose(da, db, atol=1e-9)
+    print("ok  SE(3) reduces to exactly one roll (x, rho, d invariant)")
 
 
 if __name__ == "__main__":

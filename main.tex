@@ -153,12 +153,20 @@ five of them.
 \end{itemize}
 
 The five removable degrees of freedom yield \emph{exact} equivariance, not an
-approximation, and this deserves emphasis. The frame is computed from the query. Under
-a rigid transformation $T$, the points $\svec$ and $\gvec$ transform with the problem,
-so the frame transforms with them and the reduced-frame representation is
-\emph{bit-identical}. The network never observes the pose; it cannot be sensitive to
-something it is not shown. This is a stronger guarantee than any trained architecture
-provides, and it holds to floating-point precision.
+approximation, and this deserves emphasis --- as does what it does not say. The frame
+is computed from the query, so under a rigid transformation $T$ the points $\svec$ and
+$\gvec$ transform with the problem and the frame transforms with them. The
+reduced-frame representation is \emph{not} bit-identical, however, because the gauge
+$\yhat$ is built from a fixed world axis $\mathbf{e}_{i^\ast}$: rotating the whole
+problem changes which axis is selected and rolls the frame. What is bit-identical is
+everything a roll about $\xhat$ leaves alone --- the distance $d$, the $x$-coordinate
+of every reduced point, and its radius in the $y$--$z$ plane --- and the entire
+residual is that single shared roll. The reduction collapses $\SE$ to $\mathrm{SO}(2)$
+rather than to nothing, which is exactly why the mechanisms of the next section are
+needed at all. Within those five degrees of freedom the network never observes the
+pose and cannot be sensitive to something it is not shown; that part is a stronger
+guarantee than any trained architecture provides, and it holds to floating-point
+precision (verified to $10^{-15}$).
 
 \subsection{Why the sixth degree of freedom is not removable}
 

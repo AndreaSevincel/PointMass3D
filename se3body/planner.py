@@ -18,26 +18,52 @@ from .rotation import geodesic_angle, interpolate, rand_rotation, slerp
 
 
 class _Tree:
-    def __init__(self, p0, R0):
-        self.pos = [np.asarray(p0, dtype=float)]
-        self.rot = [np.asarray(R0, dtype=float)]
+    #Nodes live in preallocated arrays rather than Python lists because
+    #nearest() is called once per iteration and is the whole cost of the
+    #planner: a list comprehension calling geodesic_angle per node makes the
+    #search O(n) Python-level matrix ops and the planner unusable past a few
+    #hundred nodes. Vectorised, the same search is one einsum.
+    def __init__(self, p0, R0, capacity=1024):
+        self._pos = np.empty((capacity, 3))
+        self._rot = np.empty((capacity, 3, 3))
         self.parent = [-1]
+        self._pos[0] = np.asarray(p0, dtype=float)
+        self._rot[0] = np.asarray(R0, dtype=float)
+        self.n = 1
+
+    @property
+    def pos(self):
+        return self._pos[:self.n]
+
+    @property
+    def rot(self):
+        return self._rot[:self.n]
+
+    def _grow(self):
+        if self.n < len(self._pos):
+            return
+        self._pos = np.concatenate([self._pos, np.empty_like(self._pos)])
+        self._rot = np.concatenate([self._rot, np.empty_like(self._rot)])
 
     def nearest(self, p, R, w):
-        d = [np.linalg.norm(p - self.pos[i]) + w * geodesic_angle(self.rot[i], R)
-             for i in range(len(self.pos))]
-        return int(np.argmin(d))
+        #trace(A^T B) summed elementwise; arccos of the standard SO(3) formula
+        tr = np.einsum("nij,ij->n", self._rot[:self.n], R)
+        ang = np.arccos(np.clip((tr - 1.0) / 2.0, -1.0, 1.0))
+        lin = np.linalg.norm(self._pos[:self.n] - p, axis=-1)
+        return int(np.argmin(lin + w * ang))
 
     def add(self, p, R, parent):
-        self.pos.append(np.asarray(p, dtype=float))
-        self.rot.append(np.asarray(R, dtype=float))
+        self._grow()
+        self._pos[self.n] = np.asarray(p, dtype=float)
+        self._rot[self.n] = np.asarray(R, dtype=float)
         self.parent.append(parent)
-        return len(self.pos) - 1
+        self.n += 1
+        return self.n - 1
 
     def path_to_root(self, idx):
         out = []
         while idx != -1:
-            out.append((self.pos[idx], self.rot[idx]))
+            out.append((self._pos[idx].copy(), self._rot[idx].copy()))
             idx = self.parent[idx]
         return out[::-1]
 
@@ -104,7 +130,7 @@ def rrt_connect_se3(env, start, goal, step=0.12, margin=0.0, resolution=0.02,
                     pos, rot = pos[::-1].copy(), rot[::-1].copy()
                 return pos, rot, {"success": True, "iters": it,
                                   "time": time.perf_counter() - t0,
-                                  "nodes": len(ta.pos) + len(tb.pos)}
+                                  "nodes": ta.n + tb.n}
         ta, tb = tb, ta
 
     return None, None, {"success": False, "reason": "max_iters",

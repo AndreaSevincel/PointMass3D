@@ -172,11 +172,15 @@ Our answer has four parts.
 Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the first
 axis with the start--goal direction removes three translational and two rotational
 degrees of freedom, exactly and at no cost. The resulting representation is
-\emph{bit-identical} under any rigid transformation of the problem
-(Proposition~\ref{prop:exact}) --- a stronger guarantee than a trained equivariant
-architecture provides, since it holds to floating-point precision rather than to
-optimisation tolerance. As a side effect the six numbers previously used to
-condition the network on the query collapse to a single invariant scalar.
+invariant under any rigid transformation of the problem \emph{up to a single
+roll about the start--goal axis}, and invariant outright in the five coordinates
+that roll does not touch (Proposition~\ref{prop:exact}). Within those five that
+is a stronger guarantee than a trained equivariant architecture provides, since
+it holds to floating-point precision at initialisation rather than to
+optimisation tolerance. The reduction therefore collapses $\SE$ to
+$\mathrm{SO}(2)$; the remaining roll is what the rest of the paper is about. As
+a side effect the six numbers previously used to condition the network on the
+query collapse to a single invariant scalar.
 
 \textbf{(ii) The sixth is provably not removable, for two unrelated reasons.} No
 continuous rule can fix the roll about the start--goal axis: such a rule is a
@@ -329,27 +333,48 @@ Eq.~\eqref{eq:frame} has norm $\ge\sqrt{2/3}\approx0.816$ everywhere, so the
 construction is well-conditioned over the entire domain with no threshold or
 fallback branch, and $\det R=+1$ by construction.
 
-\begin{proposition}[Exactness]
+\begin{proposition}[$\SE$ reduces to a single roll]
 \label{prop:exact}
-For every $T=(Q,\mathbf{t})\in\SE$, the reduced representation of the transformed
-problem $(T\mathcal{O},T\svec,T\gvec)$ equals that of $(\mathcal{O},\svec,\gvec)$.
+Let $X$ denote the reduced representation of $(\mathcal{O},\svec,\gvec)$ and $X'$
+that of $(T\mathcal{O},T\svec,T\gvec)$ for $T=(Q,\mathbf{t})\in\SE$. Then there is
+a single angle $\theta(T,\svec,\gvec)$ such that
+\begin{equation}
+  X' \;=\; R_{\xhat}(\theta)\, X ,
+  \label{eq:prop1}
+\end{equation}
+where $R_{\xhat}(\theta)$ is the rotation by $\theta$ about the first axis,
+applied to every reduced quantity --- waypoints, obstacle centres and obstacle
+edge vectors alike. Consequently $d$, the first coordinate of every reduced
+point, and its radius in the plane normal to that axis are invariant under all of
+$\SE$; the residual ambiguity is exactly one degree of freedom.
 \end{proposition}
 
 \begin{proof}[Proof sketch]
 Under $T$ the midpoint maps to $Q\mathbf{o}+\mathbf{t}$ and the direction to
-$Q\xhat$. The tie-break index $i^\ast$ is the only discontinuous element of the
-construction; away from its measure-zero tie set the frame transforms as
-$R\mapsto RQ^\top$, so
-$RQ^\top\!\left(Q\mathbf{p}+\mathbf{t}-Q\mathbf{o}-\mathbf{t}\right)=R(\mathbf{p}-\mathbf{o})$.
+$Q\xhat$, so both frames send the start--goal direction to the first basis
+vector. A change of basis between two right-handed orthonormal frames that agree
+on their first axis is a rotation about that axis, which gives
+Eq.~\eqref{eq:prop1}; the invariants named are exactly the invariants of that
+rotation.
 \end{proof}
 
-The consequence worth stating plainly: the network never observes the pose, so it
-cannot be sensitive to it. This is not an approximation that training tightens ---
-it holds identically, to floating-point precision, at initialisation. Two further
-consequences follow. The six numbers $(\svec,\gvec)$ collapse to the single
-invariant scalar $d$, and every pair of training examples that were ``the same
-problem in a different pose'' now coincide, raising the effective density of the
-training set without generating a single new trajectory.
+It is worth being precise about what this does \emph{not} say, because the
+stronger claim is tempting and false. The reduced representation is not invariant
+under $\SE$. The gauge $\yhat$ in Eq.~\eqref{eq:frame} is built from a
+\emph{fixed world axis} $\mathbf{e}_{i^\ast}$, so rotating the whole problem
+changes which axis is selected and rolls the frame. What Proposition~\ref{prop:exact}
+establishes is that the entire residual is that one roll --- $\SE$ collapses to
+$\mathrm{SO}(2)$, not to nothing. Five degrees of freedom are removed exactly, to
+floating-point precision, at initialisation and without any training; the sixth
+survives as a gauge ambiguity. This is precisely why the mechanisms of
+Sec.~\ref{sec:sixth} exist, and a reader who took the representation to be fully
+invariant would find those mechanisms unmotivated. We verify
+Eq.~\eqref{eq:prop1} numerically to $10^{-15}$ in both domains.
+
+Two further consequences follow. The six numbers $(\svec,\gvec)$ collapse to the
+single invariant scalar $d$, and every pair of training examples that were ``the
+same problem in a different pose'' now coincide up to a roll, raising the
+effective density of the training set without generating a single new trajectory.
 
 \subsection{Why the sixth degree of freedom is not removable}
 
@@ -395,6 +420,7 @@ ambiguous by construction, and would not transfer to a realistic scene
 distribution. Both routes to a canonical roll are closed, for unrelated reasons.
 
 \subsection{Handling the sixth by symmetry}
+\label{sec:sixth}
 
 \textbf{Roll augmentation.} During training a uniform $\theta\sim\mathcal{U}[0,2\pi)$
 is composed into $R$, so reduction and roll are applied as a single rotation. The
