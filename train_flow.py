@@ -33,6 +33,9 @@ def parse_args():
     ap.add_argument("--multi-gpu", action="store_true", help="DataParallel over all visible GPUs")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
     ap.add_argument("--log-every", type=int, default=50)
+    ap.add_argument("--compile", action="store_true",
+                    help="torch.compile the model. Often 1.3-2x on this "
+                         "conv trunk, at the cost of a slow first epoch")
     # model
     ap.add_argument("--channels", type=int, default=128)
     ap.add_argument("--n-blocks", type=int, default=8)
@@ -150,6 +153,14 @@ def main():
     args = parse_args()
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
+    if device.type == "cuda":
+        #Shapes are fixed for the whole run, so let cuDNN autotune once instead
+        #of picking a generic algorithm every call. TF32 costs nothing here:
+        #the targets are noisy regression values, not something needing full
+        #fp32 mantissa.
+        torch.backends.cudnn.benchmark = True
+        torch.backends.cuda.matmul.allow_tf32 = True
+        torch.backends.cudnn.allow_tf32 = True
     print(f"device={device}  cuda_devices={torch.cuda.device_count()}")
 
     train_ds, val_ds, normalizer, _ = build_datasets(
@@ -168,9 +179,15 @@ def main():
         "box_mask": train_ds.box_mask.to(device),
     }
 
+    #persistent_workers matters here: without it the worker processes are torn
+    #down and respawned every epoch, and each respawn re-imports torch and
+    #re-inherits the dataset. Over 20-60 epochs that is pure overhead.
     train_loader = DataLoader(
         train_ds, batch_size=args.batch, shuffle=True,
-        num_workers=args.num_workers, drop_last=True, pin_memory=(device.type == "cuda"),
+        num_workers=args.num_workers, drop_last=True,
+        pin_memory=(device.type == "cuda"),
+        persistent_workers=args.num_workers > 0,
+        prefetch_factor=4 if args.num_workers > 0 else None,
     )
     val_loader = (
         DataLoader(val_ds, batch_size=args.batch, num_workers=args.num_workers)
@@ -202,6 +219,8 @@ def main():
 
     ema = EMA(core, decay=args.ema_decay)
     net = core
+    if args.compile:
+        net = torch.compile(net)
     if args.multi_gpu and torch.cuda.device_count() > 1:
         net = torch.nn.DataParallel(core)
         print(f"DataParallel over {torch.cuda.device_count()} GPUs")

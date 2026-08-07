@@ -25,7 +25,7 @@ import numpy as np
 
 from pointmass3d import make_random_env
 from se3body.body import RigidBody, SE3Env
-from se3body.planner import plan_se3
+from se3body.planner import plan_se3, rrt_connect_se3
 from se3body.rotation import matrix_to_6d
 
 
@@ -44,7 +44,7 @@ def _scene_arrays(env):
 
 def generate_env(task):
     (idx, n_pairs, n_trajs, n_waypoints, n_spheres, n_boxes, min_dist,
-     seed, out_dir, timeout) = task
+     seed, out_dir, timeout, shortcut_iters, fresh_tree) = task
     path = Path(out_dir) / f"env_{idx:04d}.npz"
     if path.exists():
         return idx, "skip", 0, 0.0
@@ -67,11 +67,26 @@ def generate_env(task):
         if np.linalg.norm(pg - ps) < min_dist:
             continue
 
+        #One tree per pair, then n_trajs randomised shortcut variants of it.
+        #A fresh RRT per trajectory costs n_trajs times as much and buys little:
+        #the point-mass dataset showed within-pair paths are near-duplicates
+        #regardless (std 0.054 within pair vs 0.426 overall), so the expensive
+        #source of diversity was already not paying for itself. --fresh-tree
+        #restores the old behaviour.
+        raw = None
+        if not fresh_tree:
+            rpos, rrot, rinfo = rrt_connect_se3(env, (ps, Rs), (pg, Rg),
+                                                rng=rng, timeout=timeout)
+            if rpos is None:
+                continue
+            raw = (rpos, rrot)
+
         got = []
         for _ in range(n_trajs):
             pos, rot, info = plan_se3(env, (ps, Rs), (pg, Rg),
                                       n_waypoints=n_waypoints, rng=rng,
-                                      timeout=timeout)
+                                      timeout=timeout, shortcut_iters=shortcut_iters,
+                                      raw=raw)
             if pos is None or not info["success"]:
                 continue
             got.append(np.concatenate([pos, matrix_to_6d(rot)], axis=-1))
@@ -126,6 +141,13 @@ def main():
     ap.add_argument("--min-dist", type=float, default=1.5)
     ap.add_argument("--timeout", type=float, default=20.0,
                     help="per-plan RRT timeout in seconds")
+    ap.add_argument("--shortcut-iters", type=int, default=200,
+                    help="max randomised shortcut proposals per path; it stops "
+                         "early once they stop succeeding")
+    ap.add_argument("--fresh-tree", action="store_true",
+                    help="run a full RRT per trajectory instead of reusing one "
+                         "tree per pair. n_trajs times slower, marginally more "
+                         "diverse")
     ap.add_argument("--workers", type=int, default=os.cpu_count())
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--out", type=str, default="data_se3")
@@ -135,7 +157,7 @@ def main():
     tasks = [
         (i, args.n_pairs, args.n_trajs, args.n_waypoints, args.n_spheres,
          args.n_boxes, args.min_dist, args.seed * 100003 + i, args.out,
-         args.timeout)
+         args.timeout, args.shortcut_iters, args.fresh_tree)
         for i in range(args.n_envs)
     ]
     print(f"{len(tasks)} environments x {args.n_pairs} pairs x {args.n_trajs} "

@@ -148,14 +148,22 @@ def rrt_connect_se3(env, start, goal, step=0.12, margin=0.0, resolution=0.02,
                         "time": time.perf_counter() - t0, "iters": max_iters}
 
 
-def shortcut_se3(env, pos, rot, iters=200, margin=0.0, resolution=0.02, rng=None):
+def shortcut_se3(env, pos, rot, iters=200, margin=0.0, resolution=0.02, rng=None,
+                 patience=40):
     #Randomised shortcutting on the mixed metric. Waypoints are dropped only
     #when the straight-and-geodesic connection between the survivors is free.
+
+    #Shortcutting saturates: once the path is short, nearly every proposal is
+    #a long segment through clutter that fails, and each failure still pays for
+    #a full-resolution collision check. `patience` stops after that many
+    #consecutive failures, which is where the remaining iterations stop buying
+    #anything. This is the single most expensive stage of generation.
     rng = np.random.default_rng(rng)
     pos = [p.copy() for p in pos]
     rot = [r.copy() for r in rot]
+    since_win = 0
     for _ in range(iters):
-        if len(pos) <= 2:
+        if len(pos) <= 2 or since_win >= patience:
             break
         i, j = sorted(rng.integers(0, len(pos), size=2))
         if j - i < 2:
@@ -163,6 +171,9 @@ def shortcut_se3(env, pos, rot, iters=200, margin=0.0, resolution=0.02, rng=None
         if env.segment_free(pos[i], rot[i], pos[j], rot[j], margin, resolution):
             pos = pos[:i + 1] + pos[j:]
             rot = rot[:i + 1] + rot[j:]
+            since_win = 0
+        else:
+            since_win += 1
     return np.array(pos), np.array(rot)
 
 
@@ -194,11 +205,22 @@ def resample_se3(pos, rot, n):
 
 
 def plan_se3(env, start, goal, n_waypoints=64, rng=None, timeout=None,
-             shortcut_iters=200):
-    """Full expert pipeline: RRT-Connect, shortcut, resample."""
-    pos, rot, info = rrt_connect_se3(env, start, goal, rng=rng, timeout=timeout)
-    if pos is None:
-        return None, None, info
+             shortcut_iters=200, raw=None):
+    """Full expert pipeline: RRT-Connect, shortcut, resample.
+
+    `raw` optionally supplies an already-computed (positions, rotations) tree
+    path for this query, skipping the RRT stage. Shortcutting is randomised, so
+    repeated calls on the same raw path still give different trajectories --
+    which is what the n_trajs axis of the dataset wants, at a fraction of the
+    cost of a fresh tree per trajectory.
+    """
+    if raw is None:
+        pos, rot, info = rrt_connect_se3(env, start, goal, rng=rng, timeout=timeout)
+        if pos is None:
+            return None, None, info
+    else:
+        pos, rot = raw
+        info = {"success": False, "reused": True}
     pos, rot = shortcut_se3(env, pos, rot, iters=shortcut_iters, rng=rng)
     pos, rot = resample_se3(pos, rot, n_waypoints)
     info["success"] = env.path_free(pos, rot)

@@ -345,11 +345,21 @@ class EMA:
         self.shadow = copy.deepcopy(model).eval()
         for p in self.shadow.parameters():
             p.requires_grad_(False)
+        #cached so the parameter list is not rebuilt every step
+        self._shadow_params = None
 
     @torch.no_grad()
     def update(self, model):
-        for s, p in zip(self.shadow.parameters(), model.parameters()):
-            s.mul_(self.decay).add_(p, alpha=1 - self.decay)
+        #Fused over the whole parameter list. The obvious loop issues two tiny
+        #CUDA kernels per tensor, so a 2.16M-parameter model with ~100 tensors
+        #costs ~200 launches EVERY optimiser step -- launch-bound overhead that
+        #is a visible fraction of the step time for a model this small.
+        #torch._foreach_* does the same arithmetic in two calls.
+        params = list(model.parameters())
+        if self._shadow_params is None or len(self._shadow_params) != len(params):
+            self._shadow_params = list(self.shadow.parameters())
+        torch._foreach_mul_(self._shadow_params, self.decay)
+        torch._foreach_add_(self._shadow_params, params, alpha=1 - self.decay)
         for s, p in zip(self.shadow.buffers(), model.buffers()):
             s.copy_(p)
 
