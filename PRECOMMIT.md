@@ -91,6 +91,48 @@ Priority: this sits *behind* the augmented control (which decides the paper) but
 *ahead* of the three seeds, because it can invalidate the headline figure rather
 than merely widen its error bars.
 
+### The framing this run tests: two bottlenecks, not one
+
+Registered before `long-ctrl-e60` finishes.
+
+The claim is not "canonicalisation improves performance". It is that this model
+faces **two distinct bottlenecks**, and that each mechanism relieves exactly one:
+
+- a **representation** bottleneck -- the network is shown the pose and must
+  relearn the same skill at every one. Canonicalisation removes it exactly and
+  for free. More compute does *not* remove it.
+- a **capacity / optimisation** bottleneck -- the field is underfit. More epochs
+  or parameters remove it. Canonicalisation does *not* remove it.
+
+Stated that way it is an **interaction**, not two main effects: the return on
+optimisation should be *conditional* on the representation being fixed first.
+The 2x2 at 60 environments:
+
+| | 20 epochs | 60 epochs |
+|---|---|---|
+| world frame | 13.5% | **the pending cell** |
+| (s,g) reduction | 31.3% | 42.4% |
+
+**Prediction: the pending cell stays near the straight-line floor (13-17%).**
+
+- Confirmed (world@60 stays low) -> the paper's arc becomes: two bottlenecks,
+  canonicalisation fixes one exactly and free, the residual r tells you when
+  that one is exhausted, and only then does compute pay. Report the 2x2 and the
+  interaction directly. Sec. V-E stops being a caveat that threatens Fig. 2 and
+  becomes the second half of the result.
+- Refuted (world@60 reaches ~30%) -> the bottlenecks are not separable, the
+  +11.1 pp is a generic budget effect, and Fig. 2 must be relabelled as a
+  fixed-budget comparison. The reduction then buys convergence *speed*, which is
+  a weaker but still reportable claim.
+
+This also unifies the diagnostic with the framing, which the paper currently
+presents as two separate contributions. **r is a test of which bottleneck is
+binding**: small r means the symmetry part of the representation problem is
+exhausted, so the remaining error is equivariant error -- capacity, not
+representation. That is why symmetrising buys nothing at r = 0.016 while three
+times the epochs buys 11 points. One measurement, two bottlenecks, and it says
+which one to spend on next.
+
 ```bash
 python train_flow.py --data data --n-envs 60 --epochs 60 \
     --batch 512 --amp --multi-gpu --out checkpoints/long-ctrl-e60.pt
