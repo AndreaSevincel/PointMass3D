@@ -70,6 +70,23 @@ def parse_args():
     ap.add_argument("--reduce-mode", choices=["full", "translation"], default="full",
                     help="with --reduced: full removes 3 translations + 2 "
                          "rotations; translation removes only the translations")
+    #Dial for validating the residual as a PREDICTOR rather than measuring it
+    #once. r is small on this benchmark because the gauge is a deterministic
+    #function of x-hat and the data supplies ~600 distinct directions per
+    #environment, so the reduced-frame data already spans many rolls. Training
+    #on a narrow cone of start-goal directions starves the model of that
+    #diversity, which should drive r up -- and if r is a predictor, frame
+    #averaging should start to pay in proportion. Sweeping the cone width turns
+    #one measurement into a curve.
+    ap.add_argument("--xhat-cone", type=float, default=None,
+                    help="train only on pairs whose start-goal direction lies "
+                         "within this many DEGREES of +x. Shrinks r's implicit "
+                         "roll diversity; use with --subsample to hold the "
+                         "training-set size fixed")
+    ap.add_argument("--subsample", type=int, default=None,
+                    help="cap the training set at N trajectories, applied AFTER "
+                         "--xhat-cone. Needed to keep a cone-restricted arm "
+                         "comparable to an unrestricted one")
     ap.add_argument("--domain", choices=["pointmass", "se3"], default="pointmass",
                     help="pointmass: 3-dim waypoints. se3: 9-dim poses "
                          "(position + 6D rotation), see se3body/")
@@ -95,6 +112,8 @@ def default_run_name(args):
         arm = f"{arm}-{args.reduce_mode}"
     if args.augment > 0:
         arm = f"{arm}-aug"
+    if args.xhat_cone is not None:
+        arm = f"{arm}-cone{int(args.xhat_cone)}"
     envs = f"e{args.n_envs}" if args.n_envs else f"e{Path(args.data).name}"
     return f"{arm}-{envs}-c{args.channels}-b{args.n_blocks}-s{args.seed}"
 
@@ -189,6 +208,28 @@ def main():
     )
     print(f"split_by={args.split_by}  envs [{args.env_start}, "
           f"{args.env_start + (args.n_envs or 0)})")
+    #--xhat-cone / --subsample reshape the TRAIN split only; val is untouched
+    #so every arm is scored on the same held-out queries.
+    if args.xhat_cone is not None or args.subsample is not None:
+        idx = np.asarray(train_ds.indices)
+        if args.xhat_cone is not None:
+            d = train_ds.goals[idx] - train_ds.starts[idx]
+            d = np.asarray(d, dtype=np.float64)[..., :3]
+            xh = d / np.linalg.norm(d, axis=-1, keepdims=True).clip(1e-12)
+            cos_lim = np.cos(np.deg2rad(args.xhat_cone))
+            #|.| so the cone is a double cone: a path and its reverse describe
+            #the same geometry and must not be split across the filter
+            keep = np.abs(xh[:, 0]) >= cos_lim
+            idx = idx[keep]
+            if len(idx) == 0:
+                raise SystemExit(f"--xhat-cone {args.xhat_cone} kept 0 trajectories")
+        if args.subsample is not None and len(idx) > args.subsample:
+            idx = np.random.default_rng(args.seed).choice(
+                idx, size=args.subsample, replace=False)
+        train_ds = train_ds.subset(idx)
+        print(f"filtered train -> {len(train_ds)} trajectories "
+              f"(cone={args.xhat_cone}, subsample={args.subsample})")
+
     print(f"train={len(train_ds)}  val={0 if val_ds is None else len(val_ds)} trajectories")
 
     #obstacle lookup tables live on the device the whole time

@@ -195,8 +195,9 @@ query collapse to a single invariant scalar.
 continuous rule can fix the roll about the start--goal axis: such a rule is a
 nowhere-vanishing tangent field on $S^2$, which the hairy ball theorem forbids
 (Proposition~\ref{prop:hairy}). Deriving the roll from the scene instead also
-fails, because the obstacle distribution is $C_4$-symmetric in every coordinate
-plane and its low-order angular moments vanish identically
+fails, because the obstacle distribution is symmetric under central inversion, so
+the first angular moment --- the one a scene-derived gauge would actually use ---
+vanishes in expectation for every start--goal direction
 (Proposition~\ref{prop:moments}). We therefore handle the sixth degree of freedom
 by symmetry rather than canonicalisation.
 
@@ -424,26 +425,47 @@ measure-zero set.
 
 \begin{proposition}[Distributional obstruction]
 \label{prop:moments}
-Let obstacle centres be i.i.d.\ uniform on a cube and let $\varphi_j$ be their
-angles in the plane normal to $\xhat$, with weights $w_j$ depending only on
-radius. Then the angular moments $c_m=\sum_j w_j e^{im\varphi_j}$ satisfy
-$\mathbb{E}[c_m]=0$ for all $m\not\equiv 0 \pmod 4$; in particular
-$\mathbb{E}[c_1]=\mathbb{E}[c_2]=0$.
+Let obstacle centres be i.i.d.\ uniform on a cube centred at the origin, let
+$\varphi_j$ be their angles in the plane normal to $\xhat$, and let the weights
+$w_j$ depend only on radius. Then the angular moments
+$c_m=\sum_j w_j e^{im\varphi_j}$ satisfy
+\begin{equation}
+  \mathbb{E}[c_m] = 0 \quad\text{for every odd } m
+  \text{ and every } \xhat \in S^2 .
+  \label{eq:moments}
+\end{equation}
+In particular $\mathbb{E}[c_1]=0$: the first-moment gauge is degenerate in
+expectation, for every start--goal direction.
 \end{proposition}
 
-\begin{proof}[Proof sketch]
-The cube-uniform law is invariant under the $C_4$ rotation of any coordinate
-plane, and a $C_4$-invariant angular density has vanishing Fourier coefficients
-except at multiples of $4$.
+\begin{proof}
+The cube-uniform law is invariant under the central inversion $\mathbf{p}\mapsto-\mathbf{p}$,
+which fixes every radius and hence every $w_j$, and which maps
+$\varphi_j\mapsto\varphi_j+\pi$. So $e^{im\varphi_j}\mapsto(-1)^m e^{im\varphi_j}$,
+giving $\mathbb{E}[c_m]=-\mathbb{E}[c_m]$ for odd $m$.
 \end{proof}
 
-So a scene-derived gauge --- ``point $\yhat$ at the obstacle mass'' --- is not
-merely occasionally ill-conditioned but degenerate in expectation. Under the null,
-$|c_1|^2/\sum_j w_j^2$ is $\mathrm{Exp}(1)$ with median $\approx 0.69$, so
-near-degenerate configurations are the typical case rather than a rare tail. The
-first surviving moment, $m=4$, is an artefact of cube sampling, is fourfold
-ambiguous by construction, and would not transfer to a realistic scene
-distribution. Both routes to a canonical roll are closed, for unrelated reasons.
+The restriction to odd $m$ is not a weakness of the proof but a fact about the
+geometry, and it is worth stating because the natural stronger claim is false.
+One is tempted to argue that the cube is $C_4$-symmetric, so only multiples of
+four survive. That holds when $\xhat$ is a four-fold axis of the cube, and fails
+otherwise, because the plane normal to a general $\xhat$ is not a coordinate
+plane and the cube's symmetry group does not act on it as $C_4$. Numerically, at
+$2\times10^5$ scenes (noise floor $0.002$), $|\mathbb{E}[c_2]|$ is $0.001$ along
+a coordinate axis but $0.033$ for a generic direction and $0.070$ along a face
+diagonal, while $|\mathbb{E}[c_1]|$ is at the noise floor for all of them.
+Eq.~\eqref{eq:moments} is what the geometry actually supports.
+
+This is enough for the purpose. The scene-derived gauge one would actually build
+--- ``point $\yhat$ at the obstacle mass'' --- is the $m=1$ moment, and it is
+degenerate in expectation for every $\xhat$. Under the null,
+$|c_1|^2/\sum_j w_j^2$ is approximately $\mathrm{Exp}(1)$ with median
+$\approx0.69$, so near-degenerate configurations are the typical case rather
+than a rare tail. A gauge built from an even moment escapes
+Eq.~\eqref{eq:moments}, but not Proposition~\ref{prop:hairy}: an $m=2$ moment
+defines a \emph{director} rather than a vector, and a continuous director field
+on $S^2$ is obstructed for the same Euler-characteristic reason as a vector
+field. Both routes to a canonical roll are closed, for unrelated reasons.
 
 \subsection{Handling the sixth by symmetry}
 \label{sec:sixth}

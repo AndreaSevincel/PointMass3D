@@ -71,45 +71,46 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {B}Why the sixth degree of freedom is not removable}{4}{subsection.4.2}\protected@file@percent }
 \newlabel{prop:hairy}{{2}{4}{Topological obstruction}{proposition.2}{}}
 \newlabel{prop:moments}{{3}{4}{Distributional obstruction}{proposition.3}{}}
+\newlabel{eq:moments}{{5}{4}{Distributional obstruction}{equation.4.5}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {C}Handling the sixth by symmetry}{4}{subsection.4.3}\protected@file@percent }
 \newlabel{sec:sixth}{{IV-C}{4}{Handling the sixth by symmetry}{subsection.4.3}{}}
-\newlabel{eq:fa}{{5}{4}{Handling the sixth by symmetry}{equation.4.5}{}}
+\newlabel{eq:fa}{{6}{4}{Handling the sixth by symmetry}{equation.4.6}{}}
 \newlabel{prop:fa}{{4}{4}{Exact $C_K$ equivariance and projection}{proposition.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {D}The non-equivariance residual}{4}{subsection.4.4}\protected@file@percent }
-\newlabel{sec:residual}{{IV-D}{4}{The non-equivariance residual}{subsection.4.4}{}}
-\newlabel{eq:resid}{{6}{4}{The non-equivariance residual}{equation.4.6}{}}
-\newlabel{cor:budget}{{5}{4}{Symmetrisation budget}{proposition.5}{}}
-\newlabel{eq:budget}{{7}{5}{Symmetrisation budget}{equation.4.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}The non-equivariance residual}{5}{subsection.4.4}\protected@file@percent }
+\newlabel{sec:residual}{{IV-D}{5}{The non-equivariance residual}{subsection.4.4}{}}
+\newlabel{eq:resid}{{7}{5}{The non-equivariance residual}{equation.4.7}{}}
+\newlabel{cor:budget}{{5}{5}{Symmetrisation budget}{proposition.5}{}}
+\newlabel{eq:budget}{{8}{5}{Symmetrisation budget}{equation.4.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {E}Implementation}{5}{subsection.4.5}\protected@file@percent }
 \newlabel{sec:impl}{{IV-E}{5}{Implementation}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {V}Experiments}{5}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Protocol}{5}{subsection.5.1}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experiments}{6}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Protocol}{6}{subsection.5.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}}{6}{table.1}\protected@file@percent }
 \newlabel{tab:baselines}{{1}{6}{The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Calibration: floors and ceilings}{6}{subsection.5.2}\protected@file@percent }
-\newlabel{sec:baselines}{{V-B}{6}{Calibration: floors and ceilings}{subsection.5.2}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}}{6}{figure.1}\protected@file@percent }
 \newlabel{fig:baselines}{{1}{6}{Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Calibration: floors and ceilings}{6}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:baselines}{{V-B}{6}{Calibration: floors and ceilings}{subsection.5.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}}{7}{table.2}\protected@file@percent }
 \newlabel{tab:prior}{{2}{7}{The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}{table.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. The control gains $2.6$ points across a $12.5\times $ increase in environments; the reduction gains $26.6$ and has not plateaued. Minimum clearance is an independent, continuous measure and tells the same story}}{7}{table.3}\protected@file@percent }
 \newlabel{tab:main}{{3}{7}{Held-out performance against training-set size. The control gains $2.6$ points across a $12.5\times $ increase in environments; the reduction gains $26.6$ and has not plateaued. Minimum clearance is an independent, continuous measure and tells the same story}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {C}The reduction scales; the baseline does not}{7}{subsection.5.3}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}}{7}{figure.2}\protected@file@percent }
 \newlabel{fig:scaling}{{2}{7}{The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}{figure.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Decomposition by mechanism on the same held-out set. The entire effect is attributable to canonicalisation}}{7}{table.4}\protected@file@percent }
-\newlabel{tab:ablation}{{4}{7}{Decomposition by mechanism on the same held-out set. The entire effect is attributable to canonicalisation}{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {D}The mechanisms for the sixth degree of freedom are inert}{7}{subsection.5.4}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces (a) Only the canonicalisation clears the noise floor; the two mechanisms built for the sixth degree of freedom sit inside it. (b) The non-equivariance residual of Eq.\nobreakspace  {}\eqref  {eq:resid} is smaller at the larger scale --- two points at one seed, so read it as consistent with the property arriving on its own rather than as establishing it; the hollow marker shows that removing roll augmentation raises the residual but leaves it small, so augmentation was not the cause of the near-equivariance}}{8}{figure.3}\protected@file@percent }
-\newlabel{fig:mechanisms}{{3}{8}{(a) Only the canonicalisation clears the noise floor; the two mechanisms built for the sixth degree of freedom sit inside it. (b) The non-equivariance residual of Eq.~\eqref {eq:resid} is smaller at the larger scale --- two points at one seed, so read it as consistent with the property arriving on its own rather than as establishing it; the hollow marker shows that removing roll augmentation raises the residual but leaves it small, so augmentation was not the cause of the near-equivariance}{figure.3}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {C}The reduction scales; the baseline does not}{7}{subsection.5.3}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Decomposition by mechanism on the same held-out set. The entire effect is attributable to canonicalisation}}{8}{table.4}\protected@file@percent }
+\newlabel{tab:ablation}{{4}{8}{Decomposition by mechanism on the same held-out set. The entire effect is attributable to canonicalisation}{table.4}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {D}The mechanisms for the sixth degree of freedom are inert}{8}{subsection.5.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {E}How much of the level is training budget}{8}{subsection.5.5}\protected@file@percent }
 \newlabel{sec:budget}{{V-E}{8}{How much of the level is training budget}{subsection.5.5}{}}
-\citation{janner2022diffuser}
-\citation{carvalho2023mpd}
-\@writefile{toc}{\contentsline {subsection}{\numberline {F}Cost}{9}{subsection.5.6}\protected@file@percent }
-\newlabel{sec:cost}{{V-F}{9}{Cost}{subsection.5.6}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}Cost}{8}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:cost}{{V-F}{8}{Cost}{subsection.5.6}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces (a) Only the canonicalisation clears the noise floor; the two mechanisms built for the sixth degree of freedom sit inside it. (b) The non-equivariance residual of Eq.\nobreakspace  {}\eqref  {eq:resid} is smaller at the larger scale --- two points at one seed, so read it as consistent with the property arriving on its own rather than as establishing it; the hollow marker shows that removing roll augmentation raises the residual but leaves it small, so augmentation was not the cause of the near-equivariance}}{9}{figure.3}\protected@file@percent }
+\newlabel{fig:mechanisms}{{3}{9}{(a) Only the canonicalisation clears the noise floor; the two mechanisms built for the sixth degree of freedom sit inside it. (b) The non-equivariance residual of Eq.~\eqref {eq:resid} is smaller at the larger scale --- two points at one seed, so read it as consistent with the property arriving on its own rather than as establishing it; the hollow marker shows that removing roll augmentation raises the residual but leaves it small, so augmentation was not the cause of the near-equivariance}{figure.3}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion and Limitations}{9}{section.6}\protected@file@percent }
 \newlabel{sec:limits}{{VI}{9}{Discussion and Limitations}{section.6}{}}
+\citation{janner2022diffuser}
+\citation{carvalho2023mpd}
 \bibstyle{plain}
 \bibcite{albergo2023interpolants}{1}
 \bibcite{bronstein2021gdl}{2}
@@ -119,6 +120,7 @@
 \bibcite{deng2021vn}{6}
 \bibcite{elesedy2021strict}{7}
 \bibcite{fishman2022mpinets}{8}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{10}{section.7}\protected@file@percent }
 \bibcite{fuchs2020se3t}{9}
 \bibcite{geiger2022e3nn}{10}
 \bibcite{gruver2023lie}{11}
@@ -129,7 +131,6 @@
 \bibcite{liu2023rectified}{16}
 \bibcite{milnor1978hairy}{17}
 \bibcite{oord2016wavenet}{18}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{10}{section.7}\protected@file@percent }
 \bibcite{perez2018film}{19}
 \bibcite{puny2022fa}{20}
 \bibcite{qi2017pointnet}{21}
