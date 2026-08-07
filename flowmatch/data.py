@@ -26,7 +26,11 @@ class Normalizer:
 
     @classmethod
     def from_trajs(cls, trajs):
-        pts = trajs.reshape(-1, 3)
+        #Only the POSITION channels are normalised. A 9-dim SE(3) state is
+        #position + two rotation columns; reshaping (-1, 3) would fold the
+        #rotation columns into the position statistics, and shifting a unit
+        #vector by a position centre is meaningless anyway.
+        pts = trajs[..., :3].reshape(-1, 3)
         center = pts.mean(axis=0)
         scale = float(pts.std())
         return cls(center, scale)
@@ -43,7 +47,7 @@ class Normalizer:
         sq = 0.0
         n = 0
         for lo in range(0, len(idx), chunk):
-            block = trajs[idx[lo:lo + chunk]].reshape(-1, 3).astype(np.float64)
+            block = trajs[idx[lo:lo + chunk]][..., :3].reshape(-1, 3).astype(np.float64)
             s += block.sum(axis=0)
             sq += float((block * block).sum())
             n += block.shape[0]
@@ -81,14 +85,35 @@ def load_envs(data_dir, n_envs=None, env_start=0):
     files = sorted(glob.glob(os.path.join(data_dir, "env_*.npz")))
     if not files:
         raise FileNotFoundError(f"no env_*.npz found in {data_dir}")
-    files = files[env_start:]
-    if n_envs is not None:
-        if n_envs > len(files):
-            raise ValueError(
-                f"asked for {n_envs} envs from offset {env_start}, "
-                f"{data_dir} has only {len(files)} beyond it"
-            )
-        files = files[:n_envs]
+
+    #Select by the index IN THE FILENAME, not by position in the sorted list.
+    #Positional slicing silently means something different as soon as a shard
+    #is missing -- a generator run that failed on one environment would shift
+    #every later index, and --env-start 250 would stop naming the held-out
+    #range. Since the train/test boundary is expressed as an index, that would
+    #leak test environments into training without any error being raised.
+    indexed = {}
+    for f in files:
+        stem = os.path.basename(f)[len("env_"):-len(".npz")]
+        try:
+            indexed[int(stem)] = f
+        except ValueError:
+            continue  # not an index-named shard; ignore rather than misplace it
+    if not indexed:
+        raise FileNotFoundError(f"no env_<index>.npz found in {data_dir}")
+
+    hi = env_start + n_envs if n_envs is not None else max(indexed) + 1
+    wanted = list(range(env_start, hi))
+    missing = [i for i in wanted if i not in indexed]
+    if missing:
+        raise FileNotFoundError(
+            f"{data_dir} is missing {len(missing)} shard(s) in the requested "
+            f"range [{env_start}, {hi}): {missing[:8]}"
+            f"{' ...' if len(missing) > 8 else ''}. Indices address the "
+            f"train/test split, so filling the gaps (rerun the generator, it "
+            f"resumes) is required rather than optional."
+        )
+    files = [indexed[i] for i in wanted]
     envs = []
     for f in files:
         d = np.load(f, allow_pickle=True)
@@ -100,7 +125,8 @@ def load_envs(data_dir, n_envs=None, env_start=0):
                 "goals": d["goals"].astype(np.float32),       # (T, 3)
                 "n_trajs": d["starts"].shape[0],
                 "robot_radius": float(d["robot_radius"]),
-                "env_seed": int(d["env_seed"]),
+                #informational only; older/other generators may not write it
+                "env_seed": int(d["env_seed"]) if "env_seed" in d.files else -1,
                 "path": f,
             }
         )
@@ -113,9 +139,12 @@ def load_trajs(envs):
     total = sum(e["n_trajs"] for e in envs)
     probe = np.load(envs[0]["path"], allow_pickle=True)
     N = probe["trajs"].shape[1]
+    #3 for a point-mass waypoint, 9 for an SE(3) pose. Read it rather than
+    #assume it: hardcoding 3 here silently truncated pose shards.
+    D = probe["trajs"].shape[2]
     del probe
 
-    trajs = np.empty((total, N, 3), dtype=np.float32)
+    trajs = np.empty((total, N, D), dtype=np.float32)
     env_ids = np.empty(total, dtype=np.int64)
     ofs = 0
     for ei, e in enumerate(envs):

@@ -78,12 +78,18 @@ def generate_env(task):
         if not got:
             continue
 
+        #starts/goals carry ONE ROW PER TRAJECTORY, not per pair: that is the
+        #layout flowmatch.data assumes (n_trajs = starts.shape[0], and
+        #pair_groups() derives the validation grouping from them). Writing one
+        #row per pair makes the shard unloadable.
         pid = solved
+        s_row = np.concatenate([ps, matrix_to_6d(Rs)])
+        g_row = np.concatenate([pg, matrix_to_6d(Rg)])
         for g in got:
             trajs.append(g)
             pair_ids.append(pid)
-        starts.append(np.concatenate([ps, matrix_to_6d(Rs)]))
-        goals.append(np.concatenate([pg, matrix_to_6d(Rg)]))
+            starts.append(s_row)
+            goals.append(g_row)
         solved += 1
 
     if solved == 0:
@@ -100,6 +106,7 @@ def generate_env(task):
         trajs=np.array(trajs, dtype=np.float32),
         pair_id=np.array(pair_ids, dtype=np.int32),
         robot_radius=np.float32(env.body.radius),
+        env_seed=np.int64(seed),
         body_centers=env.body.centers.astype(np.float32),
         state_dim=np.int32(9),
     )
