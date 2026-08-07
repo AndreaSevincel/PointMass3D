@@ -75,13 +75,20 @@
 \setlength{\belowcaptionskip}{0pt}
 \setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
 
+%The title deliberately does not promise a planner. A reviewer who forms that
+%expectation in the abstract spends the rest of the paper arguing with it, and
+%Table 1 shows RRT-Connect ahead by 54 points.
 \title{\vspace{-1.2em}\bfseries\Large
-Canonicalise What You Can, Measure What You Cannot:\\
-Rigid-Body Symmetry in Flow-Matching Motion Planning}
+Rigid-Body Symmetry in Flow-Matching Motion Planning:\\
+What Canonicalisation Buys, and What It Does Not}
 
-\author{Andrea Sevincel\\[2pt]
-{\normalsize Shanghai Jiao Tong University}\\
-{\normalsize\texttt{aemirsevincel@gmail.com}}}
+% Author order is a placeholder: student first, collaborator, supervisor last,
+% which is the usual convention here but is not our call to fix. Confirm the
+% order and that both co-authors have agreed to be listed before submitting.
+\author{Andrea Sevincel \qquad Xinzhe Zhou \qquad Xiaoming Duan\\[2pt]
+{\normalsize Shanghai Jiao Tong University}\\[1pt]
+{\normalsize\texttt{aemirsevincel@gmail.com} \quad
+\texttt{zhou\_xinzhe@sjtu.edu.cn} \quad \texttt{xduan@sjtu.edu.cn}}}
 
 \date{}
 
@@ -90,12 +97,14 @@ Rigid-Body Symmetry in Flow-Matching Motion Planning}
 
 \begin{abstract}
 \noindent
-Motion planning is exactly equivariant under rigid transformations, and a
-substantial literature builds this symmetry into network architectures. We show
-that on a generative planning problem, almost all of the available benefit is
-obtained without touching the architecture at all --- and we give a cheap
-measurement that says, \emph{before} an equivariant model is built, how much
-benefit is left for it to capture.
+This is a controlled study of how to exploit rigid-body symmetry in a generative
+motion planner, not a proposal for a competitive planner. Motion planning is
+exactly equivariant under rigid transformations, and a substantial literature
+builds that symmetry into network architectures. We hold the architecture, data
+and training budget fixed, vary only the representation of the problem, and find
+that almost all of the available benefit is obtained without touching the
+architecture at all --- and we give a cheap measurement that says, \emph{before}
+an equivariant model is built, how much benefit is left for it to capture.
 
 Our starting point is that the start and goal of a planning query themselves
 define a frame, and that this frame removes five of the six degrees of freedom of
@@ -198,11 +207,12 @@ inertness from flat curves --- a weak conclusion --- we measure the quantity fra
 averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
 among rotated copies of the velocity field, is $1.6\%$. Since frame averaging is
 the orthogonal projection onto the equivariant subspace
-(Proposition~\ref{prop:fa}), that $1.6\%$ is the complete budget available to any
-post-hoc symmetrisation of this model (Corollary~\ref{cor:budget}). The residual
-moreover \emph{shrinks} with training data, from $1.86\%$ to $1.57\%$: the
-property an equivariant architecture would impose is arriving on its own and
-strengthening.
+(Proposition~\ref{prop:fa}), the error it can remove is bounded by that $1.6\%$
+(Corollary~\ref{cor:budget}), while the model is failing on most of its samples:
+the model's error is overwhelmingly equivariant error. The residual is also
+smaller at the larger training scale ($1.86\%\to1.57\%$), which is consistent
+with the property arriving on its own, though two points at one seed do not
+establish a trend and we do not rest the argument on it.
 
 \textbf{(iv) Calibration against floors and ceilings.} A collision-free rate is
 uninterpretable on a new benchmark, so we measure, on the identical $500$ held-out
@@ -514,17 +524,38 @@ approximation.
 
 \begin{corollary}[Symmetrisation budget]
 \label{cor:budget}
-The orthogonal decomposition $f=\mathcal{A}f+(I-\mathcal{A})f$ gives
-$\|f-\mathcal{A}f\|/\|f\| = r/\sqrt{1+r^2}$, and $\mathcal{A}f$ is the closest
-$C_K$-equivariant field to $f$ in $\|\cdot\|$. Hence any procedure that
-post-processes $f$ into an equivariant field changes it by at most a relative $r$,
-and the remaining error of $f$ is equivariant error.
+Let $f^\ast$ be the target velocity field, which is $C_K$-equivariant because the
+planning problem is. Since $\mathcal{A}$ is the orthogonal projection onto the
+equivariant subspace and $\mathcal{A}f^\ast=f^\ast$, the error splits
+orthogonally:
+\begin{equation}
+  \|f-f^\ast\|^2 \;=\; \underbrace{\|\mathcal{A}f-f^\ast\|^2}_{\text{equivariant error}}
+  \;+\; \underbrace{\|(I-\mathcal{A})f\|^2}_{=\,r^2\|\mathcal{A}f\|^2}.
+  \label{eq:budget}
+\end{equation}
+Hence \emph{(i)} the squared error that any equivariantisation of $f$ can remove
+is at most $r^2\|\mathcal{A}f\|^2$, and $\mathcal{A}$ attains it; \emph{(ii)} the
+remaining error $\|\mathcal{A}f-f^\ast\|$ is equivariant error, which no
+symmetrisation of $f$ reduces; and \emph{(iii)} every map sending $f$ to an
+equivariant field moves it by \emph{at least}
+$\|f-\mathcal{A}f\|/\|f\| = r/\sqrt{1+r^2}$, with equality only for $\mathcal{A}$.
 \end{corollary}
 
-The practical reading is a decision rule. Measure $r$; if it is small, the model's
-error is not a symmetry violation, and symmetrising it --- by frame averaging, by
-augmentation, or by any other post-hoc projection --- cannot remove more than $r$
-of the field. The measurement costs one forward pass and no retraining.
+Part \emph{(iii)} is the direction the projection property actually gives, and it
+is worth separating from \emph{(i)}: $\mathcal{A}f$ is the \emph{nearest}
+equivariant field, so symmetrising is a lower bound on how much $f$ is disturbed,
+never an upper one. What is bounded above is the \emph{error} that symmetrising
+can remove, and only because the target is equivariant. Conflating the two --- as
+an earlier version of this corollary did --- reverses the inequality.
+
+The practical reading is a decision rule. Measure $r$; if it is small, then by
+Eq.~\eqref{eq:budget} the model's error is overwhelmingly \emph{equivariant}
+error, and symmetrising $f$ --- by frame averaging, or by any other projection
+onto the equivariant subspace --- can remove at most an $r^2$ fraction of the
+field's squared magnitude from it. At $r=0.016$ that is $2.5\times10^{-4}$, while
+the model is failing on more than half of its samples: the two quantities are not
+the same order, and no rearrangement of the symmetry can close the gap. The
+measurement costs one forward pass and no retraining.
 
 We state the limit of this argument explicitly, because it is the objection a
 reader should raise. Corollary~\ref{cor:budget} bounds what can be gained by
@@ -839,9 +870,10 @@ gives $45.6/45.7/45.8\%$ for $K=1,3,9$ --- $0.09$ standard errors.
 
 Rather than infer inertness from flat curves, we measure $r$. On the best model
 $r=0.0157$ at $K{=}3$ and $0.0174$ at $K{=}9$: under $2\%$ of the field is
-non-equivariant. By Corollary~\ref{cor:budget} that is the whole budget, and the
-remaining error --- with the model at $45.6\%$ collision-free, there is a great
-deal of it --- respects the symmetry and is untouchable by symmetrisation.
+non-equivariant. By Eq.~\eqref{eq:budget} the squared error any equivariantisation
+can remove is at most $r^2$ of the field's squared magnitude, i.e.\ about
+$2.5\times10^{-4}$, while the model is failing on more than half of its samples.
+The remaining error respects the symmetry and is untouchable by symmetrisation.
 
 Two observations sharpen this. First, the residual barely moves when roll
 augmentation is removed ($0.0186\!\to\!0.0292$ at $60$ environments, both small),
@@ -850,8 +882,8 @@ gauge is a deterministic function of $\xhat$, and $600$ start--goal pairs per
 environment supply $600$ distinct directions; the reduced-frame data already spans
 a wide spread of rolls, and explicit augmentation was solving a problem the data
 had already solved. Second, the residual \emph{falls} with scale, from $0.0186$ at
-$60$ environments to $0.0157$ at $250$ (Fig.~\ref{fig:mechanisms}b): the model
-becomes more equivariant as it sees more layouts.
+$60$ environments to $0.0157$ at $250$ (Fig.~\ref{fig:mechanisms}b), which would
+say the model becomes more equivariant as it sees more layouts.
 
 The second observation is suggestive, and we deliberately state it at that
 strength rather than as the argument against building the constrained
@@ -895,13 +927,25 @@ $K$ sweep, and the residual.
 \textbf{The learned planner loses to the classical ones.} Table~\ref{tab:baselines}
 is unambiguous: RRT-Connect solves essentially every problem in $0.28$\,s of
 single-core CPU time, and the best learned arm solves $45.6\%$ per sample. Part of
-this is budget --- the model is small ($2.16$M parameters), briefly trained ($20$
-epochs), and no train--validation gap appeared in any run, so it is underfitting
-rather than overfitting --- and part is that a $64$-waypoint unconditional-prior
+this is budget --- the model is small ($2.16$M parameters) and briefly trained
+($20$ epochs) --- and part is that a $64$-waypoint unconditional-prior
 sampler is simply a weaker instrument than a complete planner on a problem with an
 exact SDF. We draw the comparison anyway, because a representation result that is
 only ever measured against other configurations of itself is not anchored to
-anything. The claim we make is comparative and holds at every point of the scaling
+anything.
+
+We are careful about how the underfitting claim is supported, because the obvious
+support is confounded. Comparing the epoch-averaged training loss against a
+validation loss computed from the exponential-moving-average weights is not a
+generalisation gap: the training figure lags, since it averages over an epoch
+during which the weights were still improving, and the two figures are computed
+from different weights, with the EMA weights typically the better ones. Both
+effects push validation below training regardless of fit. We therefore score a
+fixed slice of the training set with the same EMA weights and the same code path
+as validation, and read the gap only from that like-for-like pair; the direct
+evidence is a longer run at fixed data, reported alongside.
+
+The claim we make is comparative and holds at every point of the scaling
 curve; the claim we do not make is that this planner should be used.
 
 \textbf{Scope of the negative result.} The claim that the sixth degree of freedom
@@ -985,11 +1029,18 @@ without any mechanism enforcing it. All of the measured benefit lies in the five
 
 The recommendation is correspondingly simple, and we believe it applies beyond
 this benchmark: canonicalise the degrees of freedom that admit a continuous
-canonical form --- the query usually supplies more of them than one expects --- and
-then \emph{measure} the residual non-equivariance before building machinery for
-the remainder. The measurement costs one forward pass. On this problem it would
-have saved the effort of an equivariant architecture, and it said so before any of
-that effort was spent.
+canonical form --- the query usually supplies more of them than one expects ---
+and then \emph{measure} the residual non-equivariance before building machinery
+for the remainder. The measurement costs one forward pass.
+
+What that measurement licenses is worth stating exactly, since it is narrower
+than it is tempting to write. It says that \emph{symmetrising this model} is
+worth almost nothing here, because almost none of this model's error is a
+symmetry violation. It does not say that a network built equivariant from the
+start would fail, since such a network searches a different hypothesis class and
+could converge somewhere better. The claim is about where the error lives, not
+about what a different architecture could achieve --- and on this problem, that
+was still enough to decide what to build next.
 
 \small
 \bibliographystyle{plain}

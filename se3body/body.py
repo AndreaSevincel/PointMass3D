@@ -80,6 +80,14 @@ class SE3Env:
         d_lin = float(np.linalg.norm(np.asarray(pb) - np.asarray(pa)))
         d_ang = float(geodesic_angle(Ra, Rb)) * self.body.extent
         n = max(2, int(np.ceil((d_lin + d_ang) / resolution)) + 1)
+
+        #A coarse-then-fine screen was tried here and removed: the coarse pass
+        #samples different parameter values than the fine one, so it can reject
+        #a segment the fine pass would accept. That is conservative and safe,
+        #but it changes which shortcuts survive, and after interpolate() was
+        #vectorised the check is cheap enough that buying speed with a
+        #behaviour change is a bad trade -- shards generated before and after
+        #the optimisation stay mutually consistent this way.
         pos, rot = interpolate(pa, Ra, pb, Rb, n)
         return bool(np.all(self.clearance(pos, rot) > margin))
 

@@ -92,7 +92,27 @@ def slerp(A, B, u):
 def interpolate(pa, Ra, pb, Rb, n):
     #n poses from (pa,Ra) to (pb,Rb) inclusive: straight in position, geodesic
     #in rotation.
+
+    #The geodesic is A exp(u * log(A^T B)), so the matrix log is needed ONCE
+    #and only the exp varies with u. Writing that exp as Rodrigues makes it a
+    #broadcast over u instead of n Python-level log/exp pairs. This is the hot
+    #path of the whole domain: every RRT extension, every shortcut candidate
+    #and every collision check goes through it, and the loop version made
+    #dataset generation roughly an order of magnitude slower.
     us = np.linspace(0.0, 1.0, n)
     pos = (1 - us)[:, None] * pa + us[:, None] * pb
-    rot = np.stack([slerp(Ra, Rb, u) for u in us])
-    return pos, rot
+
+    w = _log_so3(Ra.T @ Rb)                       # one log for the whole span
+    ang = float(np.linalg.norm(w))
+    if ang < 1e-12:
+        return pos, np.repeat(Ra[None], n, axis=0)
+
+    k = w / ang
+    K = np.array([[0.0, -k[2], k[1]],
+                  [k[2], 0.0, -k[0]],
+                  [-k[1], k[0], 0.0]])
+    KK = K @ K
+    s = np.sin(us * ang)[:, None, None]
+    c = (1.0 - np.cos(us * ang))[:, None, None]
+    rel = np.eye(3) + s * K + c * KK              # (n,3,3)
+    return pos, Ra @ rel                          # broadcasts to (n,3,3)

@@ -6,6 +6,7 @@ import argparse
 import time
 from pathlib import Path
 
+import numpy as np
 import torch
 from torch.utils.data import DataLoader
 
@@ -176,6 +177,24 @@ def main():
         if val_ds is not None else None
     )
 
+    #A fixed slice of TRAINING data, scored with the same (EMA) weights and the
+    #same code path as validation. Without it the printed train/val pair is not
+    #a comparison: train is a running average over the epoch on the raw weights
+    #while the optimiser is still moving them, and val is the EMA weights at
+    #epoch end. Both differences push val below train, so "val < train" is the
+    #expected reading even under mild overfitting, and cannot be used as
+    #evidence of underfitting. This loader makes the gap mean what it says.
+    train_eval_loader = None
+    if val_ds is not None and len(train_ds) > 0:
+        n_probe = min(len(val_ds), len(train_ds))
+        probe_idx = np.random.default_rng(args.seed).choice(
+            np.asarray(train_ds.indices), size=n_probe, replace=False
+        )
+        train_eval_loader = DataLoader(
+            train_ds.subset(probe_idx), batch_size=args.batch,
+            num_workers=args.num_workers,
+        )
+
     cfg = make_model_config(args)
     core = FlowVelocityField(**cfg).to(device)
     n_params = sum(p.numel() for p in core.parameters())
@@ -247,6 +266,10 @@ def main():
         if val_loader is not None:
             val_loss = evaluate(ema.shadow, val_loader, tables, device,
                                 args, schedule)
+            #same weights, same code path, training data
+            train_ema = evaluate(ema.shadow, train_eval_loader, tables, device,
+                                 args, schedule)
+            msg += f"  train(ema) {train_ema:.4f}"
             msg += f"  val(ema) {val_loss:.4f}"
         else:
             val_loss = train_loss
@@ -255,7 +278,10 @@ def main():
         run.log(
             {
                 "train/loss": train_loss,
+                "train/loss_ema": train_ema,
                 "val/loss_ema": val_loss,
+                #the only honest generalisation gap: like-for-like weights
+                "gap/val_minus_train_ema": val_loss - train_ema,
                 "lr": opt.param_groups[0]["lr"],
                 "epoch": epoch,
                 "time/epoch_s": time.time() - t_epoch,
