@@ -68,6 +68,34 @@ the three-seed run) as "near". Do not eyeball it.
 **All three are publishable. None of them are publishable if the run does not
 exist.**
 
+## Added 2026-08-07: the epoch-matched control
+
+`long-e60` (reduced arm, 60 envs, 60 epochs) scores **42.4%** against 31.3% for
+the same arm at 20 epochs -- +11.1 pp from optimisation alone, at identical data
+and capacity. It also lands close to treat-e250 at 20 epochs (45.6%), so epochs
+and environments are substantially substitutable here.
+
+That is good news for the level and a threat to the headline figure: the scaling
+curves compare two arms at a budget where **both** are underfit, so a referee can
+ask whether the 30.2 pp gap partly reflects convergence *rate* rather than data
+efficiency. **One run answers it: the world-frame arm at 60 envs for 60 epochs.**
+
+- ctrl-e60 at 60 epochs stays near the straight-line floor -> the headline is
+  robust to budget, and the paper gets stronger (the control cannot be rescued
+  by optimisation).
+- ctrl-e60 at 60 epochs improves a lot -> the gap is partly a convergence-rate
+  artefact, and Fig. 2 must be replotted at a budget where both arms have
+  converged, or relabelled as a fixed-budget comparison.
+
+Priority: this sits *behind* the augmented control (which decides the paper) but
+*ahead* of the three seeds, because it can invalidate the headline figure rather
+than merely widen its error bars.
+
+```bash
+python train_flow.py --data data --n-envs 60 --epochs 60 \
+    --batch 512 --amp --multi-gpu --out checkpoints/long-ctrl-e60.pt
+```
+
 ## Commands
 
 ```bash

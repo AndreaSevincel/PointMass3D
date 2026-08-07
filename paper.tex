@@ -900,6 +900,44 @@ constrained architecture therefore rests on the size of $r$ and
 Corollary~\ref{cor:budget}, which do not depend on the trend, and not on the
 trend itself.
 
+\subsection{How much of the level is training budget}
+\label{sec:budget}
+
+Every arm above is trained for $20$ epochs, and that budget is not enough. Holding
+the data fixed at $60$ environments and training the reduced arm for $60$ epochs
+instead raises the held-out collision-free rate from $31.3\%$ to $\mathbf{42.4\%}$,
+with minimum clearance improving from $-0.031$ to $-0.013$ and endpoint error from
+$0.0024$ to $0.0022$. Three times the optimisation, at identical data and
+identical capacity, is worth $+11.1$ points --- an order of magnitude more than
+either mechanism built for the sixth degree of freedom.
+
+Two consequences follow, and the second is a correction.
+
+First, this is the direct evidence that the absolute level is a budget artefact
+rather than a ceiling of the method, and it is the evidence we rely on rather
+than the train--validation comparison discussed in Sec.~\ref{sec:limits}. The
+model at $20$ epochs is substantially underfit, so the $45.6\%$ headline
+understates what this architecture reaches at convergence.
+
+Second, it qualifies the reading of Fig.~\ref{fig:scaling}. The reduced arm at
+$60$ environments and $60$ epochs ($42.4\%$) is close to the same arm at $250$
+environments and $20$ epochs ($45.6\%$), so on this benchmark optimisation and
+environment count are substantially substitutable, and environments are
+\emph{not} straightforwardly the binding constraint. What the scaling figure
+measures is how each arm converts data into performance \emph{at a fixed and
+insufficient budget}. We think the comparison remains sound --- both arms get the
+same budget, and the world-frame arm is flat under a $12.5\times$ increase in
+data, which is not the signature of a model that merely needs longer --- but the
+epoch-matched control at $60$ epochs is the experiment that would settle it, and
+it has not been run.
+
+The deployment metric at this budget is high: best-of-$20$ behind a collision
+check solves $\mathbf{87.2\%}$ of held-out queries, against $15.8\%$ for the best
+untrained prior at the same $N$ (Table~\ref{tab:prior}). A reader who cares about
+whether the sampler is useful rather than about the representation question
+should read that number, with the caveat from Sec.~\ref{sec:baselines} that
+classical planners still solve more of them and faster.
+
 \subsection{Cost}
 \label{sec:cost}
 
@@ -914,6 +952,7 @@ Separately, reducing the integrator from $20$ to $8$ Euler steps costs $0.4$--$0
 points and runs $1.4\times$ faster, so $8$ steps is used throughout.
 
 \section{Discussion and Limitations}
+\label{sec:limits}
 
 \textbf{What the technique contributes.} Of the six degrees of freedom of $\SE$,
 five can be removed exactly by a frame read off the query, at no computational
@@ -942,8 +981,11 @@ during which the weights were still improving, and the two figures are computed
 from different weights, with the EMA weights typically the better ones. Both
 effects push validation below training regardless of fit. We therefore score a
 fixed slice of the training set with the same EMA weights and the same code path
-as validation, and read the gap only from that like-for-like pair; the direct
-evidence is a longer run at fixed data, reported alongside.
+as validation, and read the gap only from that like-for-like pair. The direct
+evidence is the longer run of Sec.~\ref{sec:budget}: at fixed data and fixed
+capacity, three times the optimisation is worth $+11.1$ points of held-out
+collision-free rate, which is what underfitting looks like measured on the task
+rather than on the loss.
 
 The claim we make is comparative and holds at every point of the scaling
 curve; the claim we do not make is that this planner should be used.
@@ -973,8 +1015,11 @@ suggests: $30$ near-duplicate trajectories per pair means $10.8$M paths carry on
 the order of $360$k distinct queries. This does not affect the comparison, since
 both arms train on identical data, but it bears on how additional data should be
 generated --- cutting trajectories per pair from $30$ to $5$ would buy roughly six
-times the environments for the same generation cost, and Fig.~\ref{fig:scaling}
-says environments are the binding constraint.
+times the environments for the same generation cost. We no longer read
+Fig.~\ref{fig:scaling} as saying environments are the single binding constraint,
+since Sec.~\ref{sec:budget} shows optimisation buys a comparable amount at fixed
+data; the honest statement is that both are binding and neither has been pushed
+to saturation.
 
 \textbf{Two arms the comparison still needs.} The first is the augmented control
 described in Sec.~\ref{sec:baselines}: a world-frame model trained with random
