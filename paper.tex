@@ -132,9 +132,13 @@ by measuring the \emph{non-equivariance residual}: only $1.6\%$ of the learned
 velocity field lies outside the equivariant subspace. Because frame averaging is
 the orthogonal projection
 onto that subspace, $1.6\%$ is the entire budget any post-hoc symmetrisation of
-this model can spend. We propose the residual as a one-line pre-flight check for
-equivariant design: measure it first, and build the constrained architecture only
-if it is large.
+this model can spend. We propose the residual as a cheap diagnostic of how much
+non-equivariant structure a learned field retains: it is one forward pass, needs
+no retraining, and it quantifies the headroom available to post-hoc
+symmetrisation exactly. Whether the same quantity predicts the benefit of an
+explicitly \emph{equivariant architecture} --- a different operation, which also
+changes optimisation, capacity allocation and generalisation --- is not something
+we test here, and we leave it open.
 
 We calibrate both ends on the same $500$ problems: an untrained Brownian-bridge
 prior, swept over widths, never exceeds $15.8\%$ at best-of-$20$, while classical
@@ -234,8 +238,11 @@ We regard (iii) as the transferable contribution. The residual is a few lines of
 code, costs one forward pass, requires no retraining, and can be computed on any
 model with a group action on its inputs. It converts ``we tried equivariance and
 it did not help'' --- an anecdote --- into a quantitative statement about how much
-headroom a symmetry-based method has on a given problem. We recommend it as a
-pre-flight check before committing to a constrained architecture.
+headroom \emph{post-hoc symmetrisation} has on a given problem, with an exact
+bound attached. We recommend it as a diagnostic to run before reaching for
+symmetrisation. We do not claim it forecasts what a constrained architecture
+would gain: that is a different operation on a different hypothesis class, and
+testing it is future work.
 
 \section{Related Work}
 
@@ -282,9 +289,10 @@ equivariance using the orthogonal decomposition of a function into equivariant
 and anti-equivariant parts, which is the decomposition
 Corollary~\ref{cor:budget} is stated in. Relative to these, what we add is
 narrow and practical: the residual is a single forward pass with no
-differentiation and no retraining, and we use it \emph{prospectively}, as a
-go/no-go test before committing to an architecture, on a robotics problem where
-that decision is being made.
+differentiation and no retraining, and it comes with an exact statement of what
+it bounds. We are careful not to claim more: it measures the headroom for
+symmetrising a \emph{given} model, which is not the same question as how much a
+constrained architecture would gain.
 
 \textbf{Classical planners} supply our supervision: RRT-Connect~\cite{kuffner2000rrtconnect}
 for feasibility, then shortcutting and CHOMP~\cite{zucker2013chomp} refinement, with
@@ -513,10 +521,10 @@ projection onto the equivariant subspace, and that a function decomposes
 orthogonally into equivariant and anti-equivariant parts, are established
 results in the analysis of equivariant
 learning~\cite{elesedy2021strict,puny2022fa}; we restate them because the
-decision rule we are proposing is read off them. The contribution here is that
-rule --- measure the anti-equivariant component \emph{first}, and let its size
-decide whether the constrained architecture is worth building --- together with
-the measurement on a planning problem.
+bound we are proposing is read off them. The contribution here is the
+measurement --- the size of the anti-equivariant component of a trained planning
+field, and what it implies for the mechanisms built to remove it --- rather than
+the projection theorem.
 
 Two properties of Eq.~\eqref{eq:fa} matter in practice. The guarantee requires no
 architectural constraint and no training assumption --- it is a property of the
@@ -570,7 +578,8 @@ never an upper one. What is bounded above is the \emph{error} that symmetrising
 can remove, and only because the target is equivariant. Conflating the two --- as
 an earlier version of this corollary did --- reverses the inequality.
 
-The practical reading is a decision rule. Measure $r$; if it is small, then by
+The practical reading is narrower than a decision rule, and worth stating as
+such. Measure $r$; if it is small, then by
 Eq.~\eqref{eq:budget} the model's error is overwhelmingly \emph{equivariant}
 error, and symmetrising $f$ --- by frame averaging, or by any other projection
 onto the equivariant subspace --- can remove at most an $r^2$ fraction of the
@@ -578,6 +587,16 @@ field's squared magnitude from it. At $r=0.016$ that is $2.5\times10^{-4}$, whil
 the model is failing on more than half of its samples: the two quantities are not
 the same order, and no rearrangement of the symmetry can close the gap. The
 measurement costs one forward pass and no retraining.
+
+What it does not license is a verdict on building an equivariant architecture.
+Symmetrising a trained field and training a constrained model are different
+operations: the first is a projection, bounded by Eq.~\eqref{eq:budget}; the
+second changes the hypothesis class, and with it optimisation, capacity
+allocation and generalisation, none of which $r$ measures. A small $r$ says the
+model's error is not a symmetry violation. Whether that also predicts a small
+gain from a constrained architecture is a question we do not test, and answering
+it would need equivariant models trained across settings with different amounts
+of learned non-equivariance.
 
 We state the limit of this argument explicitly, because it is the objection a
 reader should raise. Corollary~\ref{cor:budget} bounds what can be gained by
@@ -1097,8 +1116,8 @@ without any mechanism enforcing it. All of the measured benefit lies in the five
 The recommendation is correspondingly simple, and we believe it applies beyond
 this benchmark: canonicalise the degrees of freedom that admit a continuous
 canonical form --- the query usually supplies more of them than one expects ---
-and then \emph{measure} the residual non-equivariance before building machinery
-for the remainder. The measurement costs one forward pass.
+and then \emph{measure} the residual non-equivariance rather than assuming it.
+The measurement costs one forward pass.
 
 What that measurement licenses is worth stating exactly, since it is narrower
 than it is tempting to write. It says that \emph{symmetrising this model} is
@@ -1106,8 +1125,11 @@ worth almost nothing here, because almost none of this model's error is a
 symmetry violation. It does not say that a network built equivariant from the
 start would fail, since such a network searches a different hypothesis class and
 could converge somewhere better. The claim is about where the error lives, not
-about what a different architecture could achieve --- and on this problem, that
-was still enough to decide what to build next.
+about what a different architecture could achieve. Turning $r$ into a genuine
+model-selection rule would require showing that it predicts the gain from
+constrained architectures across tasks with differing amounts of
+non-equivariance, including tasks where the symmetry genuinely fails; that is
+future work, and we state it as such rather than implying it here.
 
 \small
 \bibliographystyle{plain}
