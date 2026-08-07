@@ -32,6 +32,11 @@ def parse_args():
     ap.add_argument("--amp", action="store_true", help="mixed precision (CUDA)")
     ap.add_argument("--multi-gpu", action="store_true", help="DataParallel over all visible GPUs")
     ap.add_argument("--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu")
+    ap.add_argument("--allow-cpu", action="store_true",
+                    help="proceed on CPU. Without it, a run that silently fell "
+                         "back to CPU is aborted: at this dataset size that is "
+                         "never what was wanted, and it wastes hours before the "
+                         "first epoch even prints")
     ap.add_argument("--log-every", type=int, default=50)
     ap.add_argument("--compile", action="store_true",
                     help="torch.compile the model. Often 1.3-2x on this "
@@ -153,6 +158,21 @@ def main():
     args = parse_args()
     torch.manual_seed(args.seed)
     device = torch.device(args.device)
+    #A silent CPU fallback on a 2M-trajectory dataset looks exactly like a hang.
+    #Abort unless CPU was asked for explicitly.
+    if device.type != "cuda" and not args.allow_cpu:
+        raise SystemExit(
+            "CUDA is not available, so this would train on CPU and take days.\n"
+            f"  torch {torch.__version__}, built for CUDA {torch.version.cuda}\n"
+            "  Diagnose with:  nvidia-smi ; python -c \"import torch; "
+            "print(torch.cuda.is_available())\"\n"
+            "  A 'forward compatibility' error (804) means the driver and the "
+            "CUDA runtime disagree -- reload the kernel module or drop the "
+            "CUDA compat libs from LD_LIBRARY_PATH.\n"
+            "  Pass --allow-cpu if you really do want CPU."
+        )
+    if device.type != "cuda" and (args.amp or args.multi_gpu):
+        print("[warn] --amp/--multi-gpu are no-ops on CPU")
     if device.type == "cuda":
         #Shapes are fixed for the whole run, so let cuDNN autotune once instead
         #of picking a generic algorithm every call. TF32 costs nothing here:
