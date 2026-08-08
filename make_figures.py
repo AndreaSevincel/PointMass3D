@@ -226,7 +226,7 @@ def fig_baselines(out="fig_baselines.pdf"):
     ax.annotate("", xy=(0.067, 45.63), xytext=(0.067, 15.38),
                 arrowprops=dict(arrowstyle="<->", color=C_TREAT, linewidth=1.1,
                                 shrinkA=3, shrinkB=3))
-    ax.annotate("+30.3", xy=(0.067, 30), xytext=(-4, 0),
+    ax.annotate("+30.2", xy=(0.067, 30), xytext=(-4, 0),
                 textcoords="offset points", fontsize=7, color=C_TREAT,
                 ha="right", va="center", fontweight="bold")
 

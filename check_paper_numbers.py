@@ -36,6 +36,7 @@ REQUIRED = {
     "r under SE(3), augmented": r"0\.0181",
     "r under SE(3), reduction": r"0\.0174",
     "world frame is 91% equivariant": r"91\\%",
+    "symmetrisation budget stated as a bound": r"under\s*\n?\$3\\times10\^\{-4\}",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -47,6 +48,17 @@ FORBIDDEN = {
     r"both inside noise": "roll augmentation is +4.4, not inside noise",
     r"are inert\}": "heading; only the K sweep is inert",
     r"three independent measurements": "the roll ablation no longer supports it",
+    r"know in advance": "framed r as predictive; Sec. V-F refutes it",
+    r"before\}?\s*\n?an equivariant model is built": "same, in the abstract",
+    r"is worth none": "the roll ablation is unresolved, not zero",
+    r"All of the measured benefit lies in the five": "same",
+    r"constraint that is already satisfied": "the world-frame arm satisfies it too",
+    r"\+30\.3": "gap label; 45.6 - 15.4 = 30.2",
+    r"We no longer make that argument": "state-then-retract; cut the first claim",
+    r"r=0\.016\$": "r is 0.017 (0.0168-0.0174); pick one",
+    r"2\.5\\times10\^\{-4\}": "0.0168^2 = 2.8e-4, not 2.5e-4",
+    r"case for not building a constrained architecture rests": "the retracted inference",
+    r"Two independent measurements support it": "both bear on frame averaging only",
 }
 
 def main():
