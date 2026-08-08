@@ -22,10 +22,10 @@
 \citation{wang2024equidp}
 \citation{simeonov2022ndf}
 \citation{yang2024equibot}
-\citation{puny2022fa}
-\citation{kaba2023canon}
 \@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \newlabel{eq:equivariance}{{1}{1}{Introduction}{equation.1.1}{}}
+\citation{puny2022fa}
+\citation{kaba2023canon}
 \citation{cohen2016gcnn}
 \citation{thomas2018tfn}
 \citation{fuchs2020se3t}
@@ -87,14 +87,14 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {A}Protocol}{6}{subsection.5.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}}{6}{table.1}\protected@file@percent }
 \newlabel{tab:baselines}{{1}{6}{The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}{table.1}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}}{6}{figure.1}\protected@file@percent }
-\newlabel{fig:baselines}{{1}{6}{Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}{figure.1}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {B}Calibration: floors and ceilings}{6}{subsection.5.2}\protected@file@percent }
 \newlabel{sec:baselines}{{V-B}{6}{Calibration: floors and ceilings}{subsection.5.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}}{7}{figure.1}\protected@file@percent }
+\newlabel{fig:baselines}{{1}{7}{Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.2$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}{figure.1}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}}{7}{table.2}\protected@file@percent }
 \newlabel{tab:prior}{{2}{7}{The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}{table.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. The control gains $2.6$ points across a $12.5\times $ increase in environments; the reduction gains $26.6$ and has not plateaued. Minimum clearance is an independent, continuous measure and tells the same story}}{7}{table.3}\protected@file@percent }
-\newlabel{tab:main}{{3}{7}{Held-out performance against training-set size. The control gains $2.6$ points across a $12.5\times $ increase in environments; the reduction gains $26.6$ and has not plateaued. Minimum clearance is an independent, continuous measure and tells the same story}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\mathrm  {SE}(3)$ motions of the whole problem. The world-frame arm gains $2.6$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.6$ and has not plateaued. The $60$-environment row is a mean over three seeds; the rest are single seed. The last column is the deployment metric, best-of-$20$ behind a collision check}}{7}{table.3}\protected@file@percent }
+\newlabel{tab:main}{{3}{7}{Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\SE $ motions of the whole problem. The world-frame arm gains $2.6$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.6$ and has not plateaued. The $60$-environment row is a mean over three seeds; the rest are single seed. The last column is the deployment metric, best-of-$20$ behind a collision check}{table.3}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {C}The reduction scales; the baseline does not}{7}{subsection.5.3}\protected@file@percent }
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}}{8}{figure.2}\protected@file@percent }
 \newlabel{fig:scaling}{{2}{8}{The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}{figure.2}{}}
@@ -113,7 +113,6 @@
 \citation{carvalho2023mpd}
 \bibstyle{plain}
 \bibcite{albergo2023interpolants}{1}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{10}{section.7}\protected@file@percent }
 \bibcite{bronstein2021gdl}{2}
 \bibcite{carvalho2023mpd}{3}
 \bibcite{chi2023dp}{4}
@@ -141,6 +140,7 @@
 \bibcite{thomas2018tfn}{26}
 \bibcite{urain2023se3dif}{27}
 \bibcite{wang2024equidp}{28}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{11}{section.7}\protected@file@percent }
 \bibcite{yang2024equibot}{29}
 \bibcite{zucker2013chomp}{30}
-\gdef \@abspage@last{11}
+\gdef \@abspage@last{12}

@@ -49,8 +49,9 @@ CLASSICAL = [
 STRAIGHT_LINE = 15.6           # trivial baseline: the segment start -> goal
 # learned arms at 250 training envs, 8 Euler steps, 20 samples/query on one GPU
 LEARNED = [
-    (r"world frame", 15.4, 0.067),
-    (r"$(s,g)$ reduction", 45.6, 0.067),
+    (r"world frame", 15.38, 0.067),
+    (r"world frame + aug.", 17.50, 0.067),
+    (r"$(s,g)$ reduction", 45.63, 0.067),
 ]
 
 C_CTRL = "#3E6DA8"
@@ -80,6 +81,10 @@ def fig_scaling(out="fig_scaling.pdf", size=(6.4, 3.9), fs=9.0):
             label=r"$(s,g)$ reduction", zorder=3)
     ax.plot(ENVS, CONTROL, "-s", color=C_CTRL, linewidth=2, markersize=5.5,
             label="World frame", zorder=3)
+    #Augmentation is the same arm using the symmetry a different way, so it
+    #keeps the control's hue and is distinguished by a dashed stroke.
+    ax.plot(ENVS, AUGMENTED, "--^", color=C_CTRL, linewidth=1.6, markersize=5,
+            markerfacecolor="white", label="World frame + SE(3) aug.", zorder=3)
 
     # the no-roll ablation is the same arm with one part removed: same hue, hollow
     ax.plot([NOROLL_X], [NOROLL_Y], "o", markerfacecolor="white",
@@ -87,9 +92,12 @@ def fig_scaling(out="fig_scaling.pdf", size=(6.4, 3.9), fs=9.0):
     ax.annotate("no-roll ablation", xy=(NOROLL_X, NOROLL_Y), xytext=(9, -9),
                 textcoords="offset points", fontsize=fs - 1.0, color="#555555")
 
-    for x, y, c in ((250, 45.6, C_TREAT), (250, 15.4, C_CTRL)):
-        ax.annotate(f"{y}%", xy=(x, y), xytext=(-4, 6), textcoords="offset points",
-                    fontsize=fs, color=c, fontweight="bold", ha="right")
+    for x, y, c, dy in ((250, TREATMENT[-1], C_TREAT, 6),
+                        (250, AUGMENTED[-1], C_CTRL, 5),
+                        (250, CONTROL[-1], C_CTRL, -12)):
+        ax.annotate(f"{y:.1f}%", xy=(x, y), xytext=(-4, dy),
+                    textcoords="offset points", fontsize=fs, color=c,
+                    fontweight="bold", ha="right")
 
     ax.set_xscale("log")
     ax.set_xticks(ENVS)
@@ -122,8 +130,8 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     ypos = range(len(vals))
 
     axl.axvspan(-2 * SE, 2 * SE, color="0.86", alpha=0.55, linewidth=0, zorder=0)
-    axl.annotate("$\\pm2$ SE\n(noise)", xy=(2 * SE, 2.42), xytext=(6, 0),
-                 textcoords="offset points", fontsize=7.5, color=MUTED, va="center")
+    axl.annotate("$\\pm2$ SE\n(across seeds)", xy=(2 * SE, -0.42), xytext=(5, 0),
+                 textcoords="offset points", fontsize=7, color=MUTED, va="center")
     axl.barh(list(ypos), vals, height=0.52, color=C_TREAT, zorder=2)
     for y, v in zip(ypos, vals):
         axl.annotate(f"+{v} pp", xy=(v, y), xytext=(7, 0), textcoords="offset points",
@@ -133,7 +141,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     axl.set_yticklabels(labels, fontsize=8)
     axl.set_xlim(-5, 38)
     axl.set_xticks([0, 10, 20, 30])
-    axl.set_ylim(-0.6, 2.75)
+    axl.set_ylim(-0.95, 3.6)
     axl.set_xlabel("Contribution to collision-free rate (pp)", fontsize=8.5)
     axl.tick_params(labelsize=8)
     axl.grid(axis="x", color="0.9", linewidth=0.7)
@@ -150,7 +158,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     axr.annotate("no roll aug.", xy=RESID_NOROLL, xytext=(8, -2),
                  textcoords="offset points", fontsize=7.5, color=MUTED)
     for x, y in zip(RESID_ENVS, RESID):
-        axr.annotate(f"{100*y:.2f}%", xy=(x, y), xytext=(0, -14),
+        axr.annotate(f"{100*y:.2f}%", xy=(x, y), xytext=(0, 9),
                      textcoords="offset points", fontsize=8, color=C_TREAT,
                      ha="center", fontweight="bold")
 
@@ -158,7 +166,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     axr.set_xticks(RESID_ENVS)
     axr.set_xticklabels([str(e) for e in RESID_ENVS])
     axr.minorticks_off()
-    axr.set_xlim(45, 340)
+    axr.set_xlim(15, 400)
     axr.set_ylim(0, 0.034)
     axr.set_yticks([0, 0.01, 0.02, 0.03])
     axr.set_yticklabels(["0", "1%", "2%", "3%"])
@@ -167,7 +175,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     axr.tick_params(labelsize=8)
     axr.grid(axis="y", color="0.9", linewidth=0.7)
     _despine(axr)
-    axr.set_title("(b)  The residual falls with data", fontsize=9, loc="left",
+    axr.set_title("(b)  The residual is flat", fontsize=9, loc="left",
                   color=INK, pad=6)
 
     fig.tight_layout(pad=0.4, w_pad=2.2)
@@ -195,7 +203,8 @@ def fig_baselines(out="fig_baselines.pdf"):
         "expert (RRT+CHOMP)": (9, 2, "left", "bottom"),
         "CHOMP":              (9, 0, "left", "center"),
         "TrajOpt":            (9, 0, "left", "center"),
-        "world frame":        (9, 1, "left", "bottom"),
+        "world frame":        (9, -6, "left", "top"),
+        "world frame + aug.": (9, 3, "left", "bottom"),
         r"$(s,g)$ reduction": (9, 0, "left", "center"),
     }
 
@@ -214,10 +223,10 @@ def fig_baselines(out="fig_baselines.pdf"):
                     fontsize=6.5, color=INK, ha=ha, va=va)
 
     #the gap the paper closes, and the gap it does not
-    ax.annotate("", xy=(0.067, 45.6), xytext=(0.067, 15.4),
+    ax.annotate("", xy=(0.067, 45.63), xytext=(0.067, 15.38),
                 arrowprops=dict(arrowstyle="<->", color=C_TREAT, linewidth=1.1,
                                 shrinkA=3, shrinkB=3))
-    ax.annotate("+30.2", xy=(0.067, 30), xytext=(-4, 0),
+    ax.annotate("+30.3", xy=(0.067, 30), xytext=(-4, 0),
                 textcoords="offset points", fontsize=7, color=C_TREAT,
                 ha="right", va="center", fontweight="bold")
 

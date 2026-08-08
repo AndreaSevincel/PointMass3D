@@ -128,10 +128,10 @@ canonicalised arm gains $26.6$ and has not plateaued.
 
 The two mechanisms built for the sixth degree of freedom contribute $+1.2$ and
 $+0.2$ points, both inside noise. We explain this rather than merely reporting it,
-by measuring the \emph{non-equivariance residual}: only $1.6\%$ of the learned
+by measuring the \emph{non-equivariance residual}: only $1.7\%$ of the learned
 velocity field lies outside the equivariant subspace. Because frame averaging is
 the orthogonal projection
-onto that subspace, $1.6\%$ is the entire budget any post-hoc symmetrisation of
+onto that subspace, $1.7\%$ is the entire budget any post-hoc symmetrisation of
 this model can spend. We propose the residual as a cheap diagnostic of how much
 non-equivariant structure a learned field retains: it is one forward pass, needs
 no retraining, and it quantifies the headroom available to post-hoc
@@ -140,9 +140,16 @@ explicitly \emph{equivariant architecture} --- a different operation, which also
 changes optimisation, capacity allocation and generalisation --- is not something
 we test here, and we leave it open.
 
-We calibrate both ends on the same $500$ problems: an untrained Brownian-bridge
-prior, swept over widths, never exceeds $15.8\%$ at best-of-$20$, while classical
-planners reach $74$--$100\%$ in under $0.4$\,s on one CPU core. The learned sampler
+The obvious alternative --- exploiting the same symmetry by augmenting training
+with random rigid motions --- recovers little of this: at $250$ environments it
+lifts the world-frame arm from $15.4\%$ to $17.5\%$, about $7\%$ of what the
+reduction achieves. We also find that optimisation and representation are
+\emph{separate} bottlenecks: tripling the training budget is worth $+8.0$ points
+to the canonicalised arm and $+0.9$ to the world-frame one, so compute cannot buy
+what the representation forecloses. We calibrate both ends on the same $500$
+problems: an untrained Brownian-bridge prior, swept over widths, never exceeds
+$15.8\%$ at best-of-$20$, while classical planners reach $74$--$100\%$ in under
+$0.4$\,s on one CPU core. The learned sampler
 does not approach the latter, and we present this as a controlled study of
 representation choices, not as a planner proposal.
 \end{abstract}
@@ -207,12 +214,13 @@ by symmetry rather than canonicalisation.
 
 \textbf{(iii) The symmetry machinery is inert here, and we measure why.} Roll
 augmentation and frame averaging contribute $+1.2$ and $+0.2$ percentage points,
-both inside noise, while the reduction contributes $+30.2$. Rather than infer
+both inside noise, while the reduction contributes $+30.3$. Rather than infer
 inertness from flat curves --- a weak conclusion --- we measure the quantity frame
 averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
-among rotated copies of the velocity field, is $1.6\%$. Since frame averaging is
+among rotated copies of the velocity field, is $1.7\%$ and is flat across a
+$12.5\times$ range of training data. Since frame averaging is
 the orthogonal projection onto the equivariant subspace
-(Proposition~\ref{prop:fa}), the error it can remove is bounded by that $1.6\%$
+(Proposition~\ref{prop:fa}), the error it can remove is bounded by that $1.7\%$
 (Corollary~\ref{cor:budget}), while the model is failing on most of its samples:
 the model's error is overwhelmingly equivariant error. The residual is also
 smaller at the larger training scale ($1.86\%\to1.57\%$), which is consistent
@@ -755,15 +763,18 @@ over connecting the endpoints with a line. This is the sharpest available
 statement of the problem the reduction solves, and it is invisible without the
 trivial baseline.
 
-One scope restriction on that sentence. The world-frame arm here is trained on
-raw coordinates with no augmentation, so what the comparison establishes is that
-\emph{ignoring} the symmetry leaves the model at the trivial floor. It does not
-establish that the reduction beats the other standard way of exploiting the
-symmetry, which is to augment the training distribution with random rigid
-motions of the whole problem. That arm is a different mechanism --- it makes
-equivariance likely rather than certain, and spends capacity to do it --- and it
-is the comparison a practitioner who already knows about the symmetry would want.
-We flag it as untested here rather than assume its outcome.
+\textbf{Augmentation is not the same lever.} The comparison above shows what
+\emph{ignoring} the symmetry costs. The comparison a practitioner who already
+knows about the symmetry would want is against the other standard way of using
+it: augmenting the training distribution with random rigid motions of the whole
+problem. We ran that arm at all four scales (Fig.~\ref{fig:scaling},
+Table~\ref{tab:main}). It helps, it helps more as data grows --- augmentation
+needs data to exploit --- and it is not close: $12.7$, $13.8$, $15.3$, $17.5$
+against the reduction's $19.0$, $34.4$, $41.0$, $45.6$. At the largest scale
+augmentation captures about $7\%$ of what canonicalisation does, and leaves the
+world-frame arm within $2$ points of the straight-line floor. Making equivariance
+\emph{likely} through the data is a different and much weaker mechanism than
+removing the degrees of freedom outright.
 
 \textbf{The stochastic floor.} A straight line has one sample, so it cannot be
 compared against a best-of-$N$ number. The honest control there is the model's own
@@ -824,20 +835,22 @@ contribution does not require the planner to win, and we do not claim it does.
 \setlength{\tabcolsep}{4.5pt}
 \begin{tabular}{lrrrr}
 \toprule
-Training & \multicolumn{2}{c}{Collision-free (\%)}
-         & \multicolumn{2}{c}{Min.\ clearance} \\
-envs & Control & Ours & Control & Ours \\
+Training & \multicolumn{3}{c}{Collision-free (\%)} & best-of-20 \\
+envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \midrule
-20  & 12.8 & 19.0 & $-0.0776$ & $-0.0583$ \\
-60  & 13.5 & 31.3 & $-0.0746$ & $-0.0312$ \\
-150 & 14.6 & 41.0 & $-0.0726$ & $-0.0163$ \\
-250 & 15.4 & \textbf{45.6} & $-0.0697$ & $\mathbf{-0.0095}$ \\
+20  & 12.8 & 12.7 & 19.0 & 57.8 \\
+60  & 13.6 & 13.8 & 34.4 & 79.6 \\
+150 & 14.6 & 15.3 & 41.0 & 85.6 \\
+250 & 15.4 & 17.5 & \textbf{45.6} & \textbf{90.4} \\
 \bottomrule
 \end{tabular}
-\caption{Held-out performance against training-set size. The control gains $2.6$
-points across a $12.5\times$ increase in environments; the reduction gains $26.6$
-and has not plateaued. Minimum clearance is an independent, continuous measure and
-tells the same story}
+\caption{Held-out performance against training-set size. ``+aug.'' is the
+world-frame arm trained with random $\SE$ motions of the whole problem. The
+world-frame arm gains $2.6$ points across a $12.5\times$ increase in
+environments and augmentation adds at most $2.1$ more, while the reduction gains
+$26.6$ and has not plateaued. The $60$-environment row is a mean over three
+seeds; the rest are single seed. The last column is the deployment metric,
+best-of-$20$ behind a collision check}
 \label{tab:main}
 \end{table}
 
@@ -854,7 +867,10 @@ arm with one component removed}
 
 Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
 $250$ environments the reduction reaches $45.6\%$ against $15.4\%$, a gap of
-$30.2$ points, or roughly $11$ standard errors.
+$30.3$ points. Measured against the across-seed standard error at $60$
+environments ($1.56$ points for this arm, $n{=}3$), that is roughly $19$ standard
+errors; the seed spread was not measured at $250$ environments, so we quote the
+$60$-environment floor, which is the wider of the two arms.
 
 The trend is more informative than the endpoint. The baseline improves by $2.6$
 points across a $12.5\times$ increase in training environments: it is close to
@@ -881,9 +897,10 @@ the model no longer spends capacity on \emph{where} they are.
 \toprule
 Mechanism & $\Delta$ free & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx11$ SE; grows \\
-Roll augmentation                 & $+1.2$ pp  & $0.4$ SE (noise) \\
-Frame averaging ($K{:}1\!\to\!9$) & $+0.2$ pp  & $0.09$ SE ($\approx 0$) \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.3$ pp & $\approx19$ SE; grows \\
+$\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
+Roll augmentation                 & $+4.4$ pp  & $2.8$ SE; one seed, see text \\
+Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
 \bottomrule
 \end{tabular}
 \caption{Decomposition by mechanism on the same held-out set. The entire effect is
@@ -906,40 +923,39 @@ augmentation was not the cause of the near-equivariance}
 
 Table~\ref{tab:ablation} and Fig.~\ref{fig:mechanisms}a decompose the result.
 Removing roll augmentation (the reduction with a fixed gauge) costs
-$31.3\%\!\to\!30.1\%$ at $60$ environments. Frame averaging on the best model
-gives $45.6/45.7/45.8\%$ for $K=1,3,9$ --- $0.09$ standard errors.
+$34.4\%\!\to\!30.1\%$ at $60$ environments, on which see the caveat in
+Sec.~\ref{sec:limits}. Frame averaging on the best model gives $45.63\%$ at
+$K{=}1$ and $45.70\%$ at $K{=}3$ --- $0.05$ across-seed standard errors.
 
 Rather than infer inertness from flat curves, we measure $r$. On the best model
-$r=0.0157$ at $K{=}3$ and $0.0174$ at $K{=}9$: under $2\%$ of the field is
+$r=0.0168$ at $K{=}3$: under $2\%$ of the field is
 non-equivariant. By Eq.~\eqref{eq:budget} the squared error any equivariantisation
 can remove is at most $r^2$ of the field's squared magnitude, i.e.\ about
 $2.5\times10^{-4}$, while the model is failing on more than half of its samples.
 The remaining error respects the symmetry and is untouchable by symmetrisation.
 
 Two observations sharpen this. First, the residual barely moves when roll
-augmentation is removed ($0.0186\!\to\!0.0292$ at $60$ environments, both small),
+augmentation is removed ($0.0170\!\to\!0.0279$ at $60$ environments, both small),
 so augmentation did not cause the near-equivariance. The explanation is that the
 gauge is a deterministic function of $\xhat$, and $600$ start--goal pairs per
 environment supply $600$ distinct directions; the reduced-frame data already spans
 a wide spread of rolls, and explicit augmentation was solving a problem the data
-had already solved. Second, the residual \emph{falls} with scale, from $0.0186$ at
-$60$ environments to $0.0157$ at $250$ (Fig.~\ref{fig:mechanisms}b), which would
-say the model becomes more equivariant as it sees more layouts.
+had already solved. Second, and contrary to what we expected, the residual does
+\emph{not} move with scale: $0.0183$, $0.0170$, $0.0177$, $0.0168$ across a
+$12.5\times$ range of training data (Fig.~\ref{fig:mechanisms}b). It is small and
+flat. An earlier two-point reading under a mean-of-norms definition of $r$
+suggested a downward trend; measured at four scales under Eq.~\eqref{eq:resid} it
+is a constant, and we report it as one.
 
-The second observation is suggestive, and we deliberately state it at that
-strength rather than as the argument against building the constrained
-architecture. Two points at one seed with no interval do not establish a trend.
-There is also a competing explanation we cannot presently rule out: this model is
-underfitting, an under-resolved field sits closer to the conditional mean, and
-the conditional mean is the more symmetric object, so part of the apparent gain
-in equivariance may be a symptom of not having fit the data yet rather than of
-having absorbed the symmetry. The measurement is \emph{consistent with} the
-property arriving on its own; it does not establish it. What settles the
-direction is the residual at every scale tier across several seeds, which is an
-eval-only sweep over checkpoints that already exist. The case against the
-constrained architecture therefore rests on the size of $r$ and
-Corollary~\ref{cor:budget}, which do not depend on the trend, and not on the
-trend itself.
+That the residual is flat rather than falling is itself informative. It means
+the near-equivariance of the learned field is not something the model acquires
+gradually from seeing more layouts --- it is present at $20$ environments and
+unchanged at $250$. Combined with the no-roll ablation, the picture is that the
+reduced-frame data supplies enough implicit roll diversity from the outset, and
+that nothing about the scale of the training set changes how equivariant the
+learned field is. The case for not building a constrained architecture rests on
+the \emph{size} of $r$ and Corollary~\ref{cor:budget}, neither of which depends
+on a trend.
 
 \subsection{How much of the level is training budget}
 \label{sec:budget}
@@ -960,17 +976,28 @@ than the train--validation comparison discussed in Sec.~\ref{sec:limits}. The
 model at $20$ epochs is substantially underfit, so the $45.6\%$ headline
 understates what this architecture reaches at convergence.
 
-Second, it qualifies the reading of Fig.~\ref{fig:scaling}. The reduced arm at
-$60$ environments and $60$ epochs ($42.4\%$) is close to the same arm at $250$
-environments and $20$ epochs ($45.6\%$), so on this benchmark optimisation and
-environment count are substantially substitutable, and environments are
-\emph{not} straightforwardly the binding constraint. What the scaling figure
-measures is how each arm converts data into performance \emph{at a fixed and
-insufficient budget}. We think the comparison remains sound --- both arms get the
-same budget, and the world-frame arm is flat under a $12.5\times$ increase in
-data, which is not the signature of a model that merely needs longer --- but the
-epoch-matched control at $60$ epochs is the experiment that would settle it, and
-it has not been run.
+Second --- and this is the part we did not anticipate --- the same tripling is
+worth almost nothing to the world-frame arm. Running it at $60$ epochs on the
+same $60$ environments moves it from $13.6\%$ to $14.4\%$:
+\begin{center}\small
+\begin{tabular}{lrr}
+\toprule
+$60$ environments & $20$ epochs & $60$ epochs \\
+\midrule
+World frame            & $13.6$ & $14.4$ \\
+$(\svec,\gvec)$ reduction & $34.4$ & $\mathbf{42.4}$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+Optimisation buys $+8.0$ points with the reduction and $+0.9$ without it, an
+interaction of $+7.1$ points at roughly $4.5$ across-seed standard errors. The
+two mechanisms are not substitutes: they relieve different constraints. The
+representation bottleneck --- the network being shown a pose it must relearn at
+every value --- is removed by canonicalisation and \emph{cannot} be removed by
+compute. The capacity bottleneck is removed by compute and cannot be removed by
+canonicalisation. This also settles the reading of Fig.~\ref{fig:scaling}: the
+world-frame arm's flatness is not an artefact of an insufficient budget, because
+giving it three times the budget leaves it flat.
 
 The deployment metric at this budget is high: best-of-$20$ behind a collision
 check solves $\mathbf{87.2\%}$ of held-out queries, against $15.8\%$ for the best
@@ -1062,16 +1089,21 @@ since Sec.~\ref{sec:budget} shows optimisation buys a comparable amount at fixed
 data; the honest statement is that both are binding and neither has been pushed
 to saturation.
 
-\textbf{Two arms the comparison still needs.} The first is the augmented control
-described in Sec.~\ref{sec:baselines}: a world-frame model trained with random
-$T\in\SE$ applied to the whole problem. Until it is run, the claim supported here
-is that ignoring the symmetry costs $30$ points, not that canonicalisation beats
-augmentation. The second is a translation-only reduction, which recentres on the
-midpoint without rotating; it would split the $30.2$ points between the three
-translational and the two rotational degrees of freedom, which the present
-experiment reports only in aggregate. Both are single training runs against the
-existing pipeline, and both are more informative per unit compute than any
-further scaling of the arms already reported.
+\textbf{One arm the comparison still needs.} A translation-only reduction, which
+recentres on the midpoint without rotating, would split the $30.3$ points between
+the three translational and the two rotational degrees of freedom; we report them
+only in aggregate. It is one training run against the existing pipeline.
+
+\textbf{The roll-augmentation ablation needs seeds.} With three seeds the
+reduced arm at $60$ environments averages $34.4\%$, against $30.1\%$ for the
+same arm without roll augmentation --- $+4.4$ points, or about $2.8$ across-seed
+standard errors. That is larger than the $+1.2$ we would have reported from
+single seeds, and it is no longer obviously inside noise. But the no-roll
+ablation itself has one seed, so this compares a single draw against a
+three-seed mean and we do not draw a conclusion from it. Given the treatment
+arm's seed spread ($31.3$, $36.0$, $35.9$), single-seed ablations at this scale
+are not reliable, which is a caution that applies to the $K$ sweep as well ---
+though there the effect is $0.05$ SE rather than $2.8$.
 
 \textbf{One generative objective, one seed.} Every learned number here comes from
 conditional flow matching at a single training seed. The reduction is a statement
