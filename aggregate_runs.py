@@ -22,22 +22,44 @@ from pathlib import Path
 
 import numpy as np
 
-#  [ddpm-]{ctrl,treat}[-noroll]-e<envs>[-s<seed>]
+#Filenames carry the variant and the scale; the ARM and OBJECTIVE are read from
+#the JSON payload instead, because sweep_steps.py records them (`reduced`,
+#`objective`) and a filename cannot be trusted to. `long-e60` for instance does
+#not say which arm it is, and an earlier regex that insisted on a `ctrl`/`treat`
+#prefix silently skipped every run whose name carried a variant tag.
 NAME_RE = re.compile(
-    r"^(?:(?P<objective>ddpm|flow)-)?"
-    r"(?P<arm>ctrl|treat(?:-noroll)?)"
-    r"-e(?P<envs>\d+)"
-    r"(?:-s(?P<seed>\d+))?$"
+    r"^(?P<variant>.*?)"                 # long-, aug, cone30, translation, ...
+    r"e(?P<envs>\d+)"
+    r"(?:-s(?P<seed>\d+))?"
+    r"(?:-kfa(?P<kfa>\d+))?$"
 )
 
 
-def parse_name(path):
-    m = NAME_RE.match(Path(path).stem)
+def parse_name(path, payload=None):
+    stem = Path(path).stem
+    m = NAME_RE.match(stem)
     if not m:
         return None
     g = m.groupdict()
-    return dict(objective=g["objective"] or "flow", arm=g["arm"],
-                envs=int(g["envs"]), seed=int(g["seed"] or 0))
+
+    #normalise the variant: strip the arm words and separators, keep the rest
+    v = g["variant"] or ""
+    for token in ("ddpm-", "flow-", "ctrl-", "treat-", "long-"):
+        v = v.replace(token, "")
+    v = v.strip("-") or "base"
+
+    arm, objective = "?", "flow"
+    if payload is not None:
+        arm = "treat" if payload.get("reduced") else "ctrl"
+        objective = payload.get("objective", "flow")
+    if "long-" in stem:
+        v = "long" if v == "base" else f"long-{v}"
+
+    kfa = int(g["kfa"]) if g["kfa"] else None
+    if kfa is None and payload is not None:
+        kfa = payload.get("config", {}).get("k_fa", 1)
+    return dict(objective=objective, arm=arm, variant=v,
+                envs=int(g["envs"]), seed=int(g["seed"] or 0), kfa=kfa or 1)
 
 
 def main():
@@ -54,12 +76,16 @@ def main():
     cells = defaultdict(dict)  # (objective, arm, envs) -> {seed: value}
     skipped = []
     for f in args.files:
-        meta = parse_name(f)
+        try:
+            with open(f) as fh:
+                payload = json.load(fh)
+        except OSError:
+            skipped.append(f)
+            continue
+        meta = parse_name(f, payload)
         if meta is None:
             skipped.append(f)
             continue
-        with open(f) as fh:
-            payload = json.load(fh)
         rows = {r["steps"]: r for r in payload["rows"]}
         n_steps = args.steps if args.steps is not None else min(rows)
         if n_steps not in rows:
@@ -69,7 +95,8 @@ def main():
         if args.metric not in row:
             skipped.append(f"{f} (no metric {args.metric})")
             continue
-        key = (meta["objective"], meta["arm"], meta["envs"])
+        key = (meta["objective"], f"{meta['arm']}/{meta['variant']}"
+               + (f"/K{meta['kfa']}" if meta["kfa"] != 1 else ""), meta["envs"])
         cells[key][meta["seed"]] = row[args.metric]
 
     if skipped:
@@ -80,7 +107,7 @@ def main():
 
     print(f"\nmetric={args.metric}  "
           f"steps={args.steps if args.steps is not None else 'min per file'}\n")
-    header = f"{'objective':<10}{'arm':<14}{'envs':>6}{'seeds':>7}{'mean':>10}{'SE':>8}{'spread':>18}"
+    header = f"{'objective':<11}{'arm / variant':<26}{'envs':>6}{'seeds':>7}{'mean':>10}{'SE':>8}{'spread':>18}"
     print(header)
     print("-" * len(header))
     for key in sorted(cells, key=lambda k: (k[0], k[1], k[2])):
@@ -92,15 +119,15 @@ def main():
         se = float(v.std(ddof=1) / np.sqrt(len(v))) if len(v) > 1 else float("nan")
         spread = ", ".join(f"{x:.3g}" for x in v)
         se_s = f"{se:>8.3f}" if len(v) > 1 else f"{'--':>8}"
-        print(f"{obj:<10}{arm:<14}{envs:>6}{len(v):>7}{v.mean():>10.3f}{se_s}"
+        print(f"{obj:<11}{arm:<26}{envs:>6}{len(v):>7}{v.mean():>10.3f}{se_s}"
               f"{spread:>18}")
 
     #the comparison the paper makes, with a seed-aware error bar
     print()
     for obj in sorted({k[0] for k in cells}):
         for envs in sorted({k[2] for k in cells if k[0] == obj}):
-            c = cells.get((obj, "ctrl", envs))
-            t = cells.get((obj, "treat", envs))
+            c = cells.get((obj, "ctrl/base", envs))
+            t = cells.get((obj, "treat/base", envs))
             if not c or not t:
                 continue
             cv = np.array(list(c.values()), dtype=float)

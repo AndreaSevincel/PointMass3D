@@ -12,22 +12,31 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ENVS = [20, 60, 150, 250]
-CONTROL = [12.8, 13.5, 14.6, 15.4]      # world frame
-TREATMENT = [19.0, 31.3, 41.0, 45.6]    # (s,g) reduction
-NOROLL_X, NOROLL_Y = 60, 30.1           # ablation: reduction without roll augmentation
+# 60-env cells are 3-seed means (seed 0 was the worst treatment draw of three);
+# the others are single seed. See aggregate_runs.py output, 2026-08-08.
+CONTROL = [12.77, 13.57, 14.60, 15.38]     # world frame
+AUGMENTED = [12.72, 13.84, 15.25, 17.50]   # world frame + random SE(3) augmentation
+TREATMENT = [18.97, 34.43, 41.00, 45.63]   # (s,g) reduction
+NOROLL_X, NOROLL_Y = 60, 30.06          # ablation: reduction without roll augmentation
 
 # mechanism decomposition, percentage points on the held-out collision-free rate
 MECHANISMS = [
-    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.2),
-    ("roll augmentation\n(training)", 1.2),
-    ("frame averaging\n($K{=}1\\to9$)", 0.2),
+    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.25),
+    ("SE(3) augmentation\n(world frame)", 2.12),
+    ("roll augmentation\n(training)", 4.37),
+    ("frame averaging\n($K{=}1\\to3$)", 0.08),
 ]
-SE = 2.0                                # standard error, ~500 distinct problems
+# across-SEED standard error at 60 envs, treatment arm (n=3). This is the right
+# floor for a claim about a method; the old 2.0 came from the spread over
+# held-out problems, which answers a different question.
+SE = 1.56
 
-# non-equivariance residual  E||v_k - vbar|| / ||vbar||, K=3
-RESID_ENVS = [60, 250]
-RESID = [0.0186, 0.0157]
-RESID_NOROLL = (60, 0.0292)
+# non-equivariance residual, RMS (Hilbert) definition of Eq. 6, K=3.
+# Flat across a 12.5x range of training data -- the earlier "falls with scale"
+# reading came from two points under the old mean-of-norms definition.
+RESID_ENVS = [20, 60, 150, 250]
+RESID = [0.0183, 0.0170, 0.0177, 0.0168]
+RESID_NOROLL = (60, 0.0279)
 
 # classical reference points, measured by baselines_classical.py on the SAME
 # 500 held-out problems (envs 250-299 x 10 pairs). Times are single-core CPU.
