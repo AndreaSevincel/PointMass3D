@@ -32,6 +32,7 @@ from pointmass3d import (
     path_length,
 )
 from sample_flow import build_env, distinct_pairs
+from se3body import RigidBody, SE3Env, decode_poses, sample_se3
 
 
 def main():
@@ -79,8 +80,16 @@ def main():
     model.eval()
     #sg_dim identifies the arm: 6 = world frame, 1 = full reduction,
     #3 = translation-only reduction (the direction g-s is still informative)
-    reduced = model.cond_enc.sg_dim == 1
-    translation_only = model.cond_enc.sg_dim == 3
+    #A state is 3 numbers (point mass) or 9 (SE(3) pose: position + 6D
+    #rotation). The conditioning width then identifies the arm: point mass uses
+    #1 for the full reduction and 6 for the world frame; SE(3) uses 13 and 18,
+    #because the reduction canonicalises the endpoint positions but not their
+    #orientations.
+    state_dim = getattr(model, "state_dim", 3)
+    is_se3 = state_dim == 9
+    sg = model.cond_enc.sg_dim
+    reduced = (sg == 13) if is_se3 else (sg == 1)
+    translation_only = (not is_se3) and sg == 3
     if translation_only and args.k_fa > 1:
         raise SystemExit("frame averaging needs the rotational reduction; "
                          "the translation-only arm has no roll gauge")
@@ -90,6 +99,11 @@ def main():
                 if objective == "ddpm" else None)
     if objective == "ddpm" and args.k_fa > 1:
         raise SystemExit("frame averaging is implemented for the flow arm only")
+    if is_se3 and (args.k_fa > 1 or args.residual_se3 > 0):
+        raise SystemExit(
+            "the frame-averaging and SE(3) residual paths are written for "
+            "3-dim states; they would silently mis-handle 9-dim poses. Run the "
+            "SE(3) domain without --k-fa/--residual-se3.")
     if args.k_fa > 1 and not reduced:
         raise SystemExit("--k-fa > 1 requires a reduced-frame checkpoint (sg_dim=1)")
     box_dim = model.obstacle_enc.box_dim
@@ -104,7 +118,14 @@ def main():
     problems = []  # (env, sp_t, bx_t, list_of_(start,goal))
     for ei in range(args.env_start, args.env_start + args.n_envs):
         npz = np.load(f"{args.data}/env_{ei:04d}.npz", allow_pickle=True)
-        env = build_env(npz, float(npz["robot_radius"]))
+        if is_se3:
+            #SE3Env evaluates the obstacle SDF at the body's transformed sphere
+            #centres and subtracts the sphere radius itself, so the base env is
+            #built with no robot radius of its own.
+            env = SE3Env(build_env(npz, 0.0),
+                         RigidBody(npz["body_centers"], float(npz["robot_radius"])))
+        else:
+            env = build_env(npz, float(npz["robot_radius"]))
         sp_t, bx_t = env_features(npz, norm, box_dim=box_dim)
         starts, goals = npz["starts"], npz["goals"]
         idx = distinct_pairs(starts, goals, args.n_pairs)
@@ -139,15 +160,30 @@ def main():
         for env, sp_t, bx_t, pairs in problems:
             for start, goal in pairs:
                 B = args.n_samples
-                s_b = torch.from_numpy(norm.norm_pts(start).astype(np.float32)).repeat(B, 1).to(device)
-                g_b = torch.from_numpy(norm.norm_pts(goal).astype(np.float32)).repeat(B, 1).to(device)
+                def _norm_state(v):
+                    #rotation columns are unit vectors: scaling or shifting them
+                    #is meaningless, so only the position is normalised
+                    if not is_se3:
+                        return norm.norm_pts(v).astype(np.float32)
+                    out = np.asarray(v, dtype=np.float32).copy()
+                    out[:3] = norm.norm_pts(v[:3])
+                    return out
+
+                s_b = torch.from_numpy(_norm_state(start)).repeat(B, 1).to(device)
+                g_b = torch.from_numpy(_norm_state(goal)).repeat(B, 1).to(device)
                 sp_b = sp_t.unsqueeze(0).expand(B, -1, -1)
                 bx_b = bx_t.unsqueeze(0).expand(B, -1, -1)
                 # Fresh generator per query: identical prior draw for every step count.
                 gen = torch.Generator(device=device).manual_seed(
                     args.seed * 100003 + n_queries
                 )
-                if objective == "ddpm":
+                if is_se3:
+                    x = sample_se3(
+                        model, sp_b, bx_b, s_b, g_b, n_waypoints=N,
+                        n_steps=n_steps, reduced=reduced, device=device,
+                        generator=gen,
+                    )
+                elif objective == "ddpm":
                     #Same NFE as the flow arm: n_steps network evaluations.
                     if reduced:
                         x = sample_diffusion_reduced(
@@ -192,16 +228,34 @@ def main():
                         anchor_endpoints=args.anchor_endpoints,
                         device=device, generator=gen,
                     )
-                paths = norm.denorm_pts(x.cpu().numpy())
+                if is_se3:
+                    #decode_poses applies Gram-Schmidt to the six unconstrained
+                    #rotation outputs and denormalises the positions. Collision
+                    #checking is over POSES: a rigid body sweeps volume as it
+                    #rotates, so the point-mass path_free would miss exactly the
+                    #collisions this domain exists to test.
+                    paths, rots = decode_poses(x, norm)
+                    free_q = [env.path_free(paths[i], rots[i]) for i in range(len(paths))]
+                    clear.extend(env.min_clearance(paths[i], rots[i])
+                                 for i in range(len(paths)))
+                    #endpoint error stays positional so it is comparable with
+                    #the point-mass domain; orientation error is reported apart
+                    ep.extend(
+                        0.5 * (np.linalg.norm(p[0] - start[:3])
+                               + np.linalg.norm(p[-1] - goal[:3]))
+                        for p in paths
+                    )
+                else:
+                    paths = norm.denorm_pts(x.cpu().numpy())
+                    free_q = [env.path_free(p) for p in paths]
+                    clear.extend(min_clearance(env, p) for p in paths)
+                    ep.extend(
+                        0.5 * (np.linalg.norm(p[0] - start) + np.linalg.norm(p[-1] - goal))
+                        for p in paths
+                    )
                 paths_all.append(paths)
-                free_q = [env.path_free(p) for p in paths]
                 free.extend(free_q)
                 solved_any.append(any(free_q))
-                clear.extend(min_clearance(env, p) for p in paths)
-                ep.extend(
-                    0.5 * (np.linalg.norm(p[0] - start) + np.linalg.norm(p[-1] - goal))
-                    for p in paths
-                )
                 length.extend(path_length(p) for p in paths)
                 acc.extend(mean_sq_accel(p) for p in paths)
                 if args.residual_se3 > 0:
