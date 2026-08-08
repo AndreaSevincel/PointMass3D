@@ -277,7 +277,18 @@ def se3_residual(model, spheres, boxes, start, goal, reduced, k=8,
         sg_k = build_conditioning(s_k, g_k, reduced=False)
     c_k = net.encode_cond(sph_k, box_k, sg_k, sm, bm)
 
+    #The probe must sit where the model's own sampler operates, or the
+    #measurement reports off-distribution behaviour instead of
+    #non-equivariance. The world-frame sampler draws N(0,I) in world
+    #coordinates -- and a rigid rotation of an isotropic Gaussian is still
+    #N(0,I), so drawing here is already correct for that arm. The reduced
+    #sampler draws N(0,I) in the REDUCED frame; mapping a world-frame draw in
+    #leaves the state offset by the query midpoint, which inflated r by ~3.4x.
     x = torch.randn(B, N, 3, device=device, generator=generator)
+    if reduced:
+        R00, origin00, _ = sg_frame(start, goal, None)
+        x = torch.einsum("bji,bkj->bki", R00, x) + origin00[:, None, :]
+
     ts = torch.linspace(0.0, 1.0, n_steps + 1, device=device)
     num = den = 0.0
     for i in range(n_steps):

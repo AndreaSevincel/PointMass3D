@@ -642,15 +642,53 @@ the model is failing on more than half of its samples: the two quantities are no
 the same order, and no rearrangement of the symmetry can close the gap. The
 measurement costs one forward pass and no retraining.
 
-What it does not license is a verdict on building an equivariant architecture.
-Symmetrising a trained field and training a constrained model are different
-operations: the first is a projection, bounded by Eq.~\eqref{eq:budget}; the
-second changes the hypothesis class, and with it optimisation, capacity
-allocation and generalisation, none of which $r$ measures. A small $r$ says the
-model's error is not a symmetry violation. Whether that also predicts a small
-gain from a constrained architecture is a question we do not test, and answering
-it would need equivariant models trained across settings with different amounts
-of learned non-equivariance.
+What it does not license is a verdict on building an equivariant architecture,
+and on this point we can do better than a caveat. Symmetrising a trained field
+and training a constrained model are different operations: the first is a
+projection, bounded by Eq.~\eqref{eq:budget}; the second changes the hypothesis
+class, and with it optimisation, capacity allocation and generalisation, none of
+which $r$ measures.
+
+To test the tempting reading directly we measured $r$ under the \emph{full}
+$\SE$ action rather than the roll alone, which makes it defined for the
+world-frame arm as well: $K$ random rigid motions are applied to the whole
+problem, the field is evaluated in each, and each result is mapped back by the
+inverse rotation. Table~\ref{tab:twosigns} is the result.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Arm (250 environments) & $r$ under $\SE$ & Free (\%) \\
+\midrule
+World frame                     & $0.0881$ & $15.4$ \\
+World frame $+\ \SE$ augmentation & $0.0181$ & $17.5$ \\
+$(\svec,\gvec)$ reduction         & $0.0174$ & $\mathbf{45.6}$ \\
+\bottomrule
+\end{tabular}
+\caption{The residual does not predict what a mechanism is worth. Augmentation
+and canonicalisation leave the learned field equally equivariant, and differ by
+$28$ points of held-out performance}
+\label{tab:twosigns}
+\end{table}
+
+Augmentation drives the residual down by a factor of $4.9$: it demonstrably
+teaches the network the symmetry, to the same degree the reduction enforces it
+by construction. It buys $2.1$ points. The reduction, at an indistinguishable
+residual, buys $30.3$. \emph{Two models with the same $r$ can differ by $28$
+points}, so $r$ does not forecast the benefit of a symmetry mechanism, and a
+decision rule of the form ``build the constrained architecture only if $r$ is
+large'' has no support here. What $r$ bounds is what symmetrising a given field
+can remove, which is Eq.~\eqref{eq:budget} and is a theorem; what it does not
+measure is whether symmetry is the binding constraint at all.
+
+This is also a consistency check on Proposition~\ref{prop:exact} for a
+\emph{trained} model. For the reduced arm the $\SE$ residual is $0.0186$ at
+$K{=}9$ and $0.0194$ at $K{=}32$, against $0.0191$ and $0.0192$ for the roll
+residual at matched $K$: a rigid motion acts on the reduced representation only
+through a roll, as claimed, and the two independently computed quantities agree
+to $0.0005$.
 
 We state the limit of this argument explicitly, because it is the objection a
 reader should raise. Corollary~\ref{cor:budget} bounds what can be gained by
