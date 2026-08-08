@@ -3,6 +3,7 @@
   #.venv/bin/python train_flow.py --data data1 --epochs 300 --batch 1024 --amp --multi-gpu
 
 import argparse
+import os
 import time
 from pathlib import Path
 
@@ -373,6 +374,13 @@ def main():
         if val_loss < best_val:
             best_val = val_loss
             run.summary(best_val_loss=best_val, best_epoch=epoch)
+            #Write to a temp file and rename. os.replace is atomic within a
+            #filesystem, so a reader either sees the previous checkpoint or the
+            #new one, never a half-written mixture. Saving in place is a real
+            #hazard here: evaluating a checkpoint mid-write does not raise, it
+            #silently returns a much worse score, which reads as a training
+            #failure rather than as a torn read.
+            tmp_out = str(args.out) + ".tmp"
             torch.save(
                 {
                     "model": core.state_dict(),
@@ -390,8 +398,9 @@ def main():
                     "diffusion_steps": args.diffusion_steps,
                     "reduced": args.reduced,
                 },
-                args.out,
+                tmp_out,
             )
+            os.replace(tmp_out, args.out)
     print(f"done. best val {best_val:.4f}. checkpoint -> {args.out}")
     run.summary(total_time_s=time.time() - t0)
     run.finish()
