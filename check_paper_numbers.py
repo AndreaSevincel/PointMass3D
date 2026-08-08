@@ -1,0 +1,71 @@
+
+  #python check_paper_numbers.py
+
+  #Verify the paper's numbers against the measured results, mechanically.
+
+  #Every number below was hand-propagated across a dozen revisions, and each
+  #revision left some of them stale. Reading for it does not work: the same
+  #figure appears in the abstract, an intro contribution, a table, a caption and
+  #a discussion paragraph, and a reader checks whichever they are looking at.
+  #This checks all of them at once, and fails loudly on values that were
+  #superseded.
+
+import pathlib
+import re
+import sys
+
+TEX = pathlib.Path("paper.tex").read_text()
+
+#Values that must be present somewhere. Not exhaustive -- these are the ones
+#that appear in several places and so drift apart.
+REQUIRED = {
+    "reduction at 250 envs": r"45\.6",
+    "world frame at 250 envs": r"15\.4",
+    "augmented control at 250 envs": r"17\.5",
+    "headline gap": r"30\.2",
+    "roll augmentation": r"4\.4",
+    "frame averaging": r"\+0\.1",
+    "SE(3) augmentation": r"\+2\.1|2\.1 pp",
+    "epoch gain, reduced arm": r"\+8\.0",
+    "epoch gain, world frame": r"\+0\.9|0\.87",
+    "interaction": r"\+7\.1",
+    "best-of-20": r"90\.4",
+    "straight-line floor": r"15\.6",
+    "untrained prior best-of-20": r"15\.8",
+    "r under SE(3), world frame": r"0\.0881",
+    "r under SE(3), augmented": r"0\.0181",
+    "r under SE(3), reduction": r"0\.0174",
+    "world frame is 91% equivariant": r"91\\%",
+}
+
+#Values superseded by a later measurement. Their presence is a bug.
+FORBIDDEN = {
+    r"\+11\.1": "epoch gain against the single-seed baseline; use +8.0",
+    r"0\.0157": "residual under the old mean-of-norms definition",
+    r"1\.86\\%": "residual trend that the four-tier measurement refuted",
+    r"\+30\.3": "gap; 45.6 - 15.4 = 30.2",
+    r"both inside noise": "roll augmentation is +4.4, not inside noise",
+    r"are inert\}": "heading; only the K sweep is inert",
+    r"three independent measurements": "the roll ablation no longer supports it",
+}
+
+def main():
+    bad = []
+    for name, pat in REQUIRED.items():
+        if not re.search(pat, TEX):
+            bad.append(f"MISSING  {name}  (/{pat}/)")
+    for pat, why in FORBIDDEN.items():
+        for m in re.finditer(pat, TEX):
+            line = TEX[:m.start()].count("\n") + 1
+            #a deliberate contrast, flagged in prose, is allowed
+            ctx = TEX[max(0, m.start() - 220):m.start() + 60]
+            if "would have reported" in ctx or "would read" in ctx:
+                continue
+            bad.append(f"STALE    line {line}: {m.group()}  -- {why}")
+    for b in bad:
+        print(b)
+    print(f"\n{len(bad)} problem(s)" if bad else "\nall numbers consistent")
+    return 1 if bad else 0
+
+if __name__ == "__main__":
+    sys.exit(main())

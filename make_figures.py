@@ -21,10 +21,10 @@ NOROLL_X, NOROLL_Y = 60, 30.06          # ablation: reduction without roll augme
 
 # mechanism decomposition, percentage points on the held-out collision-free rate
 MECHANISMS = [
-    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.25),
-    ("SE(3) augmentation\n(world frame)", 2.12),
-    ("roll augmentation\n(training)", 4.37),
-    ("frame averaging\n($K{=}1\\to3$)", 0.08),
+    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.2),
+    ("SE(3) augmentation\n(world frame)", 2.1),
+    ("roll augmentation\n(training)", 4.4),
+    ("frame averaging\n($K{=}1\\to3$)", 0.1),
 ]
 # across-SEED standard error at 60 envs, treatment arm (n=3). This is the right
 # floor for a claim about a method; the old 2.0 came from the spread over
@@ -134,7 +134,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
                  textcoords="offset points", fontsize=7, color=MUTED, va="center")
     axl.barh(list(ypos), vals, height=0.52, color=C_TREAT, zorder=2)
     for y, v in zip(ypos, vals):
-        axl.annotate(f"+{v} pp", xy=(v, y), xytext=(7, 0), textcoords="offset points",
+        axl.annotate(f"+{v:.1f} pp", xy=(v, y), xytext=(7, 0), textcoords="offset points",
                      va="center", fontsize=8.5, color=INK, fontweight="bold")
 
     axl.set_yticks(list(ypos))

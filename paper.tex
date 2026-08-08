@@ -126,8 +126,9 @@ contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
 points across a $12.5\times$ increase in training environments while the
 canonicalised arm gains $26.6$ and has not plateaued.
 
-The two mechanisms built for the sixth degree of freedom contribute $+1.2$ and
-$+0.2$ points, both inside noise. We explain this rather than merely reporting it,
+The two mechanisms built for the sixth degree of freedom are worth little and
+possibly nothing: frame averaging contributes $+0.1$ points, and roll
+augmentation $+4.4$ against a single-seed ablation we do not consider settled. We explain this rather than merely reporting it,
 by measuring the \emph{non-equivariance residual}: only $1.7\%$ of the learned
 velocity field lies outside the equivariant subspace. Because frame averaging is
 the orthogonal projection
@@ -217,8 +218,9 @@ vanishes in expectation for every start--goal direction
 by symmetry rather than canonicalisation.
 
 \textbf{(iii) The symmetry machinery is inert here, and we measure why.} Roll
-augmentation and frame averaging contribute $+1.2$ and $+0.2$ percentage points,
-both inside noise, while the reduction contributes $+30.3$. Rather than infer
+augmentation and frame averaging contribute $+4.4$ and $+0.1$ percentage points
+--- the second inside noise, the first resting on a single-seed ablation --- while
+the reduction contributes $+30.2$. Rather than infer
 inertness from flat curves --- a weak conclusion --- we measure the quantity frame
 averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
 among rotated copies of the velocity field, is $1.7\%$ and is flat across a
@@ -226,10 +228,7 @@ $12.5\times$ range of training data. Since frame averaging is
 the orthogonal projection onto the equivariant subspace
 (Proposition~\ref{prop:fa}), the error it can remove is bounded by that $1.7\%$
 (Corollary~\ref{cor:budget}), while the model is failing on most of its samples:
-the model's error is overwhelmingly equivariant error. The residual is also
-smaller at the larger training scale ($1.86\%\to1.57\%$), which is consistent
-with the property arriving on its own, though two points at one seed do not
-establish a trend and we do not rest the argument on it.
+the model's error is overwhelmingly equivariant error.
 
 \textbf{(iv) Calibration against floors and ceilings.} A collision-free rate is
 uninterpretable on a new benchmark, so we measure, on the identical $500$ held-out
@@ -551,11 +550,6 @@ of the state, each result rotated back, and averaged:
   \label{eq:fa}
 \end{equation}
 
-%TODO(before submission): r was measured with the pre-2026-08 mean-of-norms
-%ratio, not Eq. (6). The harness now emits both (sweep_steps.py --residual
-%reports `residual` = Hilbert and `residual_meannorm` = legacy). Re-run the
-%K sweep on the existing checkpoints -- eval only, no retraining -- and update
-%1.57 / 1.74 / 1.86 / 2.92 here and in make_figures.py.
 \begin{proposition}[Exact $C_K$ equivariance and projection]
 \label{prop:fa}
 For any $f$, $\mathcal{A}f$ is exactly $C_K$-equivariant. Moreover $\mathcal{A}$
@@ -653,39 +647,9 @@ projection, bounded by Eq.~\eqref{eq:budget}; the second changes the hypothesis
 class, and with it optimisation, capacity allocation and generalisation, none of
 which $r$ measures.
 
-To test the tempting reading directly we measured $r$ under the \emph{full}
-$\SE$ action rather than the roll alone, which makes it defined for the
-world-frame arm as well: $K$ random rigid motions are applied to the whole
-problem, the field is evaluated in each, and each result is mapped back by the
-inverse rotation. Table~\ref{tab:twosigns} is the result.
-
-\begin{table}[t]
-\centering
-\small
-\begin{tabular}{lrr}
-\toprule
-Arm (250 environments) & $r$ under $\SE$ & Free (\%) \\
-\midrule
-World frame                     & $0.0881$ & $15.4$ \\
-World frame $+\ \SE$ augmentation & $0.0181$ & $17.5$ \\
-$(\svec,\gvec)$ reduction         & $0.0174$ & $\mathbf{45.6}$ \\
-\bottomrule
-\end{tabular}
-\caption{The residual does not predict what a mechanism is worth. Augmentation
-and canonicalisation leave the learned field equally equivariant, and differ by
-$28$ points of held-out performance}
-\label{tab:twosigns}
-\end{table}
-
-Augmentation drives the residual down by a factor of $4.9$: it demonstrably
-teaches the network the symmetry, to the same degree the reduction enforces it
-by construction. It buys $2.1$ points. The reduction, at an indistinguishable
-residual, buys $30.3$. \emph{Two models with the same $r$ can differ by $28$
-points}, so $r$ does not forecast the benefit of a symmetry mechanism, and a
-decision rule of the form ``build the constrained architecture only if $r$ is
-large'' has no support here. What $r$ bounds is what symmetrising a given field
-can remove, which is Eq.~\eqref{eq:budget} and is a theorem; what it does not
-measure is whether symmetry is the binding constraint at all.
+We test that reading directly, and it fails: see
+Sec.~\ref{sec:twosigns}, where two arms with indistinguishable residuals differ
+by $28$ points of held-out performance.
 
 This is also a consistency check on Proposition~\ref{prop:exact} for a
 \emph{trained} model. For the reduced arm the $\SE$ residual is $0.0186$ at
@@ -955,7 +919,7 @@ arm with one component removed}
 
 Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
 $250$ environments the reduction reaches $45.6\%$ against $15.4\%$, a gap of
-$30.3$ points. Measured against the across-seed standard error at $60$
+$30.2$ points. Measured against the across-seed standard error at $60$
 environments ($1.56$ points for this arm, $n{=}3$), that is roughly $19$ standard
 errors; the seed spread was not measured at $250$ environments, so we quote the
 $60$-environment floor, which is the wider of the two arms.
@@ -975,7 +939,7 @@ Endpoint error falls by a factor of three to five under the reduction
 direct consequence of canonicalisation: with endpoints always at $(\mp d/2,0,0)$
 the model no longer spends capacity on \emph{where} they are.
 
-\subsection{The mechanisms for the sixth degree of freedom are inert}
+\subsection{Frame averaging is inert; the roll ablation is unresolved}
 
 \begin{table}[t]
 \centering
@@ -985,30 +949,32 @@ the model no longer spends capacity on \emph{where} they are.
 \toprule
 Mechanism & $\Delta$ free & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.3$ pp & $\approx19$ SE; grows \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx19$ SE; grows \\
 $\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
 Roll augmentation                 & $+4.4$ pp  & $2.8$ SE; one seed, see text \\
 Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
 \bottomrule
 \end{tabular}
 \caption{Decomposition by mechanism on the same held-out set. Among the
-mechanisms tested, canonicalisation accounts for the effect: the next largest is
-an order of magnitude smaller, and the two built for the sixth degree of freedom
-are smaller still. The $\Delta$ column is against the arm without that mechanism,
-so the rows are not additive}
+mechanisms tested, canonicalisation accounts for the effect: it is seven times
+the next largest. Frame averaging is inside noise; the roll-augmentation figure
+rests on a single-seed ablation and is not settled (Sec.~\ref{sec:limits}). The
+$\Delta$ column is against the arm without that mechanism, so the rows are not
+additive}
 \label{tab:ablation}
 \end{table}
 
 \begin{figure*}[t]
 \centering
 \includegraphics[width=0.92\textwidth]{fig_mechanisms.pdf}
-\caption{(a) Only the canonicalisation clears the noise floor; the two mechanisms
-built for the sixth degree of freedom sit inside it. (b) The non-equivariance
-residual of Eq.~\eqref{eq:resid} is smaller at the larger scale --- two points at
-one seed, so read it as consistent with the property arriving on its own rather
-than as establishing it; the hollow marker
-shows that removing roll augmentation raises the residual but leaves it small, so
-augmentation was not the cause of the near-equivariance}
+\caption{(a) Canonicalisation is seven times the next largest mechanism. The band
+is $\pm2$ across-seed standard errors, measured on the treatment arm at $60$
+environments; frame averaging sits inside it, and the roll-augmentation bar rests
+on a single-seed ablation. (b) The non-equivariance residual of
+Eq.~\eqref{eq:resid} is flat across a $12.5\times$ range of training data --- it
+is not something the model acquires from seeing more layouts. The hollow marker
+shows that removing roll augmentation raises the residual by $64\%$ but leaves it
+under $3\%$}
 \label{fig:mechanisms}
 \end{figure*}
 
@@ -1049,16 +1015,64 @@ learned field is. The case for not building a constrained architecture rests on
 the \emph{size} of $r$ and Corollary~\ref{cor:budget}, neither of which depends
 on a trend.
 
+\subsection{What the residual does not predict}
+\label{sec:twosigns}
+
+To test the tempting reading directly we measured $r$ under the \emph{full}
+$\SE$ action rather than the roll alone, which makes it defined for the
+world-frame arm as well: $K$ random rigid motions are applied to the whole
+problem, the field is evaluated in each, and each result is mapped back by the
+inverse rotation. Table~\ref{tab:twosigns} is the result.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+Arm (250 environments) & $r$ under $\SE$ & Free (\%) \\
+\midrule
+World frame                     & $0.0881$ & $15.4$ \\
+World frame $+\ \SE$ augmentation & $0.0181$ & $17.5$ \\
+$(\svec,\gvec)$ reduction         & $0.0174$ & $\mathbf{45.6}$ \\
+\bottomrule
+\end{tabular}
+\caption{The residual does not predict what a mechanism is worth. Augmentation
+and canonicalisation leave the learned field equally equivariant, and differ by
+$28$ points of held-out performance}
+\label{tab:twosigns}
+\end{table}
+
+Augmentation drives the residual down by a factor of $4.9$: it demonstrably
+teaches the network the symmetry, to the same degree the reduction enforces it
+by construction. It buys $2.1$ points. The reduction, at an indistinguishable
+residual, buys $30.2$. \emph{Two models with the same $r$ can differ by $28$
+points}, so $r$ does not forecast the benefit of a symmetry mechanism, and a
+decision rule of the form ``build the constrained architecture only if $r$ is
+large'' has no support here. What $r$ bounds is what symmetrising a given field
+can remove, which is Eq.~\eqref{eq:budget} and is a theorem; what it does not
+measure is whether symmetry is the binding constraint at all.
+
+One number in Table~\ref{tab:twosigns} deserves saying out loud. The world-frame
+arm ignores the symmetry entirely and performs at the straight-line floor --- and
+it is still $91\%$ equivariant. A model that has learned nothing useful about
+planning has nonetheless landed close to the equivariant subspace, because most
+of what a velocity field does on this problem is roughly pose-independent
+regardless of how it was trained. That is the sharpest form of the point: $r$
+being small is compatible with having solved the problem, with having learned the
+symmetry and nothing else, and with having learned nothing at all.
+
 \subsection{How much of the level is training budget}
 \label{sec:budget}
 
 Every arm above is trained for $20$ epochs, and that budget is not enough. Holding
 the data fixed at $60$ environments and training the reduced arm for $60$ epochs
-instead raises the held-out collision-free rate from $31.3\%$ to $\mathbf{42.4\%}$,
-with minimum clearance improving from $-0.031$ to $-0.013$ and endpoint error from
-$0.0024$ to $0.0022$. Three times the optimisation, at identical data and
-identical capacity, is worth $+11.1$ points --- an order of magnitude more than
-either mechanism built for the sixth degree of freedom.
+instead raises the held-out collision-free rate from $34.4\%$ --- the mean over
+three seeds --- to $\mathbf{42.4\%}$, with minimum clearance improving from
+$-0.031$ to $-0.013$ and endpoint error from $0.0024$ to $0.0022$. Three times
+the optimisation, at identical data and identical capacity, is worth $+8.0$
+points, nearly twice the largest of the mechanisms built for the sixth degree of
+freedom. Against the single seed the $20$-epoch cell was originally reported
+from, the same comparison would read $+11.1$; we quote the seed mean throughout.
 
 Two consequences follow, and the second is a correction.
 
@@ -1120,8 +1134,9 @@ cost and with no architectural constraint. Doing so roughly triples the
 collision-free rate on this benchmark and, more importantly, converts a model that
 cannot use additional training environments into one that can. The sixth cannot be
 removed and, here, does not need to be --- a contingent empirical fact rather than
-a theorem, but one supported by three independent measurements: the ablation, the
-$K$ sweep, and the residual.
+a theorem. Two independent measurements support it --- the $K$ sweep and the
+residual --- while the roll ablation, which we previously counted as a third, now
+points the other way and is unresolved.
 
 \textbf{The learned planner loses to the classical ones.} Table~\ref{tab:baselines}
 is unambiguous: RRT-Connect solves essentially every problem in $0.28$\,s of
@@ -1143,7 +1158,7 @@ effects push validation below training regardless of fit. We therefore score a
 fixed slice of the training set with the same EMA weights and the same code path
 as validation, and read the gap only from that like-for-like pair. The direct
 evidence is the longer run of Sec.~\ref{sec:budget}: at fixed data and fixed
-capacity, three times the optimisation is worth $+11.1$ points of held-out
+capacity, three times the optimisation is worth $+8.0$ points of held-out
 collision-free rate, which is what underfitting looks like measured on the task
 rather than on the loss.
 
@@ -1156,14 +1171,22 @@ distribution supplying implicit roll diversity through many start--goal directio
 A dataset with few directions per environment, or a task whose angular structure is
 genuinely richer --- manipulation with a gripper, or non-holonomic dynamics --- could
 plausibly reverse it. That is precisely why we advocate measuring $r$ rather than
-generalising our answer: the diagnostic transfers even where the conclusion does not.
+generalising our answer: the measurement is cheap and well defined wherever a
+group acts, even where our conclusion does not carry over. We do not claim it is
+predictive --- Sec.~\ref{sec:residual} shows it is not.
 
 \textbf{What the residual does and does not bound.} As stated in
 Sec.~\ref{sec:residual}, Corollary~\ref{cor:budget} only bounds post-hoc symmetrisation
 of a given model, not the achievable performance of a differently-parameterised
 equivariant model. A conclusive test would train an $\mathrm{SO}(2)$-equivariant
 backbone and compare; our argument is that an $r$ this small makes that
-experiment low-yield, not that it is uninformative.
+experiment low-yield. We no longer make that argument. Sec.~\ref{sec:residual}
+shows that $r$ does not forecast what a symmetry mechanism is worth ---
+augmentation and canonicalisation reach the same $r$ and differ by $28$ points
+--- so the smallness of $r$ cannot be turned around to predict that a constrained
+architecture would gain little. What rules out \emph{symmetrising this model} is
+Corollary~\ref{cor:budget}; what a differently parameterised equivariant model
+would achieve is untested.
 
 \textbf{One honest asterisk.} Frame averaging \emph{does} consistently improve
 endpoint error, by roughly $35\%$ ($0.0020\!\to\!0.0013$), on every checkpoint
@@ -1182,7 +1205,7 @@ data; the honest statement is that both are binding and neither has been pushed
 to saturation.
 
 \textbf{One arm the comparison still needs.} A translation-only reduction, which
-recentres on the midpoint without rotating, would split the $30.3$ points between
+recentres on the midpoint without rotating, would split the $30.2$ points between
 the three translational and the two rotational degrees of freedom; we report them
 only in aggregate. It is one training run against the existing pipeline.
 
@@ -1197,8 +1220,10 @@ arm's seed spread ($31.3$, $36.0$, $35.9$), single-seed ablations at this scale
 are not reliable, which is a caution that applies to the $K$ sweep as well ---
 though there the effect is $0.05$ SE rather than $2.8$.
 
-\textbf{One generative objective, one seed.} Every learned number here comes from
-conditional flow matching at a single training seed. The reduction is a statement
+\textbf{One generative objective; seeds only at one scale.} Every learned number
+here comes from conditional flow matching. The $60$-environment cells of both
+main arms are means over three seeds; every other cell, and every ablation, is a
+single seed. The reduction is a statement
 about the problem rather than about the interpolant, so it should transfer
 unchanged to a denoising-diffusion objective of the Diffuser/MPD
 family~\cite{janner2022diffuser,carvalho2023mpd}; we have not measured that, and
@@ -1229,7 +1254,7 @@ its endpoints. A Brownian-bridge prior pinned at start and goal would leave only
 the obstacle-avoidance detour to be learned. We had excluded it because such a
 prior is not isotropic in the plane normal to $\xhat$ and would break the
 distributional equivariance guarantee at $t=0$; since that guarantee has now been
-measured to be worth $0.2$ points, the trade is available.
+measured to be worth $0.1$ points, the trade is available.
 
 \section{Conclusion}
 
