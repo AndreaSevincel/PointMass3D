@@ -63,7 +63,8 @@ def parse_name(path, payload=None):
 
     arm, objective = "?", "flow"
     if payload is not None:
-        arm = "treat" if payload.get("reduced") else "ctrl"
+        #prefer the explicit field; fall back for JSONs written before it existed
+        arm = payload.get("arm") or ("treat" if payload.get("reduced") else "ctrl")
         objective = payload.get("objective", "flow")
     if "long-" in stem:
         v = "long" if v == "base" else f"long-{v}"

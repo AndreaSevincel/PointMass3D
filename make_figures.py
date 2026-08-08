@@ -22,14 +22,17 @@ NOROLL_X, NOROLL_Y = 60, 30.06          # ablation: reduction without roll augme
 # mechanism decomposition, percentage points on the held-out collision-free rate
 MECHANISMS = [
     (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.2),
+    (r"  of which: 3 translations", 12.3),
+    (r"  of which: 2 rotations", 18.0),
     ("SE(3) augmentation\n(world frame)", 2.1),
-    ("roll augmentation\n(training)", 4.4),
+    ("roll augmentation\n(training)", 0.8),
     ("frame averaging\n($K{=}1\\to3$)", 0.1),
 ]
 # across-SEED standard error at 60 envs, treatment arm (n=3). This is the right
 # floor for a claim about a method; the old 2.0 came from the spread over
 # held-out problems, which answers a different question.
-SE = 1.56
+SE = 1.56          # across seeds, treatment arm at 60 envs (n=3)
+SE_PAIRED = 0.32   # seed-matched, for ablations that share a seed with their base
 
 # non-equivariance residual, RMS (Hilbert) definition of Eq. 6, K=3.
 # Flat across a 12.5x range of training data -- the earlier "falls with scale"
@@ -130,7 +133,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     ypos = range(len(vals))
 
     axl.axvspan(-2 * SE, 2 * SE, color="0.86", alpha=0.55, linewidth=0, zorder=0)
-    axl.annotate("$\\pm2$ SE\n(across seeds)", xy=(2 * SE, -0.42), xytext=(5, 0),
+    axl.annotate("$\\pm2$ SE\n(across seeds)", xy=(2 * SE, -0.45), xytext=(5, 0),
                  textcoords="offset points", fontsize=7, color=MUTED, va="center")
     axl.barh(list(ypos), vals, height=0.52, color=C_TREAT, zorder=2)
     for y, v in zip(ypos, vals):
@@ -141,7 +144,7 @@ def fig_mechanisms(out="fig_mechanisms.pdf"):
     axl.set_yticklabels(labels, fontsize=8)
     axl.set_xlim(-5, 38)
     axl.set_xticks([0, 10, 20, 30])
-    axl.set_ylim(-0.95, 3.6)
+    axl.set_ylim(-0.95, 5.6)
     axl.set_xlabel("Contribution to collision-free rate (pp)", fontsize=8.5)
     axl.tick_params(labelsize=8)
     axl.grid(axis="x", color="0.9", linewidth=0.7)

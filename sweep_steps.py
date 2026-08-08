@@ -259,8 +259,14 @@ def main():
         from pathlib import Path as _Path
         _Path(args.out_json).parent.mkdir(parents=True, exist_ok=True)
         with open(args.out_json, "w") as f:
+            #`reduced` means the FULL reduction (sg_dim=1); the translation-only
+            #arm is also a reduced arm but has sg_dim=3, so an aggregator keying
+            #off `reduced` alone mislabels it as a world-frame run. Record the
+            #arm explicitly.
             json.dump({"config": vars(args), "objective": objective,
-                       "reduced": reduced, "rows": rows}, f, indent=1)
+                       "reduced": reduced,
+                       "arm": "treat" if (reduced or translation_only) else "ctrl",
+                       "rows": rows}, f, indent=1)
         print(f"wrote {args.out_json}")
 
     run.summary(budget_steps=budget["steps"], budget_free=budget["free"])

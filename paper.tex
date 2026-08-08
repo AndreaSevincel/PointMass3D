@@ -130,9 +130,11 @@ contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
 points across a $12.5\times$ increase in training environments while the
 canonicalised arm gains $26.6$ and has not plateaued.
 
-The two mechanisms built for the sixth degree of freedom are worth little and
-possibly nothing: frame averaging contributes $+0.1$ points, and roll
-augmentation $+4.4$ against a single-seed ablation we do not consider settled. We explain this rather than merely reporting it,
+The two mechanisms built for the sixth degree of freedom are worth almost
+nothing: seed-matched across three runs, frame averaging contributes $+0.1$
+points and roll augmentation $+0.8\pm0.3$, neither distinguishable from zero. A
+translation-only reduction splits the $30.2$: recentring alone is worth $+12.3$
+and aligning the axis a further $+18.0$. We explain this rather than merely reporting it,
 by measuring the \emph{non-equivariance residual}: only $1.7\%$ of the learned
 velocity field lies outside the equivariant subspace. Because frame averaging is
 the orthogonal projection
@@ -219,9 +221,9 @@ vanishes in expectation for every start--goal direction
 by symmetry rather than canonicalisation.
 
 \textbf{(iii) The symmetry machinery buys little, and we measure why.} Roll
-augmentation and frame averaging contribute $+4.4$ and $+0.1$ percentage points
---- the second inside noise, the first resting on a single-seed ablation --- while
-the reduction contributes $+30.2$. Rather than infer
+augmentation and frame averaging contribute $+0.8$ and $+0.1$ percentage points,
+neither distinguishable from zero across three seed-matched runs, while the
+reduction contributes $+30.2$. Rather than infer
 inertness from flat curves --- a weak conclusion --- we measure the quantity frame
 averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
 among rotated copies of the velocity field, is $1.7\%$ and is flat across a
@@ -959,17 +961,19 @@ the model no longer spends capacity on \emph{where} they are.
 Mechanism & $\Delta$ free & Assessment \\
 \midrule
 $(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx19$ SE; grows \\
+\quad of which: 3 translations    & $+12.3$ pp & recentring alone \\
+\quad of which: 2 rotations       & $+18.0$ pp & aligning the axis \\
 $\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
-Roll augmentation                 & $+4.4$ pp  & $2.8$ SE; one seed, see text \\
+Roll augmentation                 & $+0.8$ pp  & $\pm0.3$ paired, $n{=}3$; n.s. \\
 Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
 \bottomrule
 \end{tabular}
 \caption{Decomposition by mechanism on the same held-out set. Among the
-mechanisms tested, canonicalisation accounts for the effect: it is seven times
-the next largest. Frame averaging is inside noise; the roll-augmentation figure
-rests on a single-seed ablation and is not settled (Sec.~\ref{sec:limits}). The
-$\Delta$ column is against the arm without that mechanism, so the rows are not
-additive}
+mechanisms tested, canonicalisation accounts for the effect, and both parts of it
+matter: recentring and axis alignment contribute $41\%$ and $59\%$ of the total.
+Neither mechanism built for the sixth degree of freedom is distinguishable from
+zero. The $\Delta$ column is against the arm without that mechanism, so the rows
+are not additive; the two indented rows decompose the row above them}
 \label{tab:ablation}
 \end{table}
 
@@ -988,10 +992,23 @@ under $3\%$}
 \end{figure*}
 
 Table~\ref{tab:ablation} and Fig.~\ref{fig:mechanisms}a decompose the result.
-Removing roll augmentation (the reduction with a fixed gauge) costs
-$34.4\%\!\to\!30.1\%$ at $60$ environments, on which see the caveat in
-Sec.~\ref{sec:limits}. Frame averaging on the best model gives $45.63\%$ at
-$K{=}1$ and $45.70\%$ at $K{=}3$ --- $0.05$ across-seed standard errors.
+Removing roll augmentation (the reduction with a fixed gauge) costs $34.4\%$
+against $33.5\%$ at $60$ environments. Both arms were run at the same three
+seeds, so the comparison should be paired, and paired it is $+1.2$, $+0.2$ and
+$+1.1$ points: a mean of $+0.8\pm0.3$, consistently positive but $t=2.6$ on two
+degrees of freedom, which does not clear significance at $n{=}3$. Unpaired, the
+across-arm spread swamps it entirely ($0.4$ SE). Frame averaging on the best
+model gives $45.63\%$ at $K{=}1$ and $45.70\%$ at $K{=}3$ --- $0.05$ across-seed
+standard errors.
+
+The reduction itself decomposes. A translation-only variant, which recentres on
+the query midpoint without rotating, reaches $27.7\%$ at $250$ environments,
+between the world frame's $15.4\%$ and the full reduction's $45.6\%$. So the
+three translational degrees of freedom are worth $+12.3$ points and the two
+rotational ones a further $+18.0$: $41\%$ and $59\%$ of the total. Neither half
+carries the effect on its own, which is worth knowing --- recentring is the
+trivially easy part of the reduction, and it accounts for two fifths of the
+benefit.
 
 Rather than infer inertness from flat curves, we measure $r$. On the best model
 $r=0.0168$ at $K{=}3$: under $2\%$ of the field is
@@ -1219,21 +1236,17 @@ since Sec.~\ref{sec:budget} shows optimisation buys a comparable amount at fixed
 data; the honest statement is that both are binding and neither has been pushed
 to saturation.
 
-\textbf{One arm the comparison still needs.} A translation-only reduction, which
-recentres on the midpoint without rotating, would split the $30.2$ points between
-the three translational and the two rotational degrees of freedom; we report them
-only in aggregate. It is one training run against the existing pipeline.
-
-\textbf{The roll-augmentation ablation needs seeds.} With three seeds the
-reduced arm at $60$ environments averages $34.4\%$, against $30.1\%$ for the
-same arm without roll augmentation --- $+4.4$ points, or about $2.8$ across-seed
-standard errors. That is larger than the $+1.2$ we would have reported from
-single seeds, and it is no longer obviously inside noise. But the no-roll
-ablation itself has one seed, so this compares a single draw against a
-three-seed mean and we do not draw a conclusion from it. Given the treatment
-arm's seed spread ($31.3$, $36.0$, $35.9$), single-seed ablations at this scale
-are not reliable, which is a caution that applies to the $K$ sweep as well ---
-though there the effect is $0.05$ SE rather than $2.8$.
+\textbf{Ablations must be seed-matched, and at $n{=}3$ they are underpowered.}
+Comparing a three-seed mean against a single-seed ablation would put roll
+augmentation at $+4.4$ points. Seed $0$ happens to be the worst draw for
+\emph{both} arms ($31.3$ and $30.1$ against
+$36.0/35.8$ and $35.9/34.8$), so the mismatch manufactured most of the effect.
+Run at matched seeds the difference is $+0.8\pm0.3$. The lesson generalises: the
+treatment arm's across-seed spread is $1.6$ points, five times the paired spread
+of the ablation, so any ablation compared unpaired at this scale is measuring
+seed noise. Even paired, $n{=}3$ gives two degrees of freedom and a critical $t$
+of $4.3$; we can bound these mechanisms as small but cannot resolve whether they
+are zero.
 
 \textbf{One generative objective; seeds only at one scale.} Every learned number
 here comes from conditional flow matching. The $60$-environment cells of both
@@ -1276,9 +1289,9 @@ measured to be worth $0.1$ points, the trade is available.
 The model presented here is exactly $\SE$-equivariant by construction for five of
 six degrees of freedom, and measured to be $98\%$ equivariant for the sixth
 without any mechanism enforcing it. The benefit is concentrated in the five: the
-mechanisms built for the sixth are worth $+0.1$ and $+4.4$ points against $+30.2$,
-and the larger of the two rests on a single-seed ablation we do not consider
-settled.
+mechanisms built for the sixth are worth $+0.1$ and $+0.8$ points against
+$+30.2$, and neither is distinguishable from zero at three seeds. Within the
+five, recentring and axis alignment split the benefit $41/59$.
 
 The recommendation is correspondingly simple, and we believe it applies beyond
 this benchmark: canonicalise the degrees of freedom that admit a continuous

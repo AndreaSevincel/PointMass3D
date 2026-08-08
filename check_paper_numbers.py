@@ -23,12 +23,14 @@ REQUIRED = {
     "world frame at 250 envs": r"15\.4",
     "augmented control at 250 envs": r"17\.5",
     "headline gap": r"30\.2",
-    "roll augmentation": r"4\.4",
+    "roll augmentation": r"\+0\.8",
     "frame averaging": r"\+0\.1",
     "SE(3) augmentation": r"\+2\.1|2\.1 pp",
     "epoch gain, reduced arm": r"\+8\.0",
     "epoch gain, world frame": r"\+0\.9|0\.87",
     "interaction": r"\+7\.1",
+    "translational DOF": r"\+12\.3",
+    "rotational DOF": r"\+18\.0",
     "best-of-20": r"90\.4",
     "straight-line floor": r"15\.6",
     "untrained prior best-of-20": r"15\.8",
@@ -59,6 +61,8 @@ FORBIDDEN = {
     r"2\.5\\times10\^\{-4\}": "0.0168^2 = 2.8e-4, not 2.5e-4",
     r"case for not building a constrained architecture rests": "the retracted inference",
     r"Two independent measurements support it": "both bear on frame averaging only",
+    r"\+4\.4": "roll augmentation is +0.8 seed-matched; +4.4 was an unpaired artefact",
+    r"one seed, see text": "the no-roll ablation now has three seeds",
 }
 
 def main():
@@ -71,7 +75,8 @@ def main():
             line = TEX[:m.start()].count("\n") + 1
             #a deliberate contrast, flagged in prose, is allowed
             ctx = TEX[max(0, m.start() - 220):m.start() + 60]
-            if "would have reported" in ctx or "would read" in ctx:
+            if any(k in ctx for k in ("would have reported", "would read",
+                                      "would put")):
                 continue
             bad.append(f"STALE    line {line}: {m.group()}  -- {why}")
     for b in bad:
