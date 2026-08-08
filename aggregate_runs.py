@@ -27,12 +27,13 @@ import numpy as np
 #`objective`) and a filename cannot be trusted to. `long-e60` for instance does
 #not say which arm it is, and an earlier regex that insisted on a `ctrl`/`treat`
 #prefix silently skipped every run whose name carried a variant tag.
-NAME_RE = re.compile(
-    r"^(?P<variant>.*?)"                 # long-, aug, cone30, translation, ...
-    r"e(?P<envs>\d+)"
-    r"(?:-s(?P<seed>\d+))?"
-    r"(?:-kfa(?P<kfa>\d+))?$"
-)
+#Everything after the env count is parsed as free-form tags rather than a fixed
+#sequence, so a new suffix (-se3res, -kfa3, whatever comes next) never silently
+#drops a file. An earlier version hard-coded the order and skipped every file
+#carrying a tag it had not been told about.
+NAME_RE = re.compile(r"^(?P<variant>.*?)e(?P<envs>\d+)(?P<rest>.*)$")
+SEED_RE = re.compile(r"^s(\d+)$")
+KFA_RE = re.compile(r"^kfa(\d+)$")
 
 
 def parse_name(path, payload=None):
@@ -46,7 +47,19 @@ def parse_name(path, payload=None):
     v = g["variant"] or ""
     for token in ("ddpm-", "flow-", "ctrl-", "treat-", "long-"):
         v = v.replace(token, "")
-    v = v.strip("-") or "base"
+    v = v.strip("-")
+
+    #trailing tags: -sN is the seed, -kfaN the frame-averaging width, and
+    #anything else is part of the variant
+    seed, kfa, extra = None, None, []
+    for tok in filter(None, (g["rest"] or "").split("-")):
+        if SEED_RE.match(tok):
+            seed = int(SEED_RE.match(tok).group(1))
+        elif KFA_RE.match(tok):
+            kfa = int(KFA_RE.match(tok).group(1))
+        else:
+            extra.append(tok)
+    v = "-".join(filter(None, [v] + extra)) or "base"
 
     arm, objective = "?", "flow"
     if payload is not None:
@@ -55,11 +68,10 @@ def parse_name(path, payload=None):
     if "long-" in stem:
         v = "long" if v == "base" else f"long-{v}"
 
-    kfa = int(g["kfa"]) if g["kfa"] else None
     if kfa is None and payload is not None:
         kfa = payload.get("config", {}).get("k_fa", 1)
     return dict(objective=objective, arm=arm, variant=v,
-                envs=int(g["envs"]), seed=int(g["seed"] or 0), kfa=kfa or 1)
+                envs=int(g["envs"]), seed=seed or 0, kfa=kfa or 1)
 
 
 def main():
@@ -93,7 +105,8 @@ def main():
             continue
         row = rows[n_steps]
         if args.metric not in row:
-            skipped.append(f"{f} (no metric {args.metric})")
+            avail = ", ".join(k for k in row if k != "steps")
+            skipped.append(f"{f} (no '{args.metric}'; has: {avail})")
             continue
         key = (meta["objective"], f"{meta['arm']}/{meta['variant']}"
                + (f"/K{meta['kfa']}" if meta["kfa"] != 1 else ""), meta["envs"])
