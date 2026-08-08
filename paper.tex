@@ -135,10 +135,12 @@ onto that subspace, $1.7\%$ is the entire budget any post-hoc symmetrisation of
 this model can spend. We propose the residual as a cheap diagnostic of how much
 non-equivariant structure a learned field retains: it is one forward pass, needs
 no retraining, and it quantifies the headroom available to post-hoc
-symmetrisation exactly. Whether the same quantity predicts the benefit of an
-explicitly \emph{equivariant architecture} --- a different operation, which also
-changes optimisation, capacity allocation and generalisation --- is not something
-we test here, and we leave it open.
+symmetrisation exactly. It does \emph{not} forecast what a symmetry mechanism is
+worth, and we show this rather than assume it: measured under the full $\SE$
+action, augmentation and canonicalisation leave the field equally equivariant
+($r=0.018$ against $0.017$) while differing by $28$ points of held-out
+performance. Learning a symmetry and solving the problem are separable, and $r$
+measures only the first.
 
 The obvious alternative --- exploiting the same symmetry by augmenting training
 with random rigid motions --- recovers little of this: at $250$ environments it
@@ -250,9 +252,11 @@ model with a group action on its inputs. It converts ``we tried equivariance and
 it did not help'' --- an anecdote --- into a quantitative statement about how much
 headroom \emph{post-hoc symmetrisation} has on a given problem, with an exact
 bound attached. We recommend it as a diagnostic to run before reaching for
-symmetrisation. We do not claim it forecasts what a constrained architecture
-would gain: that is a different operation on a different hypothesis class, and
-testing it is future work.
+symmetrisation, and we are explicit about its limit: measured across three arms
+of this benchmark, $r$ does not predict what a symmetry mechanism is worth. Two
+models with indistinguishable residuals differ by $28$ points
+(Table~\ref{tab:twosigns}), because one of them fixed the representation and the
+other only learned the symmetry.
 
 \section{Related Work}
 
