@@ -31,48 +31,42 @@ import numpy as np
 #sequence, so a new suffix (-se3res, -kfa3, whatever comes next) never silently
 #drops a file. An earlier version hard-coded the order and skipped every file
 #carrying a tag it had not been told about.
-NAME_RE = re.compile(r"^(?P<variant>.*?)e(?P<envs>\d+)(?P<rest>.*)$")
+#Names are parsed by TOKENS, not by one regex over the whole string. A regex
+#with a lazy prefix matches the first "e<digits>" it sees, which turns
+#"se3-ctrl-e250" into variant "s" at 3 environments; a greedy one matches the
+#last, which breaks "ctrl-aug-e250-se3res" the same way. Splitting on "-" and
+#looking for the token that IS an env count is unambiguous either way.
+ENV_RE = re.compile(r"^e(\d+)$")
 SEED_RE = re.compile(r"^s(\d+)$")
 KFA_RE = re.compile(r"^kfa(\d+)$")
+ARM_TOKENS = {"ctrl", "treat", "flow", "ddpm"}
 
 
 def parse_name(path, payload=None):
-    stem = Path(path).stem
-    m = NAME_RE.match(stem)
-    if not m:
+    toks = Path(path).stem.split("-")
+    envs = seed = kfa = None
+    variant = []
+    for t in toks:
+        if ENV_RE.match(t) and envs is None:
+            envs = int(ENV_RE.match(t).group(1))
+        elif SEED_RE.match(t):
+            seed = int(SEED_RE.match(t).group(1))
+        elif KFA_RE.match(t):
+            kfa = int(KFA_RE.match(t).group(1))
+        elif t not in ARM_TOKENS:
+            variant.append(t)
+    if envs is None:
         return None
-    g = m.groupdict()
-
-    #normalise the variant: strip the arm words and separators, keep the rest
-    v = g["variant"] or ""
-    for token in ("ddpm-", "flow-", "ctrl-", "treat-", "long-"):
-        v = v.replace(token, "")
-    v = v.strip("-")
-
-    #trailing tags: -sN is the seed, -kfaN the frame-averaging width, and
-    #anything else is part of the variant
-    seed, kfa, extra = None, None, []
-    for tok in filter(None, (g["rest"] or "").split("-")):
-        if SEED_RE.match(tok):
-            seed = int(SEED_RE.match(tok).group(1))
-        elif KFA_RE.match(tok):
-            kfa = int(KFA_RE.match(tok).group(1))
-        else:
-            extra.append(tok)
-    v = "-".join(filter(None, [v] + extra)) or "base"
 
     arm, objective = "?", "flow"
     if payload is not None:
-        #prefer the explicit field; fall back for JSONs written before it existed
         arm = payload.get("arm") or ("treat" if payload.get("reduced") else "ctrl")
         objective = payload.get("objective", "flow")
-    if "long-" in stem:
-        v = "long" if v == "base" else f"long-{v}"
-
     if kfa is None and payload is not None:
         kfa = payload.get("config", {}).get("k_fa", 1)
-    return dict(objective=objective, arm=arm, variant=v,
-                envs=int(g["envs"]), seed=seed or 0, kfa=kfa or 1)
+    return dict(objective=objective, arm=arm,
+                variant="-".join(variant) or "base",
+                envs=envs, seed=seed or 0, kfa=kfa or 1)
 
 
 def main():
