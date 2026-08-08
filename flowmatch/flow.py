@@ -219,6 +219,84 @@ def roll_matrices(start, goal, thetas, k_fa):
 
 
 @torch.no_grad()
+def se3_residual(model, spheres, boxes, start, goal, reduced, k=8,
+                 sphere_mask=None, box_mask=None, n_waypoints=64, n_steps=8,
+                 trans=0.0, device="cpu", generator=None):
+    """Non-equivariance residual under the FULL SE(3) action, for any arm.
+
+    The roll residual of sample_reduced() is only defined for a reduced-frame
+    model: it measures disagreement over the one gauge degree of freedom the
+    reduction leaves behind. It cannot be computed for a world-frame model,
+    which has no reduced frame -- so on its own it can only ever be reported
+    for arms that already exploit the symmetry, and a diagnostic applied once,
+    with one sign, demonstrates nothing.
+
+    This measures the same quantity over the group the PROBLEM has. K random
+    rigid motions T are applied to the whole problem (scene, endpoints, state);
+    the field is evaluated in each; each result is mapped back by the inverse
+    rotation, since a velocity is a free vector and takes the rotation only.
+    For an exactly SE(3)-equivariant model every copy agrees and r = 0.
+
+    Returns the RMS residual of Eq. (6), averaged over integration steps.
+
+    trans is the translation half-width in normalised units. It defaults to 0
+    (rotations only) because a translated scene is also out of distribution,
+    which would conflate non-equivariance with extrapolation; set it >0 to
+    measure the translational part deliberately.
+    """
+    net = model.module if hasattr(model, "module") else model
+    net.eval()
+    B, N = start.shape[0], n_waypoints
+    BK = B * k
+
+    Q = random_rotations(BK, device, start.dtype, generator)
+    if trans > 0:
+        t = (torch.rand(BK, 3, device=device, dtype=start.dtype,
+                        generator=generator) * 2 - 1) * trans
+    else:
+        t = torch.zeros(BK, 3, device=device, dtype=start.dtype)
+    o = -torch.einsum("bji,bj->bi", Q, t)
+
+    rep = lambda z: z.repeat_interleave(k, 0)
+    s_k = apply_points(Q, o, rep(start)[:, None, :])[:, 0]
+    g_k = apply_points(Q, o, rep(goal)[:, None, :])[:, 0]
+    sph_k = rotate_sphere_features(rep(spheres), Q, o)
+    box_k = rotate_box_features(rep(boxes), Q, o)
+    sm = None if sphere_mask is None else rep(sphere_mask)
+    bm = None if box_mask is None else rep(box_mask)
+
+    if reduced:
+        #the reduction is applied inside each transformed copy, exactly as at
+        #sampling time, so what is measured is the residual of the whole
+        #pipeline rather than of the network alone
+        R0, origin, d = sg_frame(s_k, g_k, None)
+        sph_k = rotate_sphere_features(sph_k, R0, origin)
+        box_k = rotate_box_features(box_k, R0, origin)
+        sg_k = d[:, None]
+    else:
+        sg_k = build_conditioning(s_k, g_k, reduced=False)
+    c_k = net.encode_cond(sph_k, box_k, sg_k, sm, bm)
+
+    x = torch.randn(B, N, 3, device=device, generator=generator)
+    ts = torch.linspace(0.0, 1.0, n_steps + 1, device=device)
+    num = den = 0.0
+    for i in range(n_steps):
+        xk = apply_points(Q, o, rep(x))
+        if reduced:
+            xk = apply_points(R0, origin, xk)
+        v = net.decode(xk, ts[i].expand(BK), c_k)
+        if reduced:
+            v = torch.einsum("bji,bkj->bki", R0, v)     # un-reduce (rotation only)
+        v = torch.einsum("bji,bkj->bki", Q, v)          # un-rotate: Q^T v
+        vk = v.reshape(B, k, N, 3)
+        vbar = vk.mean(dim=1)
+        num += float((vk - vbar[:, None]).pow(2).sum(-1).mean())
+        den += float(vbar.pow(2).sum(-1).mean())
+        x = x + (ts[i + 1] - ts[i]) * vbar
+    return (num ** 0.5) / max(den ** 0.5, 1e-12)
+
+
+@torch.no_grad()
 def sample_translation_reduced(
     model, spheres, boxes, start, goal, sphere_mask=None, box_mask=None,
     n_waypoints=64, n_steps=100, anchor_endpoints=False, device="cpu",

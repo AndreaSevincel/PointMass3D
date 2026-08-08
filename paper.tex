@@ -193,8 +193,10 @@ Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the first
 axis with the start--goal direction removes three translational and two rotational
 degrees of freedom, exactly and at no cost. The resulting representation is
 invariant under any rigid transformation of the problem \emph{up to a single
-roll about the start--goal axis}, and invariant outright in the five coordinates
-that roll does not touch (Proposition~\ref{prop:exact}). Within those five that
+roll about the start--goal axis}. The quantities a roll leaves alone --- the
+separation $d$, the first coordinate of every reduced point, and its radius in
+the plane normal to that axis --- are invariant outright
+(Proposition~\ref{prop:exact}). Within those five that
 is a stronger guarantee than a trained equivariant architecture provides, since
 it holds to floating-point precision at initialisation rather than to
 optimisation tolerance. The reduction therefore collapses $\SE$ to
@@ -420,17 +422,30 @@ same problem in a different pose'' now coincide up to a roll, raising the
 effective density of the training set without generating a single new trajectory.
 
 \subsection{Why the sixth degree of freedom is not removable}
+\label{sec:moments}
 
 \begin{proposition}[Topological obstruction]
 \label{prop:hairy}
 There is no continuous map $\yhat:S^2\to S^2$ with $\yhat(\xhat)\perp\xhat$ for
-all $\xhat$.
+all $\xhat$. More generally, for a gauge $\yhat(\xhat,\mathcal{O})$ that may also
+depend on the scene, fix any $\mathcal{O}$: then $\xhat\mapsto\yhat(\xhat,\mathcal{O})$
+is a tangent field on $S^2$, and if continuous it vanishes somewhere.
 \end{proposition}
 
 \begin{proof}
 Such a map is a continuous nowhere-vanishing unit tangent vector field on $S^2$,
-whose existence the hairy ball theorem denies~\cite{milnor1978hairy}.
+whose existence the hairy ball theorem denies~\cite{milnor1978hairy}. The second
+statement is the first applied to the section at fixed $\mathcal{O}$.
 \end{proof}
+
+The second form is what the scene-derived gauges of Sec.~\ref{sec:moments} need,
+and it is worth being precise about what it gives. Such a gauge is a function of
+$(\xhat,\mathcal{O})$, so the bare hairy ball theorem --- a statement about maps
+out of $S^2$ alone --- does not apply to it. Fixing the scene repairs that, at
+the cost of a weaker conclusion: the degenerate set is \emph{per scene}. Every
+scene admits start--goal directions at which its gauge breaks down, but which
+directions those are moves as the scene moves, so no restriction of the query
+distribution can avoid them uniformly.
 
 Every deterministic gauge therefore carries a discontinuity; one may relocate it
 but never remove it. The escape route of restricting to a contractible subdomain
@@ -441,25 +456,27 @@ measure-zero set.
 
 \begin{proposition}[Distributional obstruction]
 \label{prop:moments}
-Let obstacle centres be i.i.d.\ uniform on a cube centred at the origin, let
-$\varphi_j$ be their angles in the plane normal to $\xhat$, and let the weights
-$w_j$ depend only on radius. Then the angular moments
-$c_m=\sum_j w_j e^{im\varphi_j}$ satisfy
+Let the obstacle-centre law be invariant under the central inversion
+$\mathbf{p}\mapsto-\mathbf{p}$, let $\varphi_j$ be the angles of the centres in
+the plane normal to $\xhat$, and let the weights $w_j$ depend only on radius.
+Then the angular moments $c_m=\sum_j w_j e^{im\varphi_j}$ satisfy
 \begin{equation}
   \mathbb{E}[c_m] = 0 \quad\text{for every odd } m
   \text{ and every } \xhat \in S^2 .
   \label{eq:moments}
 \end{equation}
-In particular $\mathbb{E}[c_1]=0$: the first-moment gauge is degenerate in
-expectation, for every start--goal direction.
 \end{proposition}
 
 \begin{proof}
-The cube-uniform law is invariant under the central inversion $\mathbf{p}\mapsto-\mathbf{p}$,
-which fixes every radius and hence every $w_j$, and which maps
-$\varphi_j\mapsto\varphi_j+\pi$. So $e^{im\varphi_j}\mapsto(-1)^m e^{im\varphi_j}$,
-giving $\mathbb{E}[c_m]=-\mathbb{E}[c_m]$ for odd $m$.
+Inversion fixes every radius and hence every $w_j$, and maps
+$\varphi_j\mapsto\varphi_j+\pi$, so $e^{im\varphi_j}\mapsto(-1)^m e^{im\varphi_j}$
+and $\mathbb{E}[c_m]=-\mathbb{E}[c_m]$ for odd $m$.
 \end{proof}
+
+The hypothesis is deliberately weaker than our benchmark: uniform-on-a-cube is
+one centrally symmetric law, and the proof covers Gaussian clutter, spherical
+shells, and any symmetric mixture equally. Nothing here is a theorem about our
+own generator.
 
 The restriction to odd $m$ is not a weakness of the proof but a fact about the
 geometry, and it is worth stating because the natural stronger claim is false.
@@ -472,16 +489,45 @@ a coordinate axis but $0.033$ for a generic direction and $0.070$ along a face
 diagonal, while $|\mathbb{E}[c_1]|$ is at the noise floor for all of them.
 Eq.~\eqref{eq:moments} is what the geometry actually supports.
 
-This is enough for the purpose. The scene-derived gauge one would actually build
---- ``point $\yhat$ at the obstacle mass'' --- is the $m=1$ moment, and it is
-degenerate in expectation for every $\xhat$. Under the null,
-$|c_1|^2/\sum_j w_j^2$ is approximately $\mathrm{Exp}(1)$ with median
-$\approx0.69$, so near-degenerate configurations are the typical case rather
-than a rare tail. A gauge built from an even moment escapes
-Eq.~\eqref{eq:moments}, but not Proposition~\ref{prop:hairy}: an $m=2$ moment
-defines a \emph{director} rather than a vector, and a continuous director field
-on $S^2$ is obstructed for the same Euler-characteristic reason as a vector
-field. Both routes to a canonical roll are closed, for unrelated reasons.
+Eq.~\eqref{eq:moments} is an \emph{unconditional} statement, and the gauge is
+used conditionally --- a point that matters, and that closes the route more
+firmly than the proposition alone. A scene-derived gauge is computed in the
+reduced frame, i.e.\ from the displacements $\mathbf{p}_j-\mathbf{o}$ with
+$\mathbf{o}=\tfrac12(\svec+\gvec)$. Conditional on the query, the law of
+$\mathbf{p}_j-\mathbf{o}$ is the obstacle law shifted by $-\mathbf{o}$, which is
+centrally symmetric about $-\mathbf{o}$ rather than about the origin. So
+\begin{equation}
+  \mathbb{E}[c_1 \mid \svec,\gvec] \;\neq\; 0
+  \quad\text{whenever}\quad \mathbf{o}\neq\mathbf{0},
+  \label{eq:cond}
+\end{equation}
+with the surviving moment pointing along the projection of $-\mathbf{o}$ onto
+the plane normal to $\xhat$. Eq.~\eqref{eq:moments} recovers $\mathbb{E}[c_1]=0$
+only after averaging over queries, since $\mathbb{E}[\mathbf{o}]=\mathbf{0}$. We
+confirm Eq.~\eqref{eq:cond} numerically: at $\mathbf{o}=(0,0.4,0.3)$ the
+conditional first moment has magnitude $0.56$ and argument $2.208$, against a
+predicted $2.214$.
+
+That is the sharper closing of the scene-derived route. Conditioned on a query
+with $\mathbf{o}\neq\mathbf{0}$ the first-moment gauge is \emph{not}
+degenerate --- it is well conditioned, and it points from the query midpoint
+towards the centre of the workspace. But that direction is not an $\SE$-invariant
+of the problem: it is a function of where the query sits in the world. A gauge
+built on it would reintroduce exactly the world-frame dependence
+Proposition~\ref{prop:exact} removes, forfeiting five degrees of freedom to fix
+the sixth. The first-moment gauge is therefore either degenerate (unconditionally,
+at $\mathbf{o}=\mathbf{0}$) or not equivariant (conditionally, elsewhere), and
+neither is usable.
+
+A gauge built from an even moment escapes Eq.~\eqref{eq:moments} --- inversion
+does not kill even $m$ --- and also escapes Eq.~\eqref{eq:cond}, since an $m=2$
+moment is insensitive to the sign of the displacement. It does not escape
+Proposition~\ref{prop:hairy} in its second form: an $m=2$ moment defines a
+\emph{director} rather than a vector, and a continuous director field on $S^2$ is
+obstructed for the same Euler-characteristic reason as a vector field, since
+$\chi(S^2)=2\neq0$. The conclusion is again per scene: for each fixed
+$\mathcal{O}$ there are directions at which the director degenerates. Both routes
+to a canonical roll are closed, for unrelated reasons.
 
 \subsection{Handling the sixth by symmetry}
 \label{sec:sixth}
@@ -903,8 +949,11 @@ Roll augmentation                 & $+4.4$ pp  & $2.8$ SE; one seed, see text \\
 Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
 \bottomrule
 \end{tabular}
-\caption{Decomposition by mechanism on the same held-out set. The entire effect is
-attributable to canonicalisation}
+\caption{Decomposition by mechanism on the same held-out set. Among the
+mechanisms tested, canonicalisation accounts for the effect: the next largest is
+an order of magnitude smaller, and the two built for the sixth degree of freedom
+are smaller still. The $\Delta$ column is against the arm without that mechanism,
+so the rows are not additive}
 \label{tab:ablation}
 \end{table}
 
@@ -934,9 +983,10 @@ can remove is at most $r^2$ of the field's squared magnitude, i.e.\ about
 $2.5\times10^{-4}$, while the model is failing on more than half of its samples.
 The remaining error respects the symmetry and is untouchable by symmetrisation.
 
-Two observations sharpen this. First, the residual barely moves when roll
-augmentation is removed ($0.0170\!\to\!0.0279$ at $60$ environments, both small),
-so augmentation did not cause the near-equivariance. The explanation is that the
+Two observations sharpen this. First, removing roll augmentation raises the
+residual by $64\%$ ($0.0170\!\to\!0.0279$ at $60$ environments) --- a large
+relative change, but between two values that are both under $3\%$, so
+augmentation is not what makes the field near-equivariant in the first place. The explanation is that the
 gauge is a deterministic function of $\xhat$, and $600$ start--goal pairs per
 environment supply $600$ distinct directions; the reduced-frame data already spans
 a wide spread of rolls, and explicit augmentation was solving a problem the data
@@ -1070,7 +1120,7 @@ generalising our answer: the diagnostic transfers even where the conclusion does
 Sec.~\ref{sec:residual}, Corollary~\ref{cor:budget} only bounds post-hoc symmetrisation
 of a given model, not the achievable performance of a differently-parameterised
 equivariant model. A conclusive test would train an $\mathrm{SO}(2)$-equivariant
-backbone and compare; our argument is that a small and shrinking $r$ makes that
+backbone and compare; our argument is that an $r$ this small makes that
 experiment low-yield, not that it is uninformative.
 
 \textbf{One honest asterisk.} Frame averaging \emph{does} consistently improve

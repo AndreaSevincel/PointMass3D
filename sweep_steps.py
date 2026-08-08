@@ -16,7 +16,12 @@ import torch
 from flowmatch import tracking
 from flowmatch.data import Normalizer, env_features
 from flowmatch.diffusion import Schedule, sample_diffusion, sample_diffusion_reduced
-from flowmatch.flow import sample, sample_reduced, sample_translation_reduced
+from flowmatch.flow import (
+    sample,
+    sample_reduced,
+    sample_translation_reduced,
+    se3_residual,
+)
 from flowmatch.model import build_model
 from pointmass3d import (
     BoxObstacle,
@@ -47,6 +52,15 @@ def main():
                          "frame averaging is removing. 0 => already equivariant, "
                          "so a larger K_FA cannot help. Needs --k-fa > 1")
     ap.add_argument("--anchor-endpoints", action="store_true")
+    ap.add_argument("--residual-se3", type=int, default=0,
+                    help="also measure the residual under the FULL SE(3) action "
+                         "with this many random rigid motions. Works for ANY "
+                         "arm, including the world frame, which has no roll "
+                         "gauge and so cannot be measured by --residual")
+    ap.add_argument("--residual-se3-trans", type=float, default=0.0,
+                    help="translation half-width for --residual-se3; 0 keeps it "
+                         "rotations-only so the measurement is not confounded "
+                         "with out-of-distribution translation")
     ap.add_argument("--out-json", type=str, default=None,
                     help="write the rows to JSON for aggregate_runs.py")
     ap.add_argument("--eta", type=float, default=0.0,
@@ -116,7 +130,7 @@ def main():
         #deployed as best-of-N behind a collision check, so also track whether
         #ANY of the N samples for a query is free
         solved_any = []
-        paths_all, residuals, residuals_l1 = [], [], []
+        paths_all, residuals, residuals_l1, res_se3 = [], [], [], []
         #The residual is identically 0 at K=1 (nothing to disagree with), so
         #only ask for it when there are multiple frames to compare.
         want_residual = args.residual and reduced and args.k_fa > 1
@@ -190,6 +204,15 @@ def main():
                 )
                 length.extend(path_length(p) for p in paths)
                 acc.extend(mean_sq_accel(p) for p in paths)
+                if args.residual_se3 > 0:
+                    res_se3.append(se3_residual(
+                        model, sp_b[:1], bx_b[:1], s_b[:1], g_b[:1],
+                        reduced=reduced, k=args.residual_se3,
+                        n_waypoints=N, n_steps=n_steps,
+                        trans=args.residual_se3_trans, device=device,
+                        generator=torch.Generator(device=device).manual_seed(
+                            args.seed * 7919 + n_queries),
+                    ))
                 n_queries += 1
         secs = (time.time() - t0) / n_queries
 
@@ -212,6 +235,10 @@ def main():
             row["residual"] = float(np.mean(residuals))
             #the pre-2026-08 definition, kept so older numbers stay comparable
             row["residual_meannorm"] = float(np.mean(residuals_l1))
+        if res_se3:
+            #defined for every arm, so the diagnostic can be reported with two
+            #signs rather than one
+            row["residual_se3"] = float(np.mean(res_se3))
         rows.append(row)
         print(f"{n_steps:>6} {row['free']:>6.1f}% {row['solved_any']:>5.1f}% "
               f"{row['clearance']:>10.4f} "
