@@ -187,8 +187,13 @@ response in the literature is architectural: constrain the layers so that
 equivariance holds by construction~\cite{cohen2016gcnn,thomas2018tfn,fuchs2020se3t,
 deng2021vn,geiger2022e3nn}, an approach that has been carried into robot learning
 with real success~\cite{ryu2023edf,wang2024equidp,simeonov2022ndf,yang2024equibot}.
-That success comes at a price that is rarely quantified: constrained layers cost
-expressiveness, are laborious to implement, and fail in ways that are silent.
+Our question is not whether that route works --- it does --- but how much of its
+benefit is available without it. We are deliberate about not asserting more:
+this paper does not benchmark a constrained backbone, so it is in no position to
+claim that constrained layers cost expressiveness or generalise worse, and we
+make no such claim. What we do establish is a lower bound on what the
+\emph{unconstrained} route reaches, obtained from a frame that is read off the
+query in closed form.
 
 There is a second route, older and much cheaper: build the symmetry into the
 \emph{representation of the problem}, so that the network is never shown the pose
@@ -1167,11 +1172,14 @@ $39.2\%$: an interaction of $+10.7$ points against the $+7.1$ measured per
 sample. Tripling the optimisation of the world-frame arm made it worse on the
 metric that describes how a generative planner is actually deployed --- more
 training bought a per-sample gain of $+0.9$ while costing sample diversity, which
-is the resource best-of-$N$ actually spends. We flag one caveat on our own
-number: the $60$-epoch cells are single seed against three-seed means, which is
-precisely the shape that manufactured the roll-augmentation artefact discussed in
-Sec.~\ref{sec:limits}, so this $-3.1$ needs a seed-matched confirmation before it
-is leaned on. The $+7.1$ per-sample interaction does not depend on it.
+is the resource best-of-$N$ actually spends. Taken alone this cell would be weak
+evidence --- it is single seed against a three-seed mean, the configuration that
+manufactured the roll-augmentation artefact of Sec.~\ref{sec:limits} --- and we
+do not rest it on this domain. It is corroborated independently in
+Sec.~\ref{sec:se3}, where the same quantity declines monotonically across an
+$8\times$ budget range in a different state space, with no seed-matched
+comparison involved. Two domains, two budget ranges, one direction. The $+7.1$
+per-sample interaction is separate and does not depend on either.
 
 \textbf{Two points, not a plateau --- but the second domain goes further.} In
 this domain neither arm has been trained to a plateau, so the strongest form of
@@ -1385,6 +1393,40 @@ interpolants cannot be excluded. Likewise, the reported standard errors come fro
 the spread over held-out problems, not over training seeds, so they do not capture
 run-to-run variance in optimisation. Both are cheap to close and both belong in a
 camera-ready version.
+
+\textbf{Why a generative planner on a problem with an exact SDF?} The question
+is fair and we answer it directly rather than by implication. PointMass3D is an
+analytical sandbox, chosen \emph{because} the SDF is exact: an analytic collision
+checker makes the floor and the ceiling computable on the identical problems, so
+a representation change can be measured against both instead of only against
+other configurations of itself. On this benchmark one should use RRT-Connect,
+and we say so. The reason the measurement is worth making anyway is that the
+quantity being isolated --- how much a generative planner gains from being shown
+the query in a canonical frame --- is a property of the representation, not of
+the collision checker, and it transfers to the settings where generative planners
+are actually the right instrument: learned or perceptual cost fields, contact-rich
+dynamics, and multi-modal solution sets, none of which admit the analytic SDF
+this benchmark provides. A result of that kind can only be \emph{isolated} where
+the confounds are removable, which is here.
+
+\textbf{Extending beyond two points in $\mathbb{R}^3$.} The reduction needs a
+frame derivable from the query in closed form, which is what a start and a goal
+\emph{position} supply. Two extensions are worth distinguishing. In task-space
+planning for a manipulator --- where the state is an end-effector pose --- the
+construction carries over unchanged, and Sec.~\ref{sec:se3} is already that case:
+an $\SE$ state with the frame built from the two endpoint positions and the
+orientations left to the network. In joint-space planning for a $7$-DoF arm it
+does not carry over as written, and we want to be precise about why rather than
+gesture at ``higher dimensions''. A rigid motion of the workspace does not act on
+a joint vector $\mathbf{q}\in\mathbb{R}^7$ by any linear map: the symmetry is a
+workspace symmetry, and the forward kinematics do not intertwine it with joint
+coordinates. What survives is narrower and still useful --- for an arm on a fixed
+base, a rotation of the scene about the base axis is realised exactly by an
+offset on the first joint, so a one-parameter canonicalisation is available in
+joint space, and the remaining five degrees of freedom are not. Whether the
+benefit measured here survives that reduction from five recoverable degrees of
+freedom to one is the open question, and it is a sharper question than ``does it
+scale to $7$ DoF''.
 
 \textbf{Two state spaces, one workspace family.} Sec.~\ref{sec:se3} replicates
 the pattern in a second state space --- a rigid body whose state is a full pose
