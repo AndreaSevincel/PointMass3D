@@ -39,6 +39,13 @@ REQUIRED = {
     "r under SE(3), reduction": r"0\.0174",
     "world frame is 91% equivariant": r"91\\%",
     "symmetrisation budget stated as a bound": r"under\s*\n?\$3\\times10\^\{-4\}",
+    "seed-matched gap at 60 envs": r"\+20\.9",
+    "best-of-20 interaction": r"\+10\.7",
+    "world frame loses best-of-20 with 3x budget": r"-3\.1|\$39\.2\$",
+    "SE(3) domain, world frame": r"\$3\.0\$|3\.0\%",
+    "SE(3) domain, reduction": r"\$8\.6\$|8\.6\%",
+    "SE(3) trivial floor": r"4\.8\\%",
+    "cross-domain ratio": r"2\.9\\times",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -63,6 +70,13 @@ FORBIDDEN = {
     r"Two independent measurements support it": "both bear on frame averaging only",
     r"\+4\.4": "roll augmentation is +0.8 seed-matched; +4.4 was an unpaired artefact",
     r"one seed, see text": "the no-roll ablation now has three seeds",
+    r"roughly \$?19\$? standard\s*\n?errors": "applies the 60-env SE to a single-seed "
+                                             "250-env difference; quote +20.9+-1.6 at 60 instead",
+    r"\\approx19 SE": "same, in the ablation table",
+    r"\$\\approx 11\$ standard": "the 11-SE form of the same invalid test",
+    r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
+                                          "sigma^2 g(1-g) I and is roll-invariant. The real "
+                                          "cost is the singular endpoint covariance",
 }
 
 def main():

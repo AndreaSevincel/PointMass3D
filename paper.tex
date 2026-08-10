@@ -152,7 +152,12 @@ lifts the world-frame arm from $15.4\%$ to $17.5\%$, about $7\%$ of what the
 reduction achieves. We also find that optimisation and representation are
 \emph{separate} bottlenecks: tripling the training budget is worth $+8.0$ points
 to the canonicalised arm and $+0.9$ to the world-frame one, so compute cannot buy
-what the representation forecloses. We calibrate both ends on the same $500$
+what the representation forecloses --- and on the deployment metric the same
+tripling moves the world-frame arm \emph{backwards}. The pattern replicates in a
+second state space, an L-shaped rigid body whose state is a full pose rather than
+a point: the world-frame arm fails to clear its own trivial floor in both
+domains, the reduction clears it in both, and the ratio between arms is
+$2.9\times$ in each. We calibrate both ends on the same $500$
 problems: an untrained Brownian-bridge prior, swept over widths, never exceeds
 $15.8\%$ at best-of-$20$, while classical planners reach $74$--$100\%$ in under
 $0.4$\,s on one CPU core. The learned sampler
@@ -930,10 +935,20 @@ arm with one component removed}
 
 Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
 $250$ environments the reduction reaches $45.6\%$ against $15.4\%$, a gap of
-$30.2$ points. Measured against the across-seed standard error at $60$
-environments ($1.56$ points for this arm, $n{=}3$), that is roughly $19$ standard
-errors; the seed spread was not measured at $250$ environments, so we quote the
-$60$-environment floor, which is the wider of the two arms.
+$30.2$ points.
+
+We state the uncertainty on that number conservatively, because the obvious
+phrasing overstates it. Seeds were run at $60$ environments, not at $250$: the
+seed-matched estimate there is $+20.9\pm1.6$ points ($n{=}3$ on both arms), which
+is the only significance statement in this paper that rests on a measured seed
+spread. The $30.2$ at $250$ environments rests on one seed per arm, and
+expressing it as a multiple of a standard error measured in a different cell
+would not be a valid test --- a $12.5\times$ change in training data is exactly
+the kind of thing that can change run-to-run variance. We therefore report the
+$250$-environment gap as a point estimate and rely on the $60$-environment cell,
+where the comparison is seed-matched, for the inferential claim. Adding seeds at
+$250$ environments is the cheapest open experiment in this project and we flag it
+as such in Sec.~\ref{sec:limits}.
 
 The trend is more informative than the endpoint. The baseline improves by $2.6$
 points across a $12.5\times$ increase in training environments: it is close to
@@ -960,7 +975,7 @@ the model no longer spends capacity on \emph{where} they are.
 \toprule
 Mechanism & $\Delta$ free & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx19$ SE; grows \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & 1 seed at 250; $+20.9\pm1.6$ at 60 \\
 \quad of which: 3 translations    & $+12.3$ pp & recentring alone \\
 \quad of which: 2 rotations       & $+18.0$ pp & aligning the axis \\
 $\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
@@ -1115,12 +1130,16 @@ Second --- and this is the part we did not anticipate --- the same tripling is
 worth almost nothing to the world-frame arm. Running it at $60$ epochs on the
 same $60$ environments moves it from $13.6\%$ to $14.4\%$:
 \begin{center}\small
-\begin{tabular}{lrr}
+\begin{tabular}{lrrr}
 \toprule
-$60$ environments & $20$ epochs & $60$ epochs \\
+$60$ environments & $20$ ep. & $60$ ep. & gain \\
 \midrule
-World frame            & $13.6$ & $14.4$ \\
-$(\svec,\gvec)$ reduction & $34.4$ & $\mathbf{42.4}$ \\
+\multicolumn{4}{l}{\emph{per-sample collision-free (\%)}}\\
+World frame            & $13.6$ & $14.4$ & $+0.9$ \\
+$(\svec,\gvec)$ reduction & $34.4$ & $\mathbf{42.4}$ & $+8.0$ \\[2pt]
+\multicolumn{4}{l}{\emph{best-of-20 (\%)}}\\
+World frame            & $42.3$ & $39.2$ & $-3.1$ \\
+$(\svec,\gvec)$ reduction & $79.6$ & $\mathbf{87.2}$ & $+7.6$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1140,6 +1159,82 @@ untrained prior at the same $N$ (Table~\ref{tab:prior}). A reader who cares abou
 whether the sampler is useful rather than about the representation question
 should read that number, with the caveat from Sec.~\ref{sec:baselines} that
 classical planners still solve more of them and faster.
+
+On that metric the interaction is not merely larger but changes sign for the
+control. The reduction rises from $79.6\%$ to $87.2\%$, while the world-frame arm
+\emph{falls}, from a three-seed mean of $42.3\%$ (spread $41.4$--$43.2$) to
+$39.2\%$: an interaction of $+10.7$ points against the $+7.1$ measured per
+sample. Tripling the optimisation of the world-frame arm made it worse on the
+metric that describes how a generative planner is actually deployed --- more
+training bought a per-sample gain of $+0.9$ while costing sample diversity, which
+is the resource best-of-$N$ actually spends. We flag one caveat on our own
+number: the $60$-epoch cells are single seed against three-seed means, which is
+precisely the shape that manufactured the $+4.4$ artefact discussed in
+Sec.~\ref{sec:limits}, so this $-3.1$ needs a seed-matched confirmation before it
+is leaned on. The $+7.1$ per-sample interaction does not depend on it.
+
+\textbf{This is a trend, not a limit.} Neither arm has been trained to a plateau,
+so the strongest form of the objection --- that the gap reflects convergence
+\emph{rate} rather than representation --- is answered here by two points rather
+than by a limit. What the two points establish is the direction: the gap
+\emph{widens} from $20.8$ to $28.0$ points under $3\times$ the budget, so if
+undertraining were manufacturing the gap it is the flat arm that would have the
+headroom, and it does not. A convergence study at $60$ environments is the
+experiment that would close this, and we state in Sec.~\ref{sec:limits} what each
+outcome would mean for the framing.
+
+\subsection{Replication in a second state space}
+\label{sec:se3}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrr}
+\toprule
+Domain (trivial floor) & World & Reduction & ratio & interaction \\
+\midrule
+$\SE$ rigid body ($4.8\%$) & $3.0$  & $8.6$  & $2.9\times$ & $+2.1$ \\
+Point mass ($15.6\%$)      & $14.4$ & $42.4$ & $2.9\times$ & $+7.1$ \\
+\bottomrule
+\end{tabular}
+\caption{The same pattern in a second state space. Per-sample collision-free
+rates at $250$ environments and the longer training budget, each against the
+trivial baseline for its own domain --- geodesic interpolation for the rigid
+body, a straight line for the point mass. In both domains the world-frame arm
+fails to clear its own floor and the reduction clears it; the ratio between arms
+agrees to two figures; and the epoch-gain interaction of Sec.~\ref{sec:budget}
+reproduces in sign and shape. Single seed per cell}
+\label{tab:se3}
+\end{table}
+
+The point-mass domain has a convenient property that could be doing the work: the
+state is a point, so the points-versus-vectors distinction of Sec.~\ref{sec:impl}
+lives only in the obstacle features, never inside the trajectory. To test whether
+the result survives without that convenience we built a second domain --- an
+L-shaped rigid body in the same clutter, where a state is a full pose, position
+and orientation, rather than a point. The trajectory now carries orientation, so
+the typing distinction moves inside the state. Collision checking evaluates the
+obstacle SDF at the body's transformed sphere centres; steering interpolates
+linearly in position and geodesically in rotation; and the trivial baseline is
+the corresponding geodesic interpolation, the $\SE$ analogue of joining start to
+goal with a line.
+
+Three things replicate (Table~\ref{tab:se3}). The world-frame arm fails to beat
+the trivial baseline in \emph{both} domains --- $1.8$ points below the geodesic
+floor here, $1.2$ below the straight-line floor there --- so the finding of
+Sec.~\ref{sec:baselines} is not an accident of one workspace family. The
+reduction clears its floor in both. And the ratio between the arms is $2.9\times$
+in each, with the epoch-gain interaction reproducing in sign and shape.
+
+We are deliberately careful about how much this carries. The absolute numbers are
+small ($3.0\%$ and $8.6\%$ against a $4.8\%$ floor), a rigid body in this clutter
+is a substantially harder problem than a point, and every $\SE$ cell is single
+seed. The useful statement is the \emph{pattern}, not the level: the reduction is
+not exploiting something peculiar to a point-shaped state, and the implementation
+survives having the failure mode of Sec.~\ref{sec:impl} moved from the
+conditioning into the trajectory itself, which is the part most likely to break
+silently.
 
 \subsection{Cost}
 \label{sec:cost}
@@ -1261,10 +1356,15 @@ the spread over held-out problems, not over training seeds, so they do not captu
 run-to-run variance in optimisation. Both are cheap to close and both belong in a
 camera-ready version.
 
-\textbf{Single benchmark.} Results are from one workspace family and one planner
-architecture. We report the reduction and the diagnostic in enough detail to be
-reimplemented elsewhere; whether the $30$-point gap survives in a manipulator
-configuration space is open.
+\textbf{Two state spaces, one workspace family.} Sec.~\ref{sec:se3} replicates
+the pattern in a second state space --- a rigid body whose state is a full pose
+--- which rules out the reading that the result depends on a point-shaped state.
+It does not broaden the workspace family: both domains use the same clutter
+generator and the same planner architecture, and every $\SE$ cell is single seed.
+Whether the gap survives in a manipulator configuration space, where the
+start--goal frame is not read off two points in $\mathbb{R}^3$, is open, and it is
+the setting where we would most expect the construction to need rethinking rather
+than reimplementing.
 
 \textbf{Reproducibility.} The benchmark, the expert pipeline, both learned arms,
 the classical baselines, and the residual diagnostic are one codebase; every
@@ -1275,14 +1375,36 @@ described in Sec.~\ref{sec:impl} run in seconds and are the intended entry point
 for anyone reimplementing the reduction, since they encode the failure modes that
 are silent at training time.
 
-\textbf{Future work.} Beyond more environments and capacity, one option is now
-open that was previously excluded. The flow begins from an isotropic Gaussian that
-knows nothing of the query, so it must learn both to produce a path and to place
-its endpoints. A Brownian-bridge prior pinned at start and goal would leave only
-the obstacle-avoidance detour to be learned. We had excluded it because such a
-prior is not isotropic in the plane normal to $\xhat$ and would break the
-distributional equivariance guarantee at $t=0$; since that guarantee has now been
-measured to be worth $0.1$ points, the trade is available.
+\textbf{Future work, in priority order.} \emph{(1) Seeds at $250$ environments.}
+The headline $30.2$ rests on one seed per arm; this is the cheapest experiment on
+this list and it closes the largest gap in the current evidence, so it goes
+first. \emph{(2) A convergence study at $60$ environments.} Training both arms to
+a plateau would convert Sec.~\ref{sec:budget} from a two-point trend into a
+limit. If the world-frame arm stays flat while the reduction plateaus higher,
+``compute cannot buy what the representation forecloses'' becomes measured rather
+than extrapolated; if it climbs, the two-bottleneck framing is wrong and the
+contribution becomes a claim about convergence rate and sample efficiency, which
+is weaker but still real. We registered the first outcome as our prediction
+before running it. \emph{(3) An $\mathrm{SO}(2)$-equivariant backbone}, the
+comparison this paper explicitly cannot make.
+
+\emph{(4) A Brownian-bridge prior.} The flow begins from an isotropic Gaussian
+that knows nothing of the query, so it must learn both to produce a path and to
+place its endpoints; a bridge pinned at start and goal would leave only the
+obstacle-avoidance detour to be learned. We had excluded it on the grounds that
+such a prior is not isotropic and would break the distributional guarantee at
+$t=0$. That reasoning was wrong, and we correct it here rather than repeat it: a
+bridge with i.i.d.\ coordinate noise has covariance $\sigma^2\gamma(1-\gamma)I_3$
+at path fraction $\gamma$, a multiple of the identity, so
+$R\cdot\mathrm{Bridge}(\svec,\gvec)\overset{d}{=}\mathrm{Bridge}(R\svec,R\gvec)$
+for every $R$, and a roll about $\xhat$ fixes $\svec$, $\gvec$ and every point of
+the mean segment, leaving the law invariant outright. The bridge preserves
+exactly the $\mathrm{SO}(2)$ that survives the reduction. What it genuinely costs
+is different: the prior becomes query-dependent, so the guarantee at $t=0$ becomes
+an equivariance rather than an invariance statement, and the covariance is
+\emph{singular} at both endpoints, so the regression target there carries no
+noise. The second is the real hazard, and the standard remedy is a variance
+floor.
 
 \section{Conclusion}
 

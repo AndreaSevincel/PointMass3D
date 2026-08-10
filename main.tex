@@ -1,3 +1,14 @@
+% SJTU internship report. Single-column, first person, standalone.
+%
+%   pdflatex main && pdflatex main
+%
+% This document and paper.tex describe the same work for different audiences:
+% this one is the report of what I did over the internship, including the
+% benchmark construction and the mistakes I corrected; paper.tex is the
+% conference/arXiv submission. Every shared number must agree between them --
+% check_paper_numbers.py enforces that for paper.tex, and the tables here are
+% transcribed from the same results files.
+
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[margin=2.6cm]{geometry}
@@ -16,8 +27,8 @@
 }
 \IfFileExists{microtype.sty}{\usepackage{microtype}}{}
 
-% Figure 1 is produced by make_figures.py (matplotlib) rather than TikZ, so the
-% numbers in the plot come from one source and cannot drift from the text.
+% Figures are produced by make_figures.py (matplotlib) rather than TikZ, so the
+% numbers in the plots come from one source and cannot drift from the text.
 
 \newcommand{\xhat}{\hat{\mathbf{x}}}
 \newcommand{\yhat}{\hat{\mathbf{y}}}
@@ -27,9 +38,12 @@
 \newcommand{\SE}{\mathrm{SE}(3)}
 \newcommand{\SO}{\mathrm{SO}}
 
-\title{Exploiting Rigid-Body Symmetry in Flow-Matching Motion Planning:\\
-       Canonicalisation Rather Than Equivariance}
-\author{Andrea Sevincel}
+\title{Rigid-Body Symmetry in Flow-Matching Motion Planning:\\
+       What Canonicalisation Buys, and What It Does Not\\[6pt]
+       \large Internship Report}
+\author{Andrea Emir Sevincel\\
+        {\normalsize Shanghai Jiao Tong University}\\
+        {\normalsize Supervisors: Xinzhe Zhou, Xiaoming Duan}}
 \date{August 2026}
 
 \begin{document}
@@ -37,265 +51,539 @@
 
 \begin{abstract}
 \noindent
-Motion planning is equivariant under rigid transformations: translate or rotate a
-planning problem and its solution transforms identically. A neural planner trained on
-world coordinates does not know this and must relearn the same skill at every pose.
-This report describes a method that supplies the symmetry through the \emph{problem
-representation} rather than through the network architecture, and reports what it
-contributes on a 3D point-mass benchmark.
+Motion planning is exactly equivariant under rigid transformations: translate or
+rotate a planning problem and its solution transforms identically. A neural
+planner trained on world coordinates does not know this and must relearn the
+same skill at every pose. This report describes what I built over the internship
+and what it measured. The work is a \emph{controlled study} of how to supply
+that symmetry through the problem representation rather than through the network
+architecture; it is not a proposal for a competitive planner, and I report the
+classical baselines that make that clear.
 
-The central observation is that the start and goal points themselves determine a
-frame, and that this frame removes five of the six degrees of freedom of $\SE$
-\emph{exactly and for free}. The sixth --- a roll about the start--goal axis --- provably
-cannot be removed by any continuous rule, for two independent reasons. I therefore
-handled it by symmetry: uniform roll augmentation during training and frame averaging
-at inference.
+I built the benchmark (PointMass3D, with an expert pipeline over RRT-Connect,
+CHOMP and TrajOpt), then a conditional flow-matching planner over whole
+trajectories, then the symmetry study. The central observation is that the start
+and goal of a query themselves determine a frame, and that this frame removes
+five of the six degrees of freedom of $\SE$ exactly and at zero cost. The sixth
+--- a roll about the start--goal axis --- cannot be removed by any continuous
+rule, for two independent reasons, so I handled it by symmetry: roll
+augmentation during training and frame averaging at inference.
 
-On held-out environments the canonicalisation raises the collision-free rate from
-$15.4\%$ to $45.6\%$, a gap of $30.2$ percentage points ($\approx 11$ standard
-errors), and the advantage \emph{widens} with training data rather than shrinking.
-The two mechanisms built for the sixth degree of freedom contribute nothing
-measurable: $+1.2$ and $+0.2$ percentage points respectively, both inside noise.
-A direct measurement explains why --- only $1.6\%$ of the learned velocity field is
-non-equivariant, and that fraction \emph{decreases} as training data grows. The
-practical conclusion is that the valuable operation is canonicalising the degrees of
-freedom one can, and that an equivariant architecture would constrain precisely the
-component that is already correct.
+Holding architecture, data and budget fixed and varying only the representation
+raises the held-out per-sample collision-free rate from $15.4\%$ to $45.6\%$, a
+gap of $30.2$ points, and the gap \emph{widens} with training data rather than
+shrinking. The two mechanisms built for the sixth degree of freedom are worth
+$+0.8 \pm 0.3$ and $+0.1$ points, neither distinguishable from zero at three
+seed-matched runs. I explain this rather than merely reporting it, by measuring
+the \emph{non-equivariance residual}: only about $1.7\%$ of the learned velocity
+field lies outside the equivariant subspace, and frame averaging is exactly the
+orthogonal projection onto it, so that $1.7\%$ is the whole budget any post-hoc
+symmetrisation of this model can spend. I am also explicit about what that
+measurement does \emph{not} license: two arms with indistinguishable residuals
+differ by $28$ points of held-out performance, so the residual does not forecast
+what a symmetry mechanism is worth. Two further findings support the reading:
+representation and optimisation are separate bottlenecks, and the whole pattern
+replicates in a second state space where a state is a full rigid-body pose.
 \end{abstract}
+
+\tableofcontents
 
 \section{Introduction}
 
-A motion planning problem consists of a workspace populated with obstacles, a start
-configuration $\svec$ and a goal configuration $\gvec$. Its solution is a path
-$\tau$ from $\svec$ to $\gvec$ avoiding the obstacles. The problem possesses an exact
-symmetry: for any rigid transformation $T \in \SE$, the solution to the transformed
-problem is the transformed solution,
+A motion planning problem consists of a workspace populated with obstacles, a
+start configuration $\svec$ and a goal configuration $\gvec$. Its solution is a
+path $\tau$ from $\svec$ to $\gvec$ avoiding the obstacles. The problem possesses
+an exact symmetry: for any rigid transformation $T \in \SE$, the solution to the
+transformed problem is the transformed solution,
 \begin{equation}
-  \tau\bigl(T\!\cdot\!\text{obstacles},\, T\svec,\, T\gvec\bigr)
-  \;=\; T \cdot \tau\bigl(\text{obstacles},\, \svec,\, \gvec\bigr).
+  \tau\bigl(T\!\cdot\!\mathcal{O},\, T\svec,\, T\gvec\bigr)
+  \;=\; T \cdot \tau\bigl(\mathcal{O},\, \svec,\, \gvec\bigr),
   \label{eq:equivariance}
 \end{equation}
-Nothing about the physics changes when the problem is picked up and moved.
+where $\mathcal{O}$ is the obstacle set. Nothing about the geometry changes when
+the problem is picked up and moved.
 
 A neural planner trained on raw world coordinates has no access to
 Eq.~\eqref{eq:equivariance}. As far as its weights are concerned, planning
-left-to-right near the ceiling is an unrelated task from planning front-to-back near
-the floor, and the same skill must be learned separately at every pose. Two remedies
-exist. The first is to build the symmetry into the architecture --- constrained layers,
-irreducible representations, gated nonlinearities --- which is expensive to implement,
-introduces a class of bugs that fail silently, and costs expressiveness. The second
-is to build it into the \emph{representation of the problem}, so that the network is
-never shown the pose at all and therefore cannot be sensitive to it. This report
-pursues the second.
+left-to-right near the ceiling is an unrelated task from planning front-to-back
+near the floor, and the same skill must be learned separately at every pose. Two
+remedies exist. The first is to build the symmetry into the architecture ---
+constrained layers, irreducible representations, gated nonlinearities --- which
+is laborious to implement, costs expressiveness, and fails in ways that are
+silent. The second is to build it into the \emph{representation of the problem},
+so the network is never shown the pose and therefore cannot be sensitive to it.
+This report pursues the second, and asks how far it goes.
 
-The contribution is threefold. First, a decomposition of $\SE$ for this problem class
-that separates the five degrees of freedom removable by canonicalisation from the one
-that is not, with a proof that the remaining one is not removable by \emph{any}
-continuous rule. Second, a measurement of what each mechanism contributes, rather
-than a demonstration that the combination works. Third, a negative result reported
-quantitatively: the symmetry machinery for the sixth degree of freedom is inert on
-this problem, and I measured \emph{how much} non-equivariance existed in order to say
-so with confidence rather than by observing flat quality curves.
+\subsection{What I did, in the order I did it}
 
-\section{Background}
+The internship ran in three stages, and this report follows them.
 
-\subsection{The benchmark}
+\begin{description}
+  \item[Stage 1 --- the benchmark.] I built PointMass3D: a cluttered 3D
+  workspace with an analytic signed distance field, and an expert pipeline
+  combining RRT-Connect, random shortcutting, uniform resampling and CHOMP
+  refinement. Implementing three classical planners rather than one also gave me
+  the \emph{ceiling} the learned planner should be read against
+  (Sec.~\ref{sec:benchmark}).
+  \item[Stage 2 --- the baseline planner.] A conditional flow-matching model
+  over whole trajectories, and the calibration that turned out to matter most:
+  measuring what a straight line and an untrained stochastic prior achieve on
+  the identical problems (Sec.~\ref{sec:planner}, Sec.~\ref{sec:calibration}).
+  \item[Stage 3 --- the symmetry study.] The $(\svec,\gvec)$ reduction, the two
+  obstructions that show the sixth degree of freedom is not removable, the two
+  mechanisms built for it, and the residual diagnostic that explains why they are
+  inert (Sec.~\ref{sec:method} onward).
+\end{description}
 
-Experiments use PointMass3D, a benchmark I built in the earlier stage of this
-internship. A spherical robot of radius $0.03$ moves in the workspace $[-1,1]^3$
-populated with $20$ spheres and $20$ axis-aligned boxes per environment, with obstacle
+\subsection{Contributions}
+
+\textbf{(i) Five of six degrees of freedom are free.} The query supplies a
+frame. Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the
+first axis with the start--goal direction removes three translational and two
+rotational degrees of freedom exactly, at no computational cost and with no
+architectural constraint. The resulting representation is invariant under any
+rigid motion of the problem \emph{up to a single roll about the start--goal
+axis}.
+
+\textbf{(ii) The sixth is provably not removable, for two unrelated reasons.}
+A continuous rule fixing the roll would be a nowhere-vanishing tangent field on
+$S^2$, which the hairy ball theorem forbids. Deriving the roll from the scene
+instead fails because the obstacle law is symmetric under central inversion, so
+the angular moment such a gauge would use vanishes in expectation.
+
+\textbf{(iii) The symmetry machinery buys little, and I measured why.} Rather
+than infer inertness from flat quality curves --- a weak conclusion --- I measured
+the quantity frame averaging exists to remove, and proved exactly what it bounds.
+
+\textbf{(iv) Calibration, and two bottlenecks.} A collision-free rate on a new
+benchmark means nothing without a scale. Measuring the floor is what revealed
+that the world-frame arm sits exactly on the straight line, and measuring a
+longer training run is what revealed that compute and representation relieve
+different constraints.
+
+I regard (iii) as the transferable part. The residual is a few lines of code,
+costs one forward pass, needs no retraining, and can be computed on any model
+with a group action on its inputs. It converts ``we tried equivariance and it did
+not help'' into a quantitative statement with an exact bound attached --- and it
+comes with an equally exact statement of its limits, which
+Sec.~\ref{sec:twosigns} makes concrete.
+
+\section{Stage 1: The PointMass3D benchmark}
+\label{sec:benchmark}
+
+\subsection{Environments and queries}
+
+A spherical robot of radius $0.03$ moves in the workspace $[-1,1]^3$, populated
+with $20$ spheres and $20$ axis-aligned boxes per environment, with obstacle
 centres drawn uniformly in $[-0.75, 0.75]^3$. Collision checking uses an analytic
-signed distance field: the environment SDF is the minimum over all obstacle SDFs and
-the workspace walls, and clearance subtracts the robot radius. Start and goal are
-drawn uniformly in the workspace subject to a collision margin and a minimum
-separation $\|\gvec - \svec\| \ge 1.5$.
+signed distance field: the environment SDF is the minimum over all obstacle SDFs
+and the workspace walls, and clearance subtracts the robot radius. Because the
+SDF is analytic rather than sampled, clearance is a continuous quantity, which
+matters later --- it gives a graded measure of quality where the binary
+collision-free rate saturates.
 
-Expert demonstrations come from a pipeline of RRT-Connect for an initial feasible
-path, random shortcutting, uniform resampling to $64$ waypoints, and CHOMP refinement.
-The dataset used here contains $300$ environments $\times$ $600$ start--goal pairs
-$\times$ $30$ trajectories, doubled by time-reversal, for $10.8$M paths.
+Start and goal are drawn uniformly subject to a collision margin and a minimum
+separation $\|\gvec - \svec\| \ge 1.5$, so no problem is trivially short. Forty
+obstacles in a two-unit cube is dense clutter: the direct line between endpoints
+is blocked on $84\%$ of problems. Absolute success rates are correspondingly low
+throughout this report and should be read comparatively.
 
-\subsection{The flow-matching planner}
+\subsection{Expert trajectories}
 
-The learned planner is a conditional flow-matching model over whole trajectories,
-following the rectified-flow / conditional-OT formulation. A trajectory is represented
-as $N=64$ waypoints in $\mathbb{R}^3$. Training draws $\mathbf{x}_0 \sim
-\mathcal{N}(0, I)$, $t \sim \mathcal{U}[0,1]$, forms the interpolant
-$\mathbf{x}_t = (1-t)\mathbf{x}_0 + t\,\mathbf{x}_1$ with $\mathbf{x}_1$ an expert
-trajectory, and regresses the velocity target $\mathbf{x}_1 - \mathbf{x}_0$:
+I implemented RRT-Connect, CHOMP and TrajOpt against the same SDF. The expert
+used for supervision is a pipeline rather than any one of them:
+
+\begin{center}
+RRT-Connect $\rightarrow$ random shortcutting $\rightarrow$ uniform resampling to
+$64$ waypoints $\rightarrow$ CHOMP refinement,
+\end{center}
+
+\noindent
+with dense collision validation and a fallback to the raw RRT path when
+refinement fails. Two of those steps deserve a word, because they are not
+cosmetic.
+
+\emph{Shortcutting} is the standard post-processing step for sampling-based
+planners. An RRT-Connect path is a jagged line: the tree grows toward random
+samples, so the solution wanders and contains detours that have nothing to do
+with the obstacles. Shortcutting removes them, leaving detours that are actually
+caused by geometry.
+
+\emph{Uniform resampling} then fixes a problem shortcutting creates. Shortcutting
+collapses long free stretches into single segments, so vertex density ends up
+\emph{inversely} related to geometric complexity --- the model would see many
+waypoints where the path is straight and few where it turns. Resampling to a
+fixed $64$ waypoints fixes both the count and the spacing.
+
+The dataset is $300$ environments $\times\ 600$ start--goal pairs $\times\ 30$
+trajectories, doubled by time-reversal, for $10.8$M paths.
+
+\subsection{A caveat about dataset size}
+\label{sec:diversity}
+
+The dataset is markedly less diverse than its nominal size suggests. The $30$
+trajectories per start--goal pair are near-duplicates, because CHOMP is a local
+optimiser and converges to the same route from similar initialisations: the
+within-pair standard deviation is $0.054$ against an overall $0.426$. So $10.8$M
+paths carry on the order of $360$k distinct queries.
+
+This does not affect any comparison in this report, since both arms train on
+identical data, but it has two consequences. It dictates the validation split
+(Sec.~\ref{sec:protocol}), and it indicates how additional data should be
+generated: cutting trajectories per pair from $30$ to $5$ would buy roughly six
+times the environments for the same generation cost.
+
+\section{Stage 2: The flow-matching planner}
+\label{sec:planner}
+
+The learned planner is a conditional flow-matching model over whole
+trajectories, in the rectified-flow / conditional-OT formulation. A trajectory is
+$N=64$ waypoints in $\mathbb{R}^3$. Training draws $\mathbf{x}_0 \sim
+\mathcal{N}(0, I)$ and $t \sim \mathcal{U}[0,1]$, forms the interpolant
+$\mathbf{x}_t = (1-t)\mathbf{x}_0 + t\,\mathbf{x}_1$ with $\mathbf{x}_1$ an
+expert trajectory, and regresses the velocity target:
 \begin{equation}
   \mathcal{L} = \mathbb{E}_{\mathbf{x}_0, \mathbf{x}_1, t}
   \bigl\| v_\theta(\mathbf{x}_t, t, c) - (\mathbf{x}_1 - \mathbf{x}_0) \bigr\|^2 ,
+  \label{eq:cfm}
 \end{equation}
 where $c$ encodes the obstacles and the query. Sampling integrates
 $\dot{\mathbf{x}} = v_\theta(\mathbf{x}, t, c)$ from $t=0$ to $t=1$ with explicit
-Euler steps. The network is a dilated temporal convolutional trunk with FiLM
-conditioning, fed by a PointNet-style permutation-invariant obstacle encoder;
-$2.16$M parameters in the configuration used throughout.
+Euler steps.
 
-\section{Method}
+Because the trajectory is a sequence of $64$ waypoints, the trunk is a stack of
+1D convolutions sliding along the path, with dilations $1$--$2$--$4$--$8$ so that
+the deeper layers can see from one end of the trajectory to the other rather than
+only between neighbouring waypoints. Conditioning enters through FiLM, fed by a
+PointNet-style permutation-invariant obstacle encoder. The configuration used
+throughout has $2.16$M parameters.
+
+One architectural detail matters for the cost analysis later: \emph{the
+conditioning is time-independent}, so the scene is encoded once and reused across
+all integration steps. That is why frame averaging over $K$ rotations costs
+$1.05\times$ rather than $K\times$ (Sec.~\ref{sec:cost}).
+
+\subsection{The Brownian-bridge prior: considered, and not adopted}
+\label{sec:bridge}
+
+The flow starts from an isotropic Gaussian that knows nothing about the query, so
+it must learn both to produce a path and to place its endpoints. A Brownian
+bridge pinned at start and goal would hand it the endpoints for free, leaving
+only the obstacle-avoiding detour to be learned.
+
+I did not adopt it, and it is worth recording both the reason I gave at the time
+and the reason that actually holds, because they are different. My original
+argument was that a bridge is not isotropic and would break the distributional
+symmetry of the prior at $t=0$. That argument is wrong. A bridge with i.i.d.\
+coordinate noise has covariance $\sigma^2 \gamma(1-\gamma) I_3$ at path fraction
+$\gamma$ --- a multiple of the identity --- so for any $R \in \SO(3)$ the law
+satisfies $R \cdot \mathrm{Bridge}(\svec,\gvec) \overset{d}{=}
+\mathrm{Bridge}(R\svec, R\gvec)$, and for a roll about the start--goal axis,
+which fixes $\svec$, $\gvec$ and every point of the mean segment, the law is
+invariant outright. The bridge preserves exactly the $\mathrm{SO}(2)$ that
+survives the reduction.
+
+What a bridge prior genuinely costs is two other things: the prior becomes
+query-dependent, so the guarantee at $t=0$ becomes an equivariance statement
+rather than an invariance statement, and the covariance is \emph{singular} at
+both endpoints, so the regression target there carries no noise. The second is
+the real hazard and the standard fix is a variance floor. Either way the trade is
+available, and it is the first thing I would try next.
+
+The bridge did not go to waste. It became the untrained stochastic baseline of
+Sec.~\ref{sec:calibration}.
+
+\section{Stage 3: Method}
+\label{sec:method}
 
 \subsection{Decomposing the symmetry group}
 
 $\SE$ has six degrees of freedom: three translations and three rotations. The key
-observation is that the query itself supplies a frame, and that this frame consumes
-five of them.
+observation is that the query itself supplies a frame, and that this frame
+consumes five of them.
 
 \begin{itemize}
-  \item \textbf{Three translations} are removed by placing the origin at the midpoint
-  $\tfrac{1}{2}(\svec + \gvec)$.
-  \item \textbf{Two of the three rotations} are removed by aligning the first axis
-  with the start--goal direction $\xhat = (\gvec - \svec)/\|\gvec - \svec\|$.
-  Specifying a direction on the sphere $S^2$ costs exactly two degrees of freedom, so
-  fixing one axis to it spends two.
-  \item \textbf{One rotation remains}: the roll about $\xhat$. Having fixed which way
-  the path runs, nothing in the problem specifies which way is ``up'' around that axis.
+  \item \textbf{Three translations} are removed by placing the origin at the
+  midpoint $\mathbf{o} = \tfrac{1}{2}(\svec + \gvec)$.
+  \item \textbf{Two of the three rotations} are removed by aligning the first
+  axis with the start--goal direction $\xhat = (\gvec - \svec)/\|\gvec - \svec\|$.
+  Specifying a direction on the sphere $S^2$ costs exactly two degrees of
+  freedom, so fixing one axis to it spends two.
+  \item \textbf{One rotation remains}: the roll about $\xhat$. Having fixed which
+  way the path runs, nothing in the problem specifies which way is ``up'' around
+  that axis.
 \end{itemize}
 
-The five removable degrees of freedom yield \emph{exact} equivariance, not an
-approximation, and this deserves emphasis --- as does what it does not say. The frame
-is computed from the query, so under a rigid transformation $T$ the points $\svec$ and
-$\gvec$ transform with the problem and the frame transforms with them. The
-reduced-frame representation is \emph{not} bit-identical, however, because the gauge
-$\yhat$ is built from a fixed world axis $\mathbf{e}_{i^\ast}$: rotating the whole
-problem changes which axis is selected and rolls the frame. What is bit-identical is
-everything a roll about $\xhat$ leaves alone --- the distance $d$, the $x$-coordinate
-of every reduced point, and its radius in the $y$--$z$ plane --- and the entire
-residual is that single shared roll. The reduction collapses $\SE$ to $\mathrm{SO}(2)$
-rather than to nothing, which is exactly why the mechanisms of the next section are
-needed at all. Within those five degrees of freedom the network never observes the
-pose and cannot be sensitive to something it is not shown; that part is a stronger
-guarantee than any trained architecture provides, and it holds to floating-point
-precision (verified to $10^{-15}$).
+Concretely, let $d = \|\gvec - \svec\|$, let $i^\ast = \arg\min_i |\xhat_i|$, and
+set
+\begin{equation}
+  \yhat \propto \xhat \times \mathbf{e}_{i^\ast},
+  \qquad
+  \zhat = \xhat \times \yhat ,
+  \label{eq:frame}
+\end{equation}
+with $R$ the rotation whose rows are $\xhat, \yhat, \zhat$. A point $\mathbf{p}$
+maps to $R(\mathbf{p} - \mathbf{o})$. Because the smallest component of a unit
+vector satisfies $|\xhat_{i^\ast}| \le 1/\sqrt{3}$, the cross product in
+Eq.~\eqref{eq:frame} has norm $\ge \sqrt{2/3} \approx 0.816$ everywhere, so the
+construction is well-conditioned over the entire domain with no threshold or
+fallback branch, and $\det R = +1$ by construction.
+
+\paragraph{What the reduction is invariant to, exactly.} This is the point I got
+wrong first and want to state carefully. Under a rigid transformation $T$ the
+points $\svec$ and $\gvec$ transform with the problem and the frame transforms
+with them --- but the reduced representation is \emph{not} bit-identical, because
+the gauge $\yhat$ in Eq.~\eqref{eq:frame} is built from a \emph{fixed world axis}
+$\mathbf{e}_{i^\ast}$: rotating the whole problem changes which axis is selected
+and rolls the frame. What is exactly invariant is everything a roll about $\xhat$
+leaves alone --- the distance $d$, the first coordinate of every reduced point,
+and its radius in the plane normal to that axis --- and the entire residual is
+that one shared roll.
+
+So \textbf{the reduction collapses $\SE$ to $\mathrm{SO}(2)$, not to nothing},
+and that is exactly why the mechanisms of Sec.~\ref{sec:sixth} are needed at all.
+Within those five degrees of freedom the network never observes the pose and
+cannot be sensitive to something it is not shown; that part is a stronger
+guarantee than any trained architecture provides, since it holds to
+floating-point precision at initialisation rather than to optimisation tolerance.
+I verify it numerically to $10^{-15}$ in both domains.
+
+Two consequences follow immediately. The six numbers previously used to condition
+the network collapse to the single invariant scalar $d$. And every pair of
+training examples that were ``the same problem in a different pose'' now coincide
+up to a roll, raising the effective density of the training set without
+generating a single new trajectory.
 
 \subsection{Why the sixth degree of freedom is not removable}
+\label{sec:obstructions}
 
-One might hope to fix the roll by some rule. It cannot be done, and the obstruction is
-structural rather than a deficiency of any particular construction.
+One might hope to fix the roll by some rule. It cannot be done, and the
+obstruction is structural rather than a deficiency of any particular
+construction.
 
-\paragraph{Obstruction from geometry.} A rule assigning a ``up'' direction
+\paragraph{Obstruction from geometry.} A rule assigning an ``up'' direction
 $\yhat(\xhat)$ perpendicular to each axis direction is precisely a continuous,
-nowhere-vanishing unit tangent vector field on $S^2$. The hairy ball theorem forbids
-the existence of such a field. Every deterministic gauge therefore has a
-discontinuity; one may relocate it but never eliminate it. The domain here is the
-whole sphere --- axis-aligned start--goal directions require a displacement of at
-least $1.5$ along one axis out of the $2.0$ available, so no direction is excluded ---
-and hence there is no escape via a contractible subdomain.
+nowhere-vanishing unit tangent vector field on $S^2$. The hairy ball theorem
+forbids the existence of such a field. Every deterministic gauge therefore has a
+discontinuity; one may relocate it but never eliminate it --- my $i^\ast$
+tie-break is exactly such a relocated discontinuity, placed on a measure-zero
+set. The escape route of restricting to a contractible subdomain is closed here:
+the minimum separation of $1.5$ along an axis of extent $2.0$ still admits
+axis-aligned start--goal directions, so the domain is the whole sphere.
 
-\paragraph{Obstruction from the scene.} One might instead derive the roll from the
-obstacle field, for instance from the angular first moment
-$c_1 = \sum_j w_j e^{i\varphi_j}$ of the obstacle centres projected into the plane
-normal to $\xhat$. This also fails. Obstacle centres are drawn uniformly in a cube,
-which is $4$-fold symmetric in any coordinate plane; a $C_4$-invariant distribution has
-vanishing Fourier coefficients at every order $m \not\equiv 0 \pmod 4$. Hence
-$\mathbb{E}[c_1] = 0$ \emph{and} $\mathbb{E}[c_2] = 0$ identically. Under this null,
-$|c_1|^2/\sum_j w_j^2$ is $\mathrm{Exp}(1)$-distributed with median $\approx 0.69$, so
-near-degenerate configurations are not a rare tail but the typical case. The first
-surviving moment, $m=4$, is an artefact of cube sampling, is fourfold ambiguous by
-construction, and would not transfer to a realistic scene distribution.
+For a gauge $\yhat(\xhat, \mathcal{O})$ that also depends on the scene, the bare
+theorem does not apply --- it is a statement about maps out of $S^2$ alone.
+Fixing the scene repairs that at the cost of a weaker conclusion: the degenerate
+set is \emph{per scene}. Every scene admits start--goal directions at which its
+gauge breaks down, but which directions those are moves as the scene moves, so no
+restriction of the query distribution avoids them uniformly.
+
+\paragraph{Obstruction from the scene.} One might instead derive the roll from
+the obstacle field, for instance from the angular first moment
+$c_1 = \sum_j w_j e^{i\varphi_j}$ of the obstacle centres projected into the
+plane normal to $\xhat$. Let the obstacle-centre law be invariant under the
+central inversion $\mathbf{p} \mapsto -\mathbf{p}$ and the weights $w_j$ depend
+only on radius. Inversion fixes every radius and hence every $w_j$, and maps
+$\varphi_j \mapsto \varphi_j + \pi$, so $e^{im\varphi_j} \mapsto (-1)^m
+e^{im\varphi_j}$ and
+\begin{equation}
+  \mathbb{E}[c_m] = 0 \quad \text{for every odd } m \text{ and every }
+  \xhat \in S^2 .
+  \label{eq:moments}
+\end{equation}
+
+The restriction to odd $m$ is a fact about the geometry, not a weakness of the
+proof, and I state it because the natural stronger claim is false --- and because
+I made it. It is tempting to argue that the cube is $C_4$-symmetric, so only
+multiples of four survive. That holds when $\xhat$ is a four-fold axis of the
+cube and fails otherwise, because the plane normal to a general $\xhat$ is not a
+coordinate plane and the cube's symmetry group does not act on it as $C_4$.
+Numerically, at $2 \times 10^5$ scenes (noise floor $0.002$), $|\mathbb{E}[c_2]|$
+is $0.001$ along a coordinate axis but $0.033$ for a generic direction and
+$0.070$ along a face diagonal, while $|\mathbb{E}[c_1]|$ is at the noise floor for
+all of them. Central inversion is the hypothesis that actually supports
+Eq.~\eqref{eq:moments}, and it is weaker than uniform-on-a-cube, so the argument
+covers Gaussian clutter and spherical shells equally.
+
+Eq.~\eqref{eq:moments} is \emph{unconditional}, and a gauge is used
+\emph{conditionally} --- which closes the route more firmly than the statement
+alone. A scene-derived gauge is computed from the displacements
+$\mathbf{p}_j - \mathbf{o}$, whose law is centrally symmetric about
+$-\mathbf{o}$ rather than about the origin, so
+\begin{equation}
+  \mathbb{E}[c_1 \mid \svec, \gvec] \neq 0
+  \quad\text{whenever}\quad \mathbf{o} \neq \mathbf{0},
+  \label{eq:cond}
+\end{equation}
+with the surviving moment pointing along the projection of $-\mathbf{o}$. I
+confirm this numerically: at $\mathbf{o} = (0, 0.4, 0.3)$ the conditional first
+moment has magnitude $0.56$ and argument $2.208$, against a predicted $2.214$.
+But that direction is not an $\SE$-invariant of the problem --- it is a function
+of where the query sits in the world, and a gauge built on it would reintroduce
+exactly the world-frame dependence the reduction removes, forfeiting five degrees
+of freedom to fix the sixth. The first-moment gauge is therefore either
+degenerate (unconditionally) or not equivariant (conditionally), and neither is
+usable.
+
+An even moment escapes both, since inversion does not kill even $m$ and an $m=2$
+moment is insensitive to the sign of the displacement. It does not escape the
+topological obstruction: an $m=2$ moment defines a \emph{director} rather than a
+vector, and a continuous director field on $S^2$ is obstructed for the same
+Euler-characteristic reason, since $\chi(S^2) = 2 \neq 0$.
 
 Both routes are closed, for unrelated reasons. The sixth degree of freedom must
-therefore be handled by symmetry rather than canonicalisation.
+be handled by symmetry rather than canonicalisation.
 
-\subsection{The $(\svec,\gvec)$ reduction}
+\subsection{Three ways to handle the leftover roll}
+\label{sec:sixth}
 
-The reduction maps world coordinates to a canonical frame. Given a query, let
-\begin{align}
-  \mathbf{o} &= \tfrac{1}{2}(\svec + \gvec), &
-  \xhat &= \frac{\gvec - \svec}{\|\gvec - \svec\|}, &
-  d &= \|\gvec - \svec\| .
-\end{align}
-The remaining two axes come from crossing $\xhat$ with whichever coordinate axis it is
-least aligned with, $\yhat \propto \xhat \times \mathbf{e}_{i^\ast}$ where
-$i^\ast = \arg\min_i |\xhat_i|$, and $\zhat = \xhat \times \yhat$. Because the
-smallest component of a unit vector satisfies $|\xhat_{i^\ast}| \le 1/\sqrt{3}$, this
-cross product has norm $\ge \sqrt{2/3} \approx 0.816$ everywhere, so the construction
-is well-conditioned over the entire domain with no threshold or fallback case. The
-rotation $R$ has these three vectors as rows, so reduced coordinates are
-$R(\mathbf{p} - \mathbf{o})$, and $\det R = +1$ by construction.
+With canonicalisation ruled out, a symmetry can only be imposed in the data, in
+the operator, or in the weights. I built the first two and measured them; the
+third I did not attempt, and Sec.~\ref{sec:limits} says why it remains open.
 
-Two consequences follow immediately. Start and goal always map to
-$(\mp d/2, 0, 0)$, so the six numbers previously used to condition the network collapse
-to the single invariant scalar $d$. And every pair of training examples that were ``the
-same problem in a different pose'' now coincide, which increases the effective density
-of the training set without generating anything.
+\paragraph{Roll augmentation (in the data).} During training a uniform angle
+$\theta \sim \mathcal{U}[0, 2\pi)$ is composed into the same rotation matrix $R$,
+so the reduction and the roll are applied as a single transformation rather than
+two --- there is then one place in the code where the point-versus-vector typing
+of Sec.~\ref{sec:impl} can go wrong, rather than two. The Gaussian prior
+$\mathbf{x}_0$ is drawn \emph{after} this rotation and never rotated: an
+isotropic Gaussian is already rotation-invariant, so rotating it would be a
+redundant step capable only of introducing error.
 
-\subsection{Roll augmentation and frame averaging}
-
-For the residual roll I implemented two standard mechanisms.
-
-\textbf{Roll augmentation.} During training a uniform angle $\theta \sim
-\mathcal{U}[0, 2\pi)$ is composed into the same rotation matrix, so the reduction and
-the roll are applied as a single transformation rather than two. The Gaussian prior
-$\mathbf{x}_0$ is drawn \emph{after} this rotation and is never rotated: an isotropic
-Gaussian is already rotation-invariant, so rotating it would be a redundant step
-capable only of introducing error.
-
-\textbf{Frame averaging.} At inference the velocity field is evaluated at $K$ rolled
-copies of the state, each result rotated back, and the results averaged:
+\paragraph{Frame averaging (in the operator).} At inference the velocity field is
+evaluated at $K$ rolled copies of the state, each result rotated back, and the
+results averaged:
 \begin{equation}
-  \bar{v}(\mathbf{x}) = \frac{1}{K} \sum_{k=0}^{K-1}
+  (\mathcal{A}f)(\mathbf{x}) = \frac{1}{K} \sum_{k=0}^{K-1}
   \rho(\theta_k)^{-1} f\bigl(\rho(\theta_k)\,\mathbf{x}\bigr),
   \qquad \theta_k = \frac{2\pi k}{K} .
   \label{eq:fa}
 \end{equation}
-For $\alpha = 2\pi j / K$ this operator is \emph{exactly} $C_K$-equivariant regardless
-of $f$: rolling the input by $\alpha$ permutes the quadrature points, and reindexing a
-finite sum is a bijection on them. No architectural constraint or training assumption
-is required; the guarantee is a property of the operator. Because the obstacle encoding
-is time-independent, the $K$ rolled scene encodings are computed once outside the ODE
-loop and reused at every integration step.
+For $\alpha = 2\pi j/K$ this operator is \emph{exactly} $C_K$-equivariant
+regardless of $f$: rolling the input by $\alpha$ permutes the quadrature points,
+and reindexing a finite sum is a bijection on them. No architectural constraint
+and no training assumption is required, and the guarantee holds for an
+\emph{untrained} network --- which is how I test it.
+
+It is worth being precise that the guarantee is exact $C_K$-equivariance and not
+$\mathrm{SO}(2)$-equivariance: it holds exactly for rolls that are multiples of
+$2\pi/K$ and only approximately in between. Drawing a random phase per query
+trades exact $C_K$-equivariance for equivariance \emph{in distribution}, which
+converts systematic aliasing bias into zero-mean scatter.
+
+Frame averaging is not free --- the decoder runs $K$ times per integration step
+--- but the expensive half is amortised: because the obstacle encoding is
+time-independent, the $K$ rolled scene encodings are computed once outside the
+ODE loop and reused at every step. That is the whole reason the measured cost is
+$1.05\times$ rather than $K\times$ (Sec.~\ref{sec:cost}).
+
+\paragraph{An $\mathrm{SO}(2)$-equivariant architecture (in the weights).} Not
+built. Sec.~\ref{sec:limits} states what that leaves open, and in particular why
+the smallness of the residual is \emph{not} an argument that it would be
+low-yield.
+
+\subsection{The non-equivariance residual}
+\label{sec:residual}
+
+Frame averaging turns a qualitative question --- ``is symmetry worth enforcing
+here?'' --- into a measurable one, because $\mathcal{A}$ is not merely an
+averaging operator but a projection. It is linear, idempotent, and self-adjoint
+with respect to $\langle f, g \rangle = \mathbb{E}_\mathbf{x}[f(\mathbf{x})^\top
+g(\mathbf{x})]$ for any $C_K$-invariant law on $\mathbf{x}$; hence it is the
+\emph{orthogonal projection} onto the subspace of $C_K$-equivariant fields.
+
+Write $v_k = \rho_k^{-1} f(\rho_k \mathbf{x})$ and $\bar v = \mathcal{A}f(\mathbf{x})$,
+and define
+\begin{equation}
+  r = \frac{\bigl(\mathbb{E}_{\mathbf{x},k}\|v_k - \bar v\|^2\bigr)^{1/2}}
+           {\bigl(\mathbb{E}_{\mathbf{x}}\|\bar v\|^2\bigr)^{1/2}} .
+  \label{eq:resid}
+\end{equation}
+This is the relative norm of the component of the learned field lying outside the
+equivariant subspace. The norms must be the Hilbert norms of the inner product
+above, i.e.\ root-mean-square rather than mean-of-norms; Jensen's inequality
+separates the two, and only this form makes the bound below an identity rather
+than an approximation. (An earlier version of my measurement used mean-of-norms
+in both places, which is one of the corrections in Sec.~\ref{sec:corrections}.)
+
+\paragraph{What $r$ bounds.} Let $f^\ast$ be the target velocity field, which is
+$C_K$-equivariant because the planning problem is. Since $\mathcal{A}$ is the
+orthogonal projection onto the equivariant subspace and $\mathcal{A}f^\ast =
+f^\ast$, the error splits orthogonally:
+\begin{equation}
+  \|f - f^\ast\|^2 =
+  \underbrace{\|\mathcal{A}f - f^\ast\|^2}_{\text{equivariant error}}
+  \;+\; \underbrace{\|(I - \mathcal{A})f\|^2}_{=\, r^2 \|\mathcal{A}f\|^2} .
+  \label{eq:budget}
+\end{equation}
+So the squared error that \emph{any} equivariantisation of $f$ can remove is at
+most $r^2\|\mathcal{A}f\|^2$, and $\mathcal{A}$ attains it; the remaining error is
+equivariant error, which no symmetrisation of $f$ reduces.
+
+Neither Eq.~\eqref{eq:budget} nor the projection property is novel --- both are
+established in the analysis of equivariant learning --- and I claim no novelty
+for them. What I contribute is the measurement: the size of the anti-equivariant
+component of a trained planning field, and what it implies for the mechanisms
+built to remove it.
+
+\paragraph{What $r$ does not bound.} Symmetrising a trained field and training a
+constrained model are different operations. The first is a projection, bounded by
+Eq.~\eqref{eq:budget}; the second changes the hypothesis class, and with it
+optimisation, capacity allocation and generalisation, none of which $r$ measures.
+Sec.~\ref{sec:twosigns} tests the tempting reading directly, and it fails.
 
 \subsection{Implementation}
+\label{sec:impl}
 
 Three changes were required to make the reduction representable, and one class of
 error had to be designed out.
 
-\paragraph{Oriented boxes.} The reduction is a general $\SO(3)$ rotation, under which
-an axis-aligned box becomes an oriented box. The original six-number representation
-(centre and half-extents) cannot express this. I replaced it with a twelve-dimensional
-representation: a centre and three half-edge \emph{vectors}. In the world frame these
-are $(h_x,0,0)$, $(0,h_y,0)$, $(0,0,h_z)$, so the re-encoding is lossless. Note that
-the environment SDF is unchanged: collision checking occurs in the world frame after
-the inverse transform, so no oriented-box distance function is needed.
+\paragraph{Oriented boxes.} The reduction is a general $\SO(3)$ rotation, under
+which an axis-aligned box becomes an oriented box. The original six-number
+representation (centre and half-extents) cannot express this. I replaced it with
+a twelve-dimensional representation: a centre and three half-edge \emph{vectors},
+which in the world frame are $(h_x,0,0)$, $(0,h_y,0)$, $(0,0,h_z)$, so the
+re-encoding is lossless. The environment SDF is unchanged, since collision
+checking occurs in the world frame after the inverse transform, so no
+oriented-box distance function is needed. Both arms use this representation, so
+it is not a confound.
 
 \paragraph{Points and free vectors transform differently.} This is the error the
 implementation is principally designed to prevent, because it fails silently.
-Waypoints, endpoints, and obstacle centres are \emph{points} and take the full affine
-map $R(\mathbf{p} - \mathbf{o})$. The three box half-edges are \emph{free vectors} and
-take the rotation only, $R\mathbf{v}$. Applying the affine map to a half-edge
-introduces the error $-R\mathbf{o}$ on every edge --- identically, as one can verify
---- so box \emph{position} survives while box \emph{extent} is swamped by a common
-offset. The model becomes blind to obstacle size while the loss curve remains
-healthy. The severity scales with $\|\tfrac{1}{2}(\svec+\gvec)\|$, so the defect is
-invisible on problems whose endpoints straddle the origin, which makes it harder still
-to detect empirically.
+Waypoints, endpoints, and obstacle centres are \emph{points} and take the full
+affine map $R(\mathbf{p} - \mathbf{o})$. The three box half-edges are \emph{free
+vectors} and take the rotation only, $R\mathbf{v}$. Applying the affine map to a
+half-edge introduces the error $-R\mathbf{o}$ on every edge --- identically --- so
+box \emph{position} survives while box \emph{extent} is swamped by a common
+offset. The model goes blind to obstacle size while the loss curve remains
+healthy. The severity scales with $\|\mathbf{o}\|$, so the defect is invisible on
+exactly those problems whose endpoints straddle the origin, which makes it harder
+still to detect empirically.
 
-\paragraph{Verification.} I wrote eighteen tests covering deliberately disjoint failure
-classes. Asserting that $\svec, \gvec$ land on $(\mp d/2, 0, 0)$ catches translation
-errors, axis ordering, and $R$ versus $R^\top$, but is blind to handedness, because a
-reflection in the $y$--$z$ plane fixes the $x$-axis pointwise; $\det R > 0$ covers
-that. Neither detects the point/vector confusion, so a third test asserts
+\paragraph{Verification.} I wrote eighteen tests covering deliberately disjoint
+failure classes. Asserting that $\svec, \gvec$ land on $(\mp d/2, 0, 0)$ catches
+translation errors, axis ordering, and $R$ versus $R^\top$, but is blind to
+handedness, because a reflection in the $y$--$z$ plane fixes the $x$-axis
+pointwise; $\det R > 0$ covers that. Neither detects the point/vector confusion,
+so a third test asserts
 $\mathrm{featurise}(\rho \cdot S) = \mathrm{typed\_rotate}(\mathrm{featurise}(S), \rho)$
-with the reference side written as explicit loops rather than the batched operations
-under test, so that it catches indexing and reshaping errors instead of agreeing with
-them. A separate suite verifies that Eq.~\eqref{eq:fa} is exactly $C_K$-equivariant
-against a deliberately \emph{untrained} network --- the hard case, since the guarantee
-should not depend on $f$.
+with the reference side written as explicit loops rather than the batched
+operations under test, so that it catches indexing and reshaping errors instead
+of agreeing with them. A separate suite verifies Eq.~\eqref{eq:fa} against a
+deliberately untrained network.
 
-One subtlety is worth recording. The group acts on the whole input, scene and state
-together. An early version of the equivariance test rolled only the state while
-leaving the conditioning attached to its original frame, which produced a large
-apparent violation from a correct implementation. A diagnostic written that way would
-report non-equivariance that is not present.
+One subtlety is worth recording for anyone measuring $r$. The group acts on the
+whole input, scene and state together. An early version of my equivariance test
+rolled only the state while leaving the conditioning attached to its original
+frame, which produced a large apparent violation from a correct implementation. A
+diagnostic written that way manufactures the non-equivariance it claims to find.
 
-\section{Experiments}
+\section{Experimental protocol}
+\label{sec:protocol}
 
-\subsection{Protocol}
-
-All figures use environments $250$--$299$ of the $300$-environment dataset, which no
-model was trained on, evaluated as $50$ environments $\times$ $10$ start--goal pairs
-$\times$ $20$ samples with $8$ Euler steps. The two arms are:
+All results use environments $250$--$299$ of the $300$-environment dataset, which
+no model was trained on, evaluated as $50$ environments $\times$ $10$ start--goal
+pairs $\times$ $20$ samples with $8$ Euler steps. The two arms are:
 
 \begin{description}
   \item[Control] world frame, conditioned on the raw pair $(\svec, \gvec)$.
@@ -303,214 +591,641 @@ $\times$ $20$ samples with $8$ Euler steps. The two arms are:
   conditioned on the invariant scalar $d$.
 \end{description}
 
-Both arms use the twelve-dimensional oriented-box representation so that it is not a
-confound. Within the training environments, validation holds out whole start--goal
-pairs; a per-trajectory split leaks badly on this dataset, because the $30$
-trajectories per pair are near-duplicates (within-pair standard deviation $0.054$
-against an overall $0.426$, since CHOMP is a local optimiser and converges to the same
-route from similar initialisations). Under a per-trajectory split a held-out
-trajectory has a training neighbour at RMS distance $0.030$; under the pair split this
-rises to $0.162$.
+Both arms use the twelve-dimensional oriented-box representation and train on
+identical trajectories for $20$ epochs unless stated otherwise.
 
-Statistical statements treat the number of \emph{distinct problems} ($500$) as the
-sample size rather than the number of trajectories ($10{,}000$), since samples within
-a problem and problems within an environment are correlated. This gives a standard
-error of roughly $2$ percentage points.
+\paragraph{Validation split.} Within the training environments, validation holds
+out whole start--goal pairs. A per-trajectory split leaks badly for the reason
+given in Sec.~\ref{sec:diversity}: under a per-trajectory split a held-out
+trajectory has a training neighbour at RMS distance $0.030$; under the pair split
+this rises to $0.162$.
 
-Validation loss is \emph{not} comparable across arms: the treatment regresses targets
+\paragraph{Two success metrics, kept separate.} A sample is \emph{free} if the
+whole path is collision-free. I report the per-sample rate throughout, because it
+is the quantity the ablations compare and it is not inflated by drawing more
+samples. The deployment metric is different: a generative planner is run as
+best-of-$N$ behind a collision check, so what a user experiences is the fraction
+of \emph{queries} for which at least one of $N$ samples is free. Mixing the two
+is the main way this kind of result gets overstated --- at $N=20$ they differ by
+tens of points.
+
+\paragraph{Statistics.} I treat the number of \emph{distinct problems} ($500$) as
+the sample size rather than the number of trajectories ($10{,}000$), since
+samples within a problem and problems within an environment are correlated. This
+gives a standard error of $\approx 2$ percentage points, and $\approx 2.7$ for a
+difference of two arms. I checked that assumption rather than asserting it: a
+bootstrap resampling whole \emph{environments} --- the outermost correlated unit
+--- gives $2.2$ points on the $15.6\%$ straight-line rate and $2.9$ on the
+$74.0\%$ TrajOpt rate over $10{,}000$ resamples, so the nominal figure is if
+anything slightly conservative.
+
+Across-seed and across-problem standard errors answer different questions and are
+not interchangeable. For a claim about a \emph{method} the relevant floor is the
+across-seed spread, which at $60$ environments on the treatment arm is $1.56$
+points ($n=3$); ablations sharing a seed with their base are compared paired,
+where the spread is $0.32$. Sec.~\ref{sec:corrections} records what happened when
+I once compared unpaired.
+
+\paragraph{Loss is not comparable across arms.} The treatment regresses targets
 in the reduced frame, where trajectories are canonicalised along $+\xhat$, so its
 target variance and hence its mean squared error are mechanically smaller. All
-reported quantities are therefore world-frame.
+reported quantities are world-frame task metrics.
 
-\subsection{Main result: the reduction scales, the baseline does not}
+\section{Calibration: floors and ceilings}
+\label{sec:calibration}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+Planner & Free (\%) & Clearance & s/query \\
+\midrule
+straight line                   & 15.6 & 0.055 & $<0.001$ \\
+TrajOpt                         & 74.0 & 0.026 & 0.352 \\
+CHOMP                           & 88.8 & 0.019 & 0.394 \\
+RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
+expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
+\midrule
+flow, world frame               & 15.4 & $-0.070$ & 0.067 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{45.6} & $-0.010$ & 0.067 \\
+\bottomrule
+\end{tabular}
+\caption{The same $500$ held-out problems, solved five other ways. Classical
+timings are one CPU core and one query; the learned rows are one GPU and $20$
+samples per query, so the time column is not a like-for-like comparison.
+Classical clearance is averaged over solved problems; the learned rows are
+per-sample rates at $250$ training environments.}
+\label{tab:baselines}
+\end{table}
+
+A collision-free rate on a new benchmark means nothing without a scale, so I
+built one. Table~\ref{tab:baselines} reports four classical planners and a
+trivial baseline on the identical $500$ problems, using the same collision
+checker, single-threaded on one CPU core.
+
+\paragraph{The floor.} A straight line from start to goal is collision-free on
+$15.6\%$ of these problems. The world-frame model reaches $15.4\%$ per sample.
+The two are within $0.2$ points, an order of magnitude inside the standard error.
+\emph{On a per-sample basis, whatever the world-frame arm has learned is worth
+nothing over connecting the endpoints with a line.} This is the sharpest
+available statement of the problem the reduction solves, and it is invisible
+without the trivial baseline --- which is the main methodological lesson I would
+carry to the next project.
+
+\paragraph{The stochastic floor.} A straight line has one sample, so it cannot be
+compared against a best-of-$N$ number. The honest control there is the model's own
+prior with the learning removed: Brownian bridges pinned at start and goal, drawn
+$N=20$ times, filtered by the same collision check. I sweep the prior width and
+report the \emph{best} setting, so the baseline is steel-manned rather than
+strawmanned (Table~\ref{tab:prior}). Perturbing the straight line buys nothing:
+the best result over the whole sweep is $15.8\%$ at $\sigma = 0.05$, against
+$15.6\%$ for the unperturbed line. Random detours leave the workspace faster than
+they route around anything, and by $\sigma = 0.3$ the mean path is nine times
+longer than the direct one and solves $2.2\%$. The $\sigma = 0$ row reproduces
+the straight-line rate to the digit through an independent code path, which is a
+check on both harnesses.
 
 \begin{table}[t]
 \centering
 \begin{tabular}{lrrrr}
 \toprule
-& \multicolumn{2}{c}{Collision-free (\%)} & \multicolumn{2}{c}{Min.\ clearance} \\
-\cmidrule(lr){2-3}\cmidrule(lr){4-5}
-Training environments & Control & Treatment & Control & Treatment \\
+Prior width $\sigma$ & 0 & 0.05 & 0.10 & 0.30 \\
 \midrule
-20  & 12.8 & 19.0 & $-0.0776$ & $-0.0583$ \\
-60  & 13.5 & 31.3 & $-0.0746$ & $-0.0312$ \\
-150 & 14.6 & 41.0 & $-0.0726$ & $-0.0163$ \\
-250 & 15.4 & \textbf{45.6} & $-0.0697$ & $\mathbf{-0.0095}$ \\
+per-sample free (\%)  & 15.6 & 11.5 & 7.4 & 0.4 \\
+best-of-20 (\%)       & 15.6 & \textbf{15.8} & 13.4 & 2.2 \\
+mean path length      & 1.79 & 3.31 & 5.86 & 16.85 \\
 \bottomrule
 \end{tabular}
-\caption{Held-out performance against training-set size. The control gains $2.6$
-percentage points across a $12.5\times$ increase in environments; the treatment gains
-$26.6$ and has not plateaued.}
+\caption{The untrained stochastic baseline: Brownian bridges pinned at the
+endpoints, $20$ samples per query, same collision check. Widening the prior buys
+nothing at any setting, so best-of-$N$ over random detours is not what a learned
+sampler is competing against.}
+\label{tab:prior}
+\end{table}
+
+This sharpens the reading of the world-frame result in a way worth stating
+carefully. Per sample, that arm is at the straight-line floor. Per query at
+$N = 20$ it is not: the world-frame model solves $47.4\%$ of queries with at
+least one free sample at $250$ environments, against $15.8\%$ for the best
+untrained prior at the same $N$. So the world-frame model has learned something
+real --- its samples are diverse in an informative way rather than a random one
+--- but it has not learned to make any \emph{individual} sample better than a
+straight line. The reduction is what closes that second gap.
+
+\paragraph{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline
+$100\%$, in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
+initialisation solves $88.8\%$. The learned sampler at $45.6\%$ is not
+competitive with any of them. I report this plainly because the alternative ---
+comparing a learned planner only against other configurations of itself --- is
+how a benchmark stops measuring anything. The contribution of this work is that
+the representation change is worth $30$ points while the mechanisms built for the
+residual symmetry are worth at most a fraction of one; that contribution does not
+require the planner to win, and I do not claim it does.
+
+\section{Results}
+
+\subsection{The reduction scales; the baseline does not}
+\label{sec:scaling}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Training & \multicolumn{3}{c}{Collision-free (\%)} & best-of-20 \\
+envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
+\midrule
+20  & 12.8 & 12.7 & 19.0 & 57.8 \\
+60  & 13.6 & 13.8 & 34.4 & 79.6 \\
+150 & 14.6 & 15.3 & 41.0 & 85.6 \\
+250 & 15.4 & 17.5 & \textbf{45.6} & \textbf{90.4} \\
+\bottomrule
+\end{tabular}
+\caption{Held-out performance against training-set size. ``+aug.'' is the
+world-frame arm trained with random $\SE$ motions of the whole problem. The
+world-frame arm gains $2.6$ points across a $12.5\times$ increase in
+environments and augmentation adds at most $2.1$ more, while the reduction gains
+$26.6$ and has not plateaued. The $60$-environment row is a mean over three
+seeds; the rest are single seed.}
 \label{tab:main}
 \end{table}
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.82\textwidth]{fig_scaling.pdf}
-\caption{The gap widens with data. If the reduction were compensating for a shortage
-of training data one would expect it to close; instead the world-frame baseline is
-nearly flat while the reduced model continues to improve. The hollow marker is the
-no-roll ablation, drawn on the treatment line because it is the same arm with one
-component removed. Shaded region marks the gap between the arms.}
+\caption{The gap widens with data. If the reduction were compensating for a
+shortage of training data one would expect it to close; instead the world-frame
+baseline is nearly flat while the reduced model continues to improve. The hollow
+marker is the no-roll ablation, drawn on the treatment line because it is the
+same arm with one component removed.}
 \label{fig:scaling}
 \end{figure}
 
-Table~\ref{tab:main} and Figure~\ref{fig:scaling} give the principal result. At $250$
-environments the reduction reaches $45.6\%$ against the baseline's $15.4\%$, a gap of
-$30.2$ percentage points. Taking the standard error of the difference as
-$\approx 2.7$ points, this is roughly $11$ standard errors.
+Table~\ref{tab:main} and Figure~\ref{fig:scaling} give the principal result. At
+$250$ environments the reduction reaches $45.6\%$ against the baseline's $15.4\%$,
+a gap of $30.2$ points.
 
-The more informative feature is the \emph{trend}. The baseline improves by only $2.6$
-points across a $12.5\times$ increase in the number of training environments; it is
-close to unable to exploit additional layouts. The treatment improves by $26.6$ points
-over the same range and has not levelled off. This is the opposite of what one would
-observe if canonicalisation were a small-data expedient, in which case the advantage
-should shrink as data accumulates. Minimum clearance corroborates the conclusion
-through an independent, continuous measure: the treatment moves from $-0.058$ toward
-$-0.0095$, approaching feasibility, while the baseline is essentially static.
+I state the uncertainty on that number carefully, because the obvious phrasing
+overstates it. The seed spread was measured at $60$ environments, not at $250$:
+the seed-matched estimate there is $+20.9 \pm 1.6$ points ($n = 3$ on both arms).
+The $30.2$ at $250$ environments rests on one seed per arm, and quoting it as a
+multiple of a standard error measured in a different cell is not a valid
+significance statement. Adding seeds at $250$ environments is the highest-value
+missing experiment in this project (Sec.~\ref{sec:future}).
 
-Endpoint error falls by a factor of three to five under the reduction ($0.0101 \to
-0.0041$ at $20$ environments, $0.0059 \to 0.0020$ at $250$). This is a direct
-consequence of canonicalisation: with endpoints always at $(\mp d/2, 0, 0)$ the model
-no longer expends capacity on \emph{where} they are.
+\paragraph{The trend is more informative than the endpoint.} The baseline
+improves by $2.6$ points across a $12.5\times$ increase in training environments:
+it is close to unable to exploit additional layouts, because each new layout
+arrives at poses it must learn about separately. The reduction improves by $26.6$
+points over the same range and has not levelled off. This is the opposite of what
+a small-data-crutch account predicts, under which the advantage should shrink as
+data accumulates. Minimum clearance corroborates through an independent
+continuous measure: the treatment moves from $-0.058$ toward $-0.0095$,
+approaching feasibility, while the baseline is static.
 
-\subsection{The mechanisms for the sixth degree of freedom are inert}
+\paragraph{Augmentation is not the same lever.} The comparison against the
+world-frame arm shows what \emph{ignoring} the symmetry costs. The comparison a
+practitioner who already knows about the symmetry would want is against the other
+standard way of using it: augmenting training with random rigid motions of the
+whole problem. It helps, it helps more as data grows --- augmentation needs data
+to exploit --- and it is not close: $12.7$, $13.8$, $15.3$, $17.5$ against the
+reduction's $19.0$, $34.4$, $41.0$, $45.6$. At the largest scale augmentation
+captures about $7\%$ of what canonicalisation does, and leaves the world-frame arm
+within $2$ points of the straight-line floor. Making equivariance \emph{likely}
+through the data is a different and much weaker mechanism than removing the
+degrees of freedom outright.
+
+\paragraph{Endpoint error.} This falls by a factor of three to five under the
+reduction ($0.0101 \to 0.0041$ at $20$ environments, $0.0059 \to 0.0020$ at
+$250$), a direct consequence of canonicalisation: with endpoints always at
+$(\mp d/2, 0, 0)$ the model no longer spends capacity on \emph{where} they are.
+
+\subsection{The mechanisms for the sixth degree of freedom}
+\label{sec:mechanisms}
 
 \begin{table}[t]
 \centering
 \begin{tabular}{lrl}
 \toprule
-Mechanism & Contribution & Assessment \\
+Mechanism & $\Delta$ free & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & $\approx 11$ SE; grows with data \\
-Roll augmentation                 & $+1.2$ pp  & inside noise \\
-Frame averaging ($K{=}1 \to 9$)   & $+0.2$ pp  & $0.09$ SE; indistinguishable from zero \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & single seed at 250 envs; grows \\
+\quad of which: 3 translations    & $+12.3$ pp & recentring alone \\
+\quad of which: 2 rotations       & $+18.0$ pp & aligning the axis \\
+$\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
+Roll augmentation                 & $+0.8$ pp  & $\pm0.3$ paired, $n{=}3$; n.s. \\
+Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
 \bottomrule
 \end{tabular}
-\caption{Decomposition of the benefit by mechanism, all measured on the same held-out
-set. The entire effect is attributable to canonicalisation.}
+\caption{Decomposition by mechanism on the same held-out set. The $\Delta$ column
+is against the arm without that mechanism, so the rows are not additive; the two
+indented rows decompose the row above them.}
 \label{tab:ablation}
 \end{table}
 
-Table~\ref{tab:ablation} decomposes the result. Removing roll augmentation
-(training with the reduction but a fixed gauge) costs $31.3\% \to 30.1\%$ at $60$
-environments, inside noise. Frame averaging on the best model gives
-$45.6 / 45.7 / 45.8\%$ for $K = 1, 3, 9$: a change of $0.2$ points, or $0.09$ standard
-errors.
+\paragraph{Roll augmentation.} Removing it --- the reduction with a fixed gauge
+--- costs $34.4\%$ against $33.5\%$ at $60$ environments. Both arms were run at
+the same three seeds, so the comparison must be paired, and paired it is $+1.2$,
+$+0.2$ and $+1.1$ points: a mean of $+0.8 \pm 0.3$, consistently positive but
+$t = 2.6$ on two degrees of freedom, which does not clear significance at $n=3$.
+Unpaired, the across-arm spread swamps it entirely.
 
-Rather than infer inertness from flat quality curves, I measured the quantity frame
-averaging is designed to remove. The non-equivariance residual
-\begin{equation}
-  r = \frac{\mathbb{E}\bigl\|v_k - \bar{v}\bigr\|}{\|\bar{v}\|}
-\end{equation}
-is the disagreement among the $K$ rotated estimates. On the best model $r = 0.0157$ at
-$K=3$ and $0.0174$ at $K=9$: under $2\%$ of the velocity field is non-equivariant.
-Since Eq.~\eqref{eq:fa} is the orthogonal projection onto the equivariant subspace, it
-can remove \emph{only} that $2\%$. The remaining error --- and with the model at
-$45.6\%$ collision-free there is a great deal of it --- respects the symmetry and is
-untouchable by symmetrisation.
+\paragraph{Frame averaging.} On the best model, $45.63\%$ at $K=1$ and $45.70\%$
+at $K=3$ --- $0.05$ across-seed standard errors. It bought $+0.1$ points.
 
-Two further observations sharpen this. First, the residual barely moves when roll
-augmentation is removed, so augmentation was not the cause of the near-equivariance.
-The explanation is that the gauge is a deterministic function of $\xhat$, and $600$
-start--goal pairs per environment supply $600$ distinct directions; the reduced-frame
-training data already spans a wide spread of rolls, and explicit augmentation was
-addressing a problem the data had already solved. Second, the residual \emph{decreases}
-with scale, from $0.0186$ at $60$ training environments to $0.0157$ at $250$. The model
-becomes more equivariant as it observes more layouts.
+\paragraph{The reduction itself decomposes.} A translation-only variant, which
+recentres on the query midpoint without rotating, reaches $27.7\%$ at $250$
+environments, between the world frame's $15.4\%$ and the full reduction's
+$45.6\%$. So the three translational degrees of freedom are worth $+12.3$ points
+and the two rotational ones a further $+18.0$: $41\%$ and $59\%$ of the total.
+Neither half carries the effect on its own, which is worth knowing --- recentring
+is the trivially easy part of the reduction and it accounts for two fifths of the
+benefit.
 
-The second observation is the strongest available argument against an equivariant
-architecture. The property such an architecture would enforce by construction is
-emerging on its own and strengthening with data, so imposing it would trade
-expressiveness for something obtained free of charge.
+\subsection{Why they are inert: the measured residual}
+
+Rather than infer inertness from flat curves, I measured $r$. On the best model
+$r = 0.0168$ at $K=3$: under $2\%$ of the field is non-equivariant. By
+Eq.~\eqref{eq:budget} the squared error any equivariantisation can remove is at
+most $r^2$ of the field's squared magnitude, i.e.\ under $3 \times 10^{-4}$,
+while the model is failing on more than half of its samples. The two quantities
+are not the same order, and no rearrangement of the symmetry can close the gap.
+The remaining error respects the symmetry and is untouchable by symmetrisation.
+
+Two observations sharpen this.
+
+First, removing roll augmentation raises the residual by $64\%$ ($0.0170 \to
+0.0279$ at $60$ environments) --- a large relative change, but between two values
+both under $3\%$, so augmentation is not what makes the field near-equivariant in
+the first place. The explanation is that the gauge is a deterministic function of
+$\xhat$, and $600$ start--goal pairs per environment supply $600$ distinct
+directions; the reduced-frame training data already spans a wide spread of rolls,
+and explicit augmentation was solving a problem the data had already solved.
+
+Second, and contrary to what I expected, the residual does \emph{not} move with
+scale: $0.0183$, $0.0170$, $0.0177$, $0.0168$ across a $12.5\times$ range of
+training data. It is small and flat. This is one of my corrections: an earlier
+two-point reading under a mean-of-norms definition suggested a downward trend,
+and I built an argument on that trend which does not survive the four-scale
+measurement (Sec.~\ref{sec:corrections}).
+
+That the residual is flat rather than falling is itself informative. The
+near-equivariance of the learned field is not something the model acquires
+gradually from seeing more layouts --- it is present at $20$ environments and
+unchanged at $250$.
+
+\subsection{What the residual does not predict}
+\label{sec:twosigns}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Arm (250 environments) & $r$ under $\SE$ & Free (\%) \\
+\midrule
+World frame                       & $0.0881$ & $15.4$ \\
+World frame $+\ \SE$ augmentation & $0.0181$ & $17.5$ \\
+$(\svec,\gvec)$ reduction         & $0.0174$ & $\mathbf{45.6}$ \\
+\bottomrule
+\end{tabular}
+\caption{The residual does not predict what a mechanism is worth. Augmentation
+and canonicalisation leave the learned field equally equivariant, and differ by
+$28$ points of held-out performance.}
+\label{tab:twosigns}
+\end{table}
+
+To test the tempting reading directly I measured $r$ under the \emph{full} $\SE$
+action rather than the roll alone, which makes it defined for the world-frame arm
+as well: $K$ random rigid motions are applied to the whole problem, the field is
+evaluated in each, and each result is mapped back by the inverse rotation.
+
+Augmentation drives the residual down by a factor of $4.9$: it demonstrably
+teaches the network the symmetry, to the same degree the reduction enforces it by
+construction. It buys $2.1$ points. The reduction, at an indistinguishable
+residual, buys $30.2$. \emph{Two models with the same $r$ can differ by $28$
+points}, so $r$ does not forecast the benefit of a symmetry mechanism, and a
+decision rule of the form ``build the constrained architecture only if $r$ is
+large'' has no support here.
+
+One number in Table~\ref{tab:twosigns} deserves saying out loud. The world-frame
+arm ignores the symmetry entirely and performs at the straight-line floor --- and
+it is still $91\%$ equivariant. A model that has learned nothing useful about
+planning has nonetheless landed close to the equivariant subspace, because most of
+what a velocity field does on this problem is roughly pose-independent regardless
+of how it was trained. That is the sharpest form of the point: $r$ being small is
+compatible with having solved the problem, with having learned the symmetry and
+nothing else, and with having learned nothing at all.
+
+\subsection{Two bottlenecks, not one}
+\label{sec:budget}
+
+Every arm above is trained for $20$ epochs, and that budget is not enough. I
+registered the following prediction in writing before running the experiment, and
+it came out inside the predicted band.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrr}
+\toprule
+$60$ environments & $20$ epochs & $60$ epochs & gain \\
+\midrule
+\multicolumn{4}{l}{\emph{per-sample collision-free (\%)}}\\
+World frame               & $13.6$ & $14.4$ & $+0.9$ \\
+$(\svec,\gvec)$ reduction & $34.4$ & $\mathbf{42.4}$ & $+8.0$ \\[3pt]
+\multicolumn{4}{l}{\emph{best-of-20 (\%)}}\\
+World frame               & $42.3$ & $39.2$ & $-3.1$ \\
+$(\svec,\gvec)$ reduction & $79.6$ & $\mathbf{87.2}$ & $+7.6$ \\
+\bottomrule
+\end{tabular}
+\caption{Tripling the optimisation at fixed data and fixed capacity. The
+$20$-epoch rows are means over three seeds; the $60$-epoch rows are single seed.
+On the per-sample metric the interaction is $+7.1$ points; on the deployment
+metric it is $+10.7$, and the world-frame arm moves backwards.}
+\label{tab:budget}
+\end{table}
+
+Holding the data fixed at $60$ environments and training the reduced arm for $60$
+epochs raises the held-out collision-free rate from $34.4\%$ --- the mean over
+three seeds --- to $\mathbf{42.4\%}$, with minimum clearance improving from
+$-0.031$ to $-0.013$. Three times the optimisation, at identical data and
+identical capacity, is worth $+8.0$ points: nearly twice the largest of the
+mechanisms built for the sixth degree of freedom.
+
+The part I did not anticipate is that the same tripling is worth almost nothing
+to the world-frame arm: $13.6\%$ to $14.4\%$, an interaction of $+7.1$ points at
+roughly $4.5$ across-seed standard errors. The two mechanisms are not
+substitutes; they relieve different constraints. The \emph{representation}
+bottleneck --- the network being shown a pose it must relearn at every value ---
+is removed by canonicalisation and cannot be removed by compute. The
+\emph{capacity} bottleneck is removed by compute and cannot be removed by
+canonicalisation. This also settles the reading of Figure~\ref{fig:scaling}: the
+world-frame arm's flatness is not an artefact of a stingy budget, because giving
+it three times the budget leaves it flat.
+
+On the deployment metric the effect is stronger and in a direction worth naming.
+Best-of-$20$ for the reduction rises from $79.6\%$ to $87.2\%$, but the
+world-frame arm \emph{falls}, from a three-seed mean of $42.3\%$ (spread
+$41.4$--$43.2$) to $39.2\%$. Tripling the optimisation of the world-frame arm made
+it worse on the metric that describes how a generative planner is actually
+deployed. I flag one caveat on my own number: the $60$-epoch cells are single
+seed against three-seed means, which is exactly the shape that produced the error
+in Sec.~\ref{sec:corrections}, so this specific $-3.1$ needs a seed-matched
+confirmation before it should be leaned on. The $+7.1$ interaction on the
+per-sample metric does not depend on it.
+
+\paragraph{This measurement is still a trend, not a limit.} Neither arm has been
+trained to a plateau, so the strongest form of the objection --- that the gap
+reflects convergence \emph{rate} rather than representation --- is answered by two
+points rather than by a limit. A convergence study at $60$ environments, training
+both arms until the held-out rate stops moving and scoring snapshots on a fixed
+epoch grid, is running at the time of writing; Sec.~\ref{sec:future} states what
+each outcome would mean.
+
+\subsection{It replicates in a second state space}
+\label{sec:se3}
+
+The point-mass domain has a convenient property: the state is a point, so the
+points-versus-vectors distinction of Sec.~\ref{sec:impl} lives only in the
+obstacle features. To check that the result is not an artefact of that
+convenience, I built a second domain: an L-shaped rigid body in the same clutter,
+where a state is a full pose --- position plus orientation --- rather than a
+point. The trajectory now carries orientation, so the typing distinction lives
+inside the state itself. Collision checking evaluates the obstacle SDF at the
+body's transformed sphere centres; the planner steers by interpolating linearly
+in position and geodesically (slerp) in rotation, and the trivial baseline is the
+corresponding geodesic interpolation, which is the $\SE$ analogue of joining
+start to goal with a line.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Domain & World frame & Reduction & ratio & epoch-gain interaction \\
+\midrule
+$\SE$ rigid body --- trivial floor $4.8\%$ & $3.0$ & $8.6$ & $2.9\times$ & $+2.1$ \\
+Point mass --- trivial floor $15.6\%$      & $14.4$ & $42.4$ & $2.9\times$ & $+7.1$ \\
+\bottomrule
+\end{tabular}
+\caption{The same pattern in a second state space, both at $250$ environments and
+the longer training budget. Per-sample collision-free rates. In both domains the
+world-frame arm fails to beat its own trivial floor and the reduction clears it,
+and the ratio between arms is the same to two figures.}
+\label{tab:se3}
+\end{table}
+
+Three things replicate. The world-frame arm fails to beat the trivial baseline in
+\emph{both} domains: $1.8$ points below the geodesic floor here, $1.2$ below the
+straight-line floor there. The reduction clears its floor in both. And the ratio
+between the arms is $2.9\times$ in each, with the epoch-gain interaction
+reproducing in sign and shape ($+2.1$ here against $+7.1$ there).
+
+The absolute numbers in the $\SE$ domain are small --- $3.0\%$ and $8.6\%$
+per sample against a $4.8\%$ floor --- and I do not want to over-read them. A
+rigid body in this clutter is a much harder problem than a point, the arms are
+single-seed, and the useful statement is the pattern rather than the level. What
+the domain establishes is that the reduction is not exploiting something peculiar
+to a point-shaped state, and that the implementation survives having the
+typing distinction moved inside the trajectory --- which is the failure mode
+Sec.~\ref{sec:impl} exists to prevent.
 
 \subsection{Cost}
+\label{sec:cost}
 
 Frame averaging at $K=9$ costs $1.05\times$ the wall-clock time of $K=1$
-($0.070$ vs $0.067$ s per query). At $64$ waypoints and batch size $1$ the sampler is
-bound by kernel launch overhead rather than arithmetic, so the ninefold increase in
-width is nearly free. This matters for the interpretation: the finding that frame
-averaging does not help is not a budget trade-off, since it was affordable and was
-adopted anyway for the measurement.
+($0.070$ vs $0.067$\,s per query). At $64$ waypoints and batch size $1$ the
+sampler is bound by kernel launch overhead rather than arithmetic, and the $K$
+rolled scene encodings are computed once outside the ODE loop, so a ninefold
+increase in width is nearly free. This matters for the interpretation: the
+finding that frame averaging does not help is \emph{not} a budget trade-off. It
+was affordable, and I adopted it anyway for the measurement.
 
 Separately, reducing the integrator from $20$ to $8$ Euler steps costs $0.4$--$0.8$
-percentage points and runs $1.4\times$ faster, so $8$ steps is used throughout.
+points and runs $1.4\times$ faster, so $8$ steps is used throughout.
 
-\section{Discussion}
+\section{Corrections}
+\label{sec:corrections}
 
-\subsection{What the technique contributes}
+Four claims I made during the internship turned out to be wrong. I record them
+because in each case the corrected statement is more useful than the original,
+and because two of them are mistakes that would be easy for someone else to
+repeat.
 
-The contribution is best stated as a decomposition rather than a single number. Of the
-six degrees of freedom of $\SE$, five can be removed exactly by a frame constructed
-from the query, at no computational cost and with no architectural constraint. Doing so
-roughly triples the collision-free rate on this benchmark and, more importantly,
-converts a model that cannot use additional training environments into one that can.
+\paragraph{1. I thought the reduced representation was bit-identical under rigid
+motion.} It is not. The gauge is built from a fixed world axis, so a global
+rotation rolls the frame. The correct statement is invariance \emph{up to one
+roll}, and it is better than the original: if the representation were fully
+invariant, roll augmentation and frame averaging would have nothing to act on and
+half of this report would be unmotivated.
 
-The sixth degree of freedom cannot be removed, and --- on this problem --- does not need
-to be. That is a contingent empirical fact rather than a theorem, but it is supported
-by three independent measurements: the ablation, the $K$ sweep, and the direct residual.
+\paragraph{2. I reported roll augmentation as worth $+4.4$ points.} It was an
+artefact of comparing a three-seed mean against a single-seed ablation, where
+seed $0$ happened to be the worst draw for \emph{both} arms ($31.3$ and $30.1$,
+against $36.0/35.8$ and $35.9/34.8$). Seed-matched, it is $+0.8 \pm 0.3$ and not
+significant. The general lesson: the treatment arm's across-seed spread is $1.6$
+points, five times the paired spread of the ablation, so any ablation compared
+unpaired at this scale is measuring seed noise rather than the mechanism.
 
-The methodological point I would emphasise is the value of measuring the residual. Had
-I only observed that frame averaging left quality unchanged, the honest conclusion
-would have been ``it did not help here'', which is weak. Measuring that only $1.6\%$ of
-the field is non-equivariant converts this into a statement about \emph{why}, and
-supports the stronger claim that no symmetrisation method --- including an equivariant
-architecture --- can recover more than that.
+\paragraph{3. I argued the roll gauge could be fixed by a $C_4$ argument.} The
+claim was that obstacle centres drawn uniformly in a cube give a $C_4$-symmetric
+distribution in any coordinate plane, so all moments below $m=4$ vanish. That
+holds only when $\xhat$ is a four-fold axis of the cube; for a general direction
+the normal plane is not a coordinate plane and the cube's symmetry group does not
+act on it as $C_4$. The correct hypothesis is central inversion, which kills all
+\emph{odd} moments for every direction --- a weaker conclusion, but one that is
+actually true, and one that holds for a much broader class of obstacle
+distributions than my own generator.
 
-\subsection{What the results do not say}
+\paragraph{4. I reported the residual as falling with scale.} That reading came
+from two points measured under a mean-of-norms definition of $r$. Under the
+Hilbert-norm definition of Eq.~\eqref{eq:resid} --- the one that makes
+Eq.~\eqref{eq:budget} an identity rather than an approximation --- and measured
+at four scales, it is flat. I had built an argument on the trend (``the model
+becomes more equivariant with data, so an equivariant architecture would
+constrain something already free''), and that argument does not survive. The
+replacement is Sec.~\ref{sec:twosigns}, which is a stronger result reached by a
+different route.
 
-The absolute performance is poor. A workspace containing forty obstacles is dense, and
-the model is small ($2.16$M parameters) and briefly trained ($20$ epochs). No
-train--validation gap appeared in any run, indicating the models are underfitting; the
-comparison between arms is sound, but the level indicates substantial headroom in
-capacity and training budget.
+\section{Discussion and limitations}
+\label{sec:limits}
 
-The claim that the sixth degree of freedom needs no treatment is specific to this
-setting. It relies on the training distribution supplying implicit roll diversity via
-many start--goal directions. A dataset with few directions per environment, or a task
-whose angular structure is genuinely richer, could plausibly reverse it. The
-mechanisms remain implemented and are enabled by a flag.
+\paragraph{What the technique contributes.} Of the six degrees of freedom of
+$\SE$, five can be removed exactly by a frame read off the query, at no
+computational cost and with no architectural constraint. Doing so roughly triples
+the per-sample collision-free rate on this benchmark and, more importantly,
+converts a model that cannot use additional training environments into one that
+can. The sixth cannot be removed and, here, does not need to be --- a contingent
+empirical fact rather than a theorem, and one better supported for one mechanism
+than the other. The $K$ sweep and the residual both bear on \emph{frame
+averaging}, and are less two independent measurements than two views of one
+bound, since frame averaging is precisely the projection the residual measures.
+Neither speaks to roll augmentation, which is a training mechanism rather than a
+projection, and that is exactly the half the underpowered ablation leaves
+unresolved.
 
-Frame averaging does consistently improve endpoint error, by roughly $35\%$
-($0.0020 \to 0.0013$), on every checkpoint tested. This is a real effect; it simply
-does not propagate to the collision-free rate, because endpoint precision was not the
-failure mode.
+\paragraph{The learned planner loses to the classical ones.}
+Table~\ref{tab:baselines} is unambiguous: RRT-Connect solves essentially every
+problem in $0.28$\,s of single-core CPU time, and the best learned arm solves
+$45.6\%$ per sample. Part of this is budget --- the model is small and briefly
+trained --- and part is that a $64$-waypoint sampler from an unconditional prior
+is simply a weaker instrument than a complete planner on a problem with an exact
+SDF. I draw the comparison anyway, because a representation result measured only
+against other configurations of itself is not anchored to anything.
 
-Finally, the dataset is markedly less diverse than its nominal size suggests. The $30$
-trajectories per start--goal pair are near-duplicates, so $10.8$M paths carry on the
-order of $360$k distinct queries. This does not affect the comparison, since both arms
-train on identical data, but it bears on how additional data should be generated.
+\paragraph{On the underfitting claim, and how it is supported.} The obvious
+support is confounded and I do not use it. Comparing an epoch-averaged training
+loss against a validation loss computed from exponential-moving-average weights
+is not a generalisation gap: the training figure lags, since it averages over an
+epoch during which the weights were still improving, and the two figures come
+from different weights, with the EMA weights typically the better ones. Both
+effects push validation below training regardless of fit, so ``val $<$ train''
+cannot be read as evidence of underfitting. I therefore score a fixed slice of
+the training set with the same EMA weights and the same code path as validation,
+and read the gap only from that like-for-like pair. The direct evidence is
+Sec.~\ref{sec:budget}: three times the optimisation is worth $+8.0$ points of
+held-out collision-free rate, which is what underfitting looks like measured on
+the task rather than on the loss.
 
-\subsection{Future work}
+\paragraph{What the residual does and does not bound.} Eq.~\eqref{eq:budget}
+bounds post-hoc symmetrisation of a \emph{given} model, not the achievable
+performance of a differently parameterised equivariant model. A conclusive test
+would train an $\SO(2)$-equivariant backbone and compare, and I do \emph{not} use
+the smallness of $r$ to argue that such an experiment would be low-yield ---
+Sec.~\ref{sec:twosigns} shows that $r$ does not forecast what a symmetry
+mechanism is worth, so its smallness cannot be turned around to predict that a
+constrained architecture would gain little. What rules out \emph{symmetrising
+this model} is Eq.~\eqref{eq:budget}; what a constrained architecture would
+achieve is untested, and is the largest single gap in this work.
 
-The scaling curve has not plateaued at $250$ environments, which is the maximum
-available with $50$ held out. The duplication finding indicates how to afford more:
-reducing the number of trajectories per pair from $30$ to $5$ would buy roughly six
-times the environments for the same generation time, and environments are the binding
-constraint according to Figure~\ref{fig:scaling}.
+\paragraph{One honest asterisk.} Frame averaging \emph{does} consistently improve
+endpoint error, by roughly $35\%$ ($0.0020 \to 0.0013$), on every checkpoint
+tested. This is a real effect. It simply does not propagate to the collision-free
+rate, because endpoint precision was not the failure mode.
 
-Two other directions follow from the absence of a train--validation gap. Capacity and
-training length are untested levers and can be evaluated cheaply at $60$ environments.
-More substantially, the flow currently begins from an isotropic Gaussian that knows
-nothing of the query, so it must learn both to produce a path and to place its
-endpoints. A Brownian-bridge prior pinned at start and goal would leave only the
-obstacle-avoidance detour to be learned. This was previously excluded because such a
-prior is not isotropic in the plane normal to $\xhat$ and would break the
-distributional equivariance guarantee at $t=0$; since that guarantee has been measured
-to be worth nothing here, the option is now available.
+\paragraph{Scope of the negative result.} The claim that the sixth degree of
+freedom needs no treatment is specific to this setting, and relies on the
+training distribution supplying implicit roll diversity through many start--goal
+directions. A dataset with few directions per environment, or a task whose
+angular structure is genuinely richer --- manipulation with a gripper, or
+non-holonomic dynamics --- could plausibly reverse it. That is precisely why I
+advocate measuring $r$ rather than generalising my answer: the measurement is
+cheap and well defined wherever a group acts, even where my conclusion does not
+carry over.
+
+\paragraph{Seeds only at one scale.} The $60$-environment cells of both main arms
+are means over three seeds; every other cell, and every ablation, is a single
+seed. Even paired, $n=3$ gives two degrees of freedom and a critical $t$ of
+$4.3$: I can bound the sixth-degree-of-freedom mechanisms as small but cannot
+resolve whether they are zero.
+
+\paragraph{One generative objective.} Every learned number here comes from
+conditional flow matching. The reduction is a statement about the problem rather
+than about the interpolant, so it should transfer unchanged to a
+denoising-diffusion objective of the Diffuser/MPD family; I have not measured
+that, and until it is measured the possibility that the effect is specific to
+straight-line interpolants cannot be excluded.
+
+\section{What I would do next}
+\label{sec:future}
+
+In priority order, with the reasoning for the ordering.
+
+\paragraph{1. Seeds at $250$ environments, both arms.} The headline $30.2$ rests
+on one seed per arm. This is the cheapest experiment on the list and it fixes the
+most serious defect in the current evidence, so it goes first.
+
+\paragraph{2. The convergence study.} Training both arms at $60$ environments to
+a plateau converts Sec.~\ref{sec:budget} from a two-point trend into a limit. If
+the world-frame arm stays flat while the reduction plateaus higher, ``compute
+cannot buy what the representation forecloses'' becomes measured rather than
+extrapolated. If the world-frame arm climbs, the two-bottleneck framing is wrong
+and the contribution becomes a claim about convergence rate and sample
+efficiency, which is weaker but still real --- and reporting it after registering
+the opposite prediction is worth more than the framing it would cost.
+
+\paragraph{3. An $\SO(2)$-equivariant backbone.} The comparison this work
+explicitly cannot make. It is the first question a reader will ask, and the
+honest answer is currently ``untested''.
+
+\paragraph{4. The Brownian-bridge prior.} For the reasons in
+Sec.~\ref{sec:bridge}: the symmetry objection I originally raised does not hold,
+and the guarantee it was protecting has been measured to be worth $0.1$ points.
+The real cost is the singular endpoint covariance, and the standard fix is a
+variance floor.
+
+\paragraph{5. More environments, generated differently.} The scaling curve has
+not plateaued at $250$ environments, which is the maximum available with $50$
+held out. Sec.~\ref{sec:diversity} indicates how to afford more: cutting
+trajectories per pair from $30$ to $5$ buys roughly six times the environments
+for the same generation cost. I no longer read Figure~\ref{fig:scaling} as saying
+environments are the single binding constraint, since Sec.~\ref{sec:budget} shows
+optimisation buys a comparable amount at fixed data; the honest statement is that
+both are binding and neither has been pushed to saturation.
 
 \section{Conclusion}
 
-The model is exactly $\SE$-equivariant by construction for five of the six degrees of
-freedom, and measured to be approximately $98\%$ equivariant for the sixth without any
-mechanism enforcing it. All of the measured benefit lies in the five.
+The model presented here is exactly $\SE$-equivariant by construction for five of
+the six degrees of freedom, and measured to be about $98\%$ equivariant for the
+sixth without any mechanism enforcing it. The benefit is concentrated in the
+five: the mechanisms built for the sixth are worth $+0.1$ and $+0.8 \pm 0.3$
+points against $+30.2$, and neither is distinguishable from zero at three seeds.
+Within the five, recentring and axis alignment split the benefit $41/59$.
 
-The practical recommendation is correspondingly simple: canonicalise the degrees of
-freedom that admit a continuous canonical form, and verify by direct measurement
-whether the remainder requires treatment before building machinery for it. On this
-problem it did not. The result is a canonicalisation result rather than an equivariance
-one, and it is more useful for being less elaborate --- the requirement is not a
-specialised architecture but a discipline of not showing the network information it
-should not have.
+The recommendation is correspondingly simple: canonicalise the degrees of freedom
+that admit a continuous canonical form --- the query usually supplies more of
+them than one expects --- and then \emph{measure} the residual non-equivariance
+rather than assuming it. The measurement costs one forward pass.
+
+What that measurement licenses is worth stating exactly, since it is narrower
+than it is tempting to write. It says that \emph{symmetrising this model} is worth
+almost nothing here, because almost none of this model's error is a symmetry
+violation. It does not say that a network built equivariant from the start would
+fail, since such a network searches a different hypothesis class and could
+converge somewhere better. The claim is about where the error lives, not about
+what a different architecture could achieve.
+
+The result is a canonicalisation result rather than an equivariance one, and it
+is more useful for being less elaborate: the requirement is not a specialised
+architecture but a discipline of not showing the network information it should
+not have --- and then checking, rather than assuming, whether what remains needs
+treatment.
 
 \end{document}
