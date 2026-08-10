@@ -153,7 +153,11 @@ echo "  {sys.executable} run_convergence.py score"
     p = Path(args.launch)
     p.write_text(script)
     p.chmod(0o755)
+    #logs/ must exist BEFORE the launch line: bash opens the redirection target
+    #before exec'ing the script, so the script's own mkdir is too late.
+    Path("logs").mkdir(exist_ok=True)
     print(f"\nwrote {p}")
+    print(f"  mkdir -p logs")
     print(f"  setsid nohup ./{p.name} > logs/driver.log 2>&1 < /dev/null &")
     print(f"  tail -f logs/{rows[0][2]}.log")
 
