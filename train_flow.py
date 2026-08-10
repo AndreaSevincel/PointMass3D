@@ -39,6 +39,20 @@ def parse_args():
                          "never what was wanted, and it wastes hours before the "
                          "first epoch even prints")
     ap.add_argument("--log-every", type=int, default=50)
+    #Convergence runs need the curve, not the endpoint, and best-val
+    #checkpointing cannot supply it: val loss is not comparable across arms
+    #(the reduced arm regresses canonicalised targets, so its MSE is
+    #mechanically smaller) and is not the quantity being plotted anyway. These
+    #snapshots are indexed by EPOCH so a held-out collision-free rate can be
+    #scored at fixed budgets on both arms.
+    ap.add_argument("--snapshot-every", type=int, default=0,
+                    help="also write <out>.epNNNN.pt every N epochs. Carries "
+                         "optimiser and scaler state, so a snapshot is also a "
+                         "resume point (see --resume)")
+    ap.add_argument("--resume", action="store_true",
+                    help="restart from the newest <out>.epNNNN.pt if one "
+                         "exists. For cluster time limits: requeue the same "
+                         "command and it continues rather than restarting")
     ap.add_argument("--compile", action="store_true",
                     help="torch.compile the model. Often 1.3-2x on this "
                          "conv trunk, at the cost of a slow first epoch")
@@ -319,7 +333,72 @@ def main():
     t0 = time.time()
     gstep = 0
 
-    for epoch in range(args.epochs):
+    def payload(epoch, val_loss, training_state):
+        p = {
+            "model": core.state_dict(),
+            "ema": ema.state_dict(),
+            "model_config": cfg,
+            "normalizer": normalizer.to_dict(),
+            "n_waypoints": train_ds.trajs.shape[1],
+            "epoch": epoch,
+            "val_loss": val_loss,
+            #eval needs to know which sampler to use; absent => "flow"
+            "objective": args.objective,
+            "domain": args.domain,
+            "reduce_mode": args.reduce_mode,
+            "augment": args.augment,
+            "diffusion_steps": args.diffusion_steps,
+            "reduced": args.reduced,
+        }
+        if training_state:
+            p["opt"] = opt.state_dict()
+            p["scaler"] = scaler.state_dict()
+            p["best_val"] = best_val
+            p["gstep"] = gstep
+        return p
+
+    def atomic_save(obj, path):
+        #Write to a temp file and rename. os.replace is atomic within a
+        #filesystem, so a reader either sees the previous checkpoint or the new
+        #one, never a half-written mixture. Saving in place is a real hazard
+        #here: evaluating a checkpoint mid-write does not raise, it silently
+        #returns a much worse score, which reads as a training failure rather
+        #than as a torn read.
+        tmp = str(path) + ".tmp"
+        torch.save(obj, tmp)
+        os.replace(tmp, path)
+
+    def snapshot_path(epoch):
+        out = Path(args.out)
+        return out.with_name(f"{out.stem}.ep{epoch + 1:04d}{out.suffix}")
+
+    start_epoch = 0
+    if args.resume:
+        out = Path(args.out)
+        snaps = sorted(out.parent.glob(f"{out.stem}.ep[0-9]*{out.suffix}"))
+        if snaps:
+            ck = torch.load(snaps[-1], map_location=device, weights_only=False)
+            core.load_state_dict(ck["model"])
+            ema.load_state_dict(ck["ema"])
+            if "opt" in ck:
+                opt.load_state_dict(ck["opt"])
+                scaler.load_state_dict(ck["scaler"])
+            else:
+                #a plain checkpoint has no optimiser state, so Adam's moments
+                #restart cold. Say so rather than silently changing the run.
+                print(f"WARNING: {snaps[-1].name} carries no optimiser state; "
+                      "Adam moments restart from zero")
+            best_val = ck.get("best_val", float("inf"))
+            gstep = ck.get("gstep", 0)
+            start_epoch = ck["epoch"] + 1
+            #the shuffle order is NOT restored, so a resumed run sees the same
+            #data in a different order. Harmless for the curve; noted so it is
+            #not later mistaken for a seed effect.
+            print(f"resumed {snaps[-1].name} at epoch {start_epoch}")
+        else:
+            print(f"--resume: no snapshot for {out.stem}, starting from scratch")
+
+    for epoch in range(start_epoch, args.epochs):
         net.train()
         running, seen = 0.0, 0
         t_epoch = time.time()
@@ -374,33 +453,16 @@ def main():
         if val_loss < best_val:
             best_val = val_loss
             run.summary(best_val_loss=best_val, best_epoch=epoch)
-            #Write to a temp file and rename. os.replace is atomic within a
-            #filesystem, so a reader either sees the previous checkpoint or the
-            #new one, never a half-written mixture. Saving in place is a real
-            #hazard here: evaluating a checkpoint mid-write does not raise, it
-            #silently returns a much worse score, which reads as a training
-            #failure rather than as a torn read.
-            tmp_out = str(args.out) + ".tmp"
-            torch.save(
-                {
-                    "model": core.state_dict(),
-                    "ema": ema.state_dict(),
-                    "model_config": cfg,
-                    "normalizer": normalizer.to_dict(),
-                    "n_waypoints": train_ds.trajs.shape[1],
-                    "epoch": epoch,
-                    "val_loss": best_val,
-                    #eval needs to know which sampler to use; absent => "flow"
-                    "objective": args.objective,
-                    "domain": args.domain,
-                    "reduce_mode": args.reduce_mode,
-                    "augment": args.augment,
-                    "diffusion_steps": args.diffusion_steps,
-                    "reduced": args.reduced,
-                },
-                tmp_out,
-            )
-            os.replace(tmp_out, args.out)
+            atomic_save(payload(epoch, best_val, training_state=False), args.out)
+
+        #Snapshots are written on a fixed epoch grid and on the final epoch, so
+        #the two arms are always compared at identical budgets even when their
+        #best-val epochs differ.
+        if args.snapshot_every and (
+            (epoch + 1) % args.snapshot_every == 0 or epoch + 1 == args.epochs
+        ):
+            atomic_save(payload(epoch, val_loss, training_state=True),
+                        snapshot_path(epoch))
     print(f"done. best val {best_val:.4f}. checkpoint -> {args.out}")
     run.summary(total_time_s=time.time() - t0)
     run.finish()

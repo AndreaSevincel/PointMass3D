@@ -36,5 +36,7 @@ __pycache__/
 # These flow cluster -> laptop only, and are pulled explicitly by name.
 # Leaving them here stops a code push from clobbering results on the cluster.
 checkpoints/
+results/
+logs/
 wandb/
 *.png

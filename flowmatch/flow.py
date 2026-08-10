@@ -454,3 +454,10 @@ class EMA:
 
     def state_dict(self):
         return self.shadow.state_dict()
+
+    def load_state_dict(self, sd):
+        #for resuming a run: the shadow weights are the ones eval uses, so
+        #restarting without them silently restarts the average from the raw
+        #weights and costs an EMA horizon of quality at every resume
+        self.shadow.load_state_dict(sd)
+        self._shadow_params = None
