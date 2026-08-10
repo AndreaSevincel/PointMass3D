@@ -1173,15 +1173,19 @@ precisely the shape that manufactured the roll-augmentation artefact discussed i
 Sec.~\ref{sec:limits}, so this $-3.1$ needs a seed-matched confirmation before it
 is leaned on. The $+7.1$ per-sample interaction does not depend on it.
 
-\textbf{This is a trend, not a limit.} Neither arm has been trained to a plateau,
-so the strongest form of the objection --- that the gap reflects convergence
-\emph{rate} rather than representation --- is answered here by two points rather
-than by a limit. What the two points establish is the direction: the gap
-\emph{widens} from $20.8$ to $28.0$ points under $3\times$ the budget, so if
-undertraining were manufacturing the gap it is the flat arm that would have the
-headroom, and it does not. A convergence study at $60$ environments is the
-experiment that would close this, and we state in Sec.~\ref{sec:limits} what each
-outcome would mean for the framing.
+\textbf{Two points, not a plateau --- but the second domain goes further.} In
+this domain neither arm has been trained to a plateau, so the strongest form of
+the objection --- that the gap reflects convergence \emph{rate} rather than
+representation --- is answered here by two points rather than by a limit. What
+the two points establish is the direction: the gap \emph{widens} from $20.8$ to
+$28.0$ points under $3\times$ the budget, so if undertraining were manufacturing
+the gap it is the flat arm that would have the headroom, and it does not.
+
+The rigid-body domain of Sec.~\ref{sec:se3} tests the same thing over an
+$8\times$ budget range and reaches the same conclusion, which is why we do not
+rest this claim on the $3\times$ comparison alone. A matched convergence study in
+the point-mass domain is running at the time of writing;
+Sec.~\ref{sec:limits} states what each outcome would mean for the framing.
 
 \subsection{Replication in a second state space}
 \label{sec:se3}
@@ -1190,21 +1194,25 @@ outcome would mean for the framing.
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-Domain (trivial floor) & World & Reduction & ratio & interaction \\
+$\SE$ rigid body, 250 envs & $20$ ep. & ${\sim}156$ ep. & gain \\
 \midrule
-$\SE$ rigid body ($4.8\%$) & $3.0$  & $8.6$  & $2.9\times$ & $+2.1$ \\
-Point mass ($15.6\%$)      & $14.4$ & $42.4$ & $2.9\times$ & $+7.1$ \\
+\multicolumn{4}{l}{\emph{per-sample collision-free (\%)}; floor $4.8$}\\
+World frame               & $2.8$  & $3.1$  & $+0.3$ \\
+$(\svec,\gvec)$ reduction & $6.2$  & $\mathbf{10.0}$ & $+3.8$ \\[2pt]
+\multicolumn{4}{l}{\emph{best-of-20 (\%)}}\\
+World frame               & $16.8$ & $15.0$ & $-1.8$ \\
+$(\svec,\gvec)$ reduction & $24.8$ & $\mathbf{40.6}$ & $+15.8$ \\
 \bottomrule
 \end{tabular}
-\caption{The same pattern in a second state space. Per-sample collision-free
-rates at $250$ environments and the longer training budget, each against the
-trivial baseline for its own domain --- geodesic interpolation for the rigid
-body, a straight line for the point mass. In both domains the world-frame arm
-fails to clear its own floor and the reduction clears it; the ratio between arms
-agrees to two figures; and the epoch-gain interaction of Sec.~\ref{sec:budget}
-reproduces in sign and shape. Single seed per cell}
+\caption{The second state space, at two budgets an $8\times$ factor apart. The
+trivial baseline for this domain is geodesic interpolation --- straight in
+position, slerp in rotation --- the $\SE$ analogue of joining start to goal with
+a line. The world-frame arm gains $0.3$ points across the whole budget range and
+never clears its floor at any budget; the reduction clears it and is still
+climbing. On the deployment metric the world-frame arm moves \emph{backwards},
+as it does in the point-mass domain. Single seed per cell}
 \label{tab:se3}
 \end{table}
 
@@ -1224,8 +1232,30 @@ Three things replicate (Table~\ref{tab:se3}). The world-frame arm fails to beat
 the trivial baseline in \emph{both} domains --- $1.8$ points below the geodesic
 floor here, $1.2$ below the straight-line floor there --- so the finding of
 Sec.~\ref{sec:baselines} is not an accident of one workspace family. The
-reduction clears its floor in both. And the ratio between the arms is $2.9\times$
-in each, with the epoch-gain interaction reproducing in sign and shape.
+reduction clears its floor in both. And at matched budgets the ratio between the
+arms is $2.9\times$ in each: an intermediate rigid-body checkpoint reaches $3.0$
+and $8.6$, against $14.4$ and $42.4$ for the point mass.
+
+\textbf{This domain also supplies a near-converged test of
+Sec.~\ref{sec:budget}, and it agrees.} The $\SE$ cells above span an $8\times$
+budget range rather than the $3\times$ available in the point-mass domain, and
+the best-validation checkpoints sit at epochs $155$ and $159$, so neither arm had
+stopped improving on validation loss when the runs ended. Over that range the
+world-frame arm gains $0.3$ points and the reduction $3.8$: the interaction
+survives at a budget where the ``both arms are simply undertrained'' reading is
+much harder to sustain. We regard this as the strongest form of the
+two-bottleneck claim currently available, precisely because it does not rest on
+the $3\times$ comparison a reader is most likely to challenge.
+
+The best-of-$20$ column carries the sharper version. In the point-mass domain we
+observed the world-frame arm losing $3.1$ points of deployment performance under
+$3\times$ the budget, and flagged it as a single cell against a three-seed mean.
+Here it declines monotonically across the budget range, $16.8 \to 15.0$, with no
+seed-matching subtlety, while the reduction rises $24.8 \to 40.6$. Two state
+spaces agree that additional optimisation makes the world-frame arm \emph{worse}
+at best-of-$N$ --- it buys a marginal per-sample gain by spending the sample
+diversity that best-of-$N$ actually consumes --- and that is a stronger statement
+than either domain supports alone.
 
 We are deliberately careful about how much this carries. The absolute numbers are
 small ($3.0\%$ and $8.6\%$ against a $4.8\%$ floor), a rigid body in this clutter

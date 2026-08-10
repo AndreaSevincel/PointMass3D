@@ -972,13 +972,16 @@ in Sec.~\ref{sec:corrections}, so this specific $-3.1$ needs a seed-matched
 confirmation before it should be leaned on. The $+7.1$ interaction on the
 per-sample metric does not depend on it.
 
-\paragraph{This measurement is still a trend, not a limit.} Neither arm has been
-trained to a plateau, so the strongest form of the objection --- that the gap
-reflects convergence \emph{rate} rather than representation --- is answered by two
-points rather than by a limit. A convergence study at $60$ environments, training
-both arms until the held-out rate stops moving and scoring snapshots on a fixed
-epoch grid, is running at the time of writing; Sec.~\ref{sec:future} states what
-each outcome would mean.
+\paragraph{Two points in this domain, but eight-fold in the other.} Neither arm
+here has been trained to a plateau, so the strongest form of the objection ---
+that the gap reflects convergence \emph{rate} rather than representation --- is
+answered in this domain by two points rather than by a limit. The rigid-body
+domain of Sec.~\ref{sec:se3} tests the same thing over an $8\times$ budget range
+and reaches the same conclusion, which is why I no longer rest the claim on the
+$3\times$ comparison alone. A matched convergence study at $60$ environments,
+training both arms until the held-out rate stops moving and scoring snapshots on
+a fixed epoch grid, is running at the time of writing; Sec.~\ref{sec:future}
+states what each outcome would mean.
 
 \subsection{It replicates in a second state space}
 \label{sec:se3}
@@ -997,35 +1000,63 @@ start to goal with a line.
 
 \begin{table}[t]
 \centering
-\begin{tabular}{lrrrr}
+\begin{tabular}{lrrr}
 \toprule
-Domain & World frame & Reduction & ratio & epoch-gain interaction \\
+$\SE$ rigid body, $250$ environments & $20$ epochs & ${\sim}156$ epochs & gain \\
 \midrule
-$\SE$ rigid body --- trivial floor $4.8\%$ & $3.0$ & $8.6$ & $2.9\times$ & $+2.1$ \\
-Point mass --- trivial floor $15.6\%$      & $14.4$ & $42.4$ & $2.9\times$ & $+7.1$ \\
+\multicolumn{4}{l}{\emph{per-sample collision-free (\%)}; trivial floor $4.8$}\\
+World frame               & $2.8$  & $3.1$  & $+0.3$ \\
+$(\svec,\gvec)$ reduction & $6.2$  & $\mathbf{10.0}$ & $+3.8$ \\[3pt]
+\multicolumn{4}{l}{\emph{best-of-20 (\%)}}\\
+World frame               & $16.8$ & $15.0$ & $-1.8$ \\
+$(\svec,\gvec)$ reduction & $24.8$ & $\mathbf{40.6}$ & $+15.8$ \\
 \bottomrule
 \end{tabular}
-\caption{The same pattern in a second state space, both at $250$ environments and
-the longer training budget. Per-sample collision-free rates. In both domains the
-world-frame arm fails to beat its own trivial floor and the reduction clears it,
-and the ratio between arms is the same to two figures.}
+\caption{The second state space at two budgets an $8\times$ factor apart. The
+world-frame arm gains $0.3$ points across the whole range and never clears its
+own floor at any budget; the reduction clears it and is still climbing. On the
+deployment metric the world-frame arm moves backwards, as it does in the
+point-mass domain. Single seed per cell.}
 \label{tab:se3}
 \end{table}
 
 Three things replicate. The world-frame arm fails to beat the trivial baseline in
 \emph{both} domains: $1.8$ points below the geodesic floor here, $1.2$ below the
-straight-line floor there. The reduction clears its floor in both. And the ratio
-between the arms is $2.9\times$ in each, with the epoch-gain interaction
-reproducing in sign and shape ($+2.1$ here against $+7.1$ there).
+straight-line floor there. The reduction clears its floor in both. And at matched
+budgets the ratio between the arms is $2.9\times$ in each --- an intermediate
+rigid-body checkpoint reaches $3.0$ and $8.6$, against $14.4$ and $42.4$ for the
+point mass --- with the epoch-gain interaction reproducing in sign and shape
+($+2.1$ here against $+7.1$ there).
 
-The absolute numbers in the $\SE$ domain are small --- $3.0\%$ and $8.6\%$
-per sample against a $4.8\%$ floor --- and I do not want to over-read them. A
-rigid body in this clutter is a much harder problem than a point, the arms are
-single-seed, and the useful statement is the pattern rather than the level. What
-the domain establishes is that the reduction is not exploiting something peculiar
-to a point-shaped state, and that the implementation survives having the
-typing distinction moved inside the trajectory --- which is the failure mode
-Sec.~\ref{sec:impl} exists to prevent.
+\paragraph{This domain also supplies a near-converged test of
+Sec.~\ref{sec:budget}.} The cells in Table~\ref{tab:se3} span an $8\times$ budget
+range, against the $3\times$ available in the point-mass domain, and the
+best-validation checkpoints sit at epochs $155$ and $159$ --- so neither arm had
+stopped improving on validation loss when the runs ended. Over that range the
+world-frame arm gains $0.3$ points and the reduction $3.8$. The interaction
+survives at a budget where the reading ``both arms are simply undertrained'' is
+much harder to sustain, which makes this the strongest form of the two-bottleneck
+claim I currently have --- stronger than the $3\times$ point-mass comparison a
+reader is most likely to challenge, and available now rather than pending on the
+convergence run.
+
+The best-of-$20$ column carries the sharper version. In the point-mass domain the
+world-frame arm lost $3.1$ points of deployment performance under $3\times$ the
+budget, and I flagged that as one cell against a three-seed mean. Here it declines
+monotonically, $16.8 \to 15.0$, with no seed-matching subtlety, while the
+reduction rises $24.8 \to 40.6$. Two state spaces agree that additional
+optimisation makes the world-frame arm \emph{worse} at best-of-$N$: it buys a
+marginal per-sample gain by spending the sample diversity best-of-$N$ actually
+consumes.
+
+The absolute numbers in the $\SE$ domain are small --- $10.0\%$ against a $4.8\%$
+floor --- and I do not want to over-read them. A rigid body in this clutter is a
+much harder problem than a point, every cell is single seed, and the useful
+statement is the pattern rather than the level. What the domain establishes is
+that the reduction is not exploiting something peculiar to a point-shaped state,
+and that the implementation survives having the typing distinction moved inside
+the trajectory --- which is the failure mode Sec.~\ref{sec:impl} exists to
+prevent.
 
 \subsection{Cost}
 \label{sec:cost}

@@ -53,6 +53,20 @@ def init(
         print("[wandb] not installed, continuing untracked (pip install wandb)")
         return Run()
 
+    #A bare `wandb/` output directory in the cwd is importable as a NAMESPACE
+    #package, so the ImportError above does not fire when wandb is merely
+    #missing -- the import succeeds and yields a module with no attributes. The
+    #symptom is an unhelpful "no attribute 'init'" from the call below, which
+    #reads as a version problem rather than a missing install. Name the real
+    #cause instead: runs write ./wandb/, so any repo that has ever logged has
+    #the shadowing directory sitting in it.
+    if not hasattr(wandb, "init"):
+        print(f"[wandb] imported {getattr(wandb, '__file__', None) or wandb.__path__}"
+              " but it has no init(); this is the local wandb/ output directory"
+              " shadowing the package. Install it in THIS interpreter"
+              " (pip install wandb). Continuing untracked")
+        return Run()
+
     if offline:
         os.environ["WANDB_MODE"] = "offline"
     try:
