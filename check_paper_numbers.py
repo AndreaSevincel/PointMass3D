@@ -14,7 +14,14 @@ import pathlib
 import re
 import sys
 
+#paper.tex is the submission; main.tex is the internship report of the same work.
+#They share every measured number, and they have drifted apart before -- main.tex
+#carried +1.2/+0.2 and "~11 standard errors" for several revisions after paper.tex
+#had superseded both. REQUIRED is checked against the submission, since it is the
+#document whose claims are load-bearing; FORBIDDEN is checked against BOTH, because
+#a retired number is retired everywhere.
 TEX = pathlib.Path("paper.tex").read_text()
+REPORT = pathlib.Path("main.tex").read_text()
 
 #Values that must be present somewhere. Not exhaustive -- these are the ones
 #that appear in several places and so drift apart.
@@ -84,15 +91,16 @@ def main():
     for name, pat in REQUIRED.items():
         if not re.search(pat, TEX):
             bad.append(f"MISSING  {name}  (/{pat}/)")
-    for pat, why in FORBIDDEN.items():
-        for m in re.finditer(pat, TEX):
-            line = TEX[:m.start()].count("\n") + 1
-            #a deliberate contrast, flagged in prose, is allowed
-            ctx = TEX[max(0, m.start() - 220):m.start() + 60]
-            if any(k in ctx for k in ("would have reported", "would read",
-                                      "would put")):
-                continue
-            bad.append(f"STALE    line {line}: {m.group()}  -- {why}")
+    for fname, text in (("paper.tex", TEX), ("main.tex", REPORT)):
+        for pat, why in FORBIDDEN.items():
+            for m in re.finditer(pat, text):
+                line = text[:m.start()].count("\n") + 1
+                #a deliberate contrast, flagged in prose, is allowed
+                ctx = text[max(0, m.start() - 220):m.start() + 60]
+                if any(k in ctx for k in ("would have reported", "would read",
+                                          "would put", "reported roll augmentation as")):
+                    continue
+                bad.append(f"STALE    {fname}:{line}: {m.group()}  -- {why}")
     for b in bad:
         print(b)
     print(f"\n{len(bad)} problem(s)" if bad else "\nall numbers consistent")
