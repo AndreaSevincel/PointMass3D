@@ -71,6 +71,15 @@ def parse_args():
     ap.add_argument("--split-by", choices=["traj", "pair", "env"], default="pair",
                     help="what val holds out. traj is LEAKY on this dataset "
                          "(30 near-duplicate paths per pair); pair is the default")
+    ap.add_argument("--local-geom", action="store_true",
+                    help="ORACLE DIAGNOSTIC: append the true SDF and its "
+                         "gradient at each waypoint to the trunk input. "
+                         "Measures how much headroom the global max-pooled "
+                         "scene code is costing, WITHOUT building a better "
+                         "encoder. Not a method: it supplies exact geometry "
+                         "no perception-based system would have, so its score "
+                         "is an upper bound. Run BOTH arms or the comparison "
+                         "is meaningless")
     ap.add_argument("--check-frame", action="store_true",
                     help="assert the reduction is well-formed on every batch (slow)")
     #generative-model control: same backbone, same conditioning, same frame
@@ -156,6 +165,7 @@ def make_model_config(args):
             (3 if args.reduce_mode == "translation" else 1) if args.reduced else 6
         ) if args.domain == "pointmass" else (13 if args.reduced else 18),
         state_dim=3 if args.domain == "pointmass" else 9,
+        local_geom=args.local_geom,
     )
 
 

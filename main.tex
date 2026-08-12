@@ -983,6 +983,75 @@ training both arms until the held-out rate stops moving and scoring snapshots on
 a fixed epoch grid, is running at the time of writing; Sec.~\ref{sec:future}
 states what each outcome would mean.
 
+\subsection{Where the benefit comes from}
+\label{sec:mechanism}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrr}
+\toprule
+Linear probe on the encoder output & World frame & Reduction \\
+\midrule
+scene code, within-environment std        & $0.000000$ & $0.182$ \\
+\quad as a fraction of its total std       & $0.00$     & $0.95$ \\
+$R^2$, scene code $\to$ clearance          & $+0.015$   & $\mathbf{+0.778}$ \\
+$R^2$, full conditioning $\to$ clearance   & $+0.07$    & $\mathbf{+0.878}$ \\
+$R^2$, separation $d$ alone                & ---        & $0.000$ \\
+\bottomrule
+\end{tabular}
+\caption{What the scene code knows about the query. Ridge probes from the
+$128$-d obstacle embedding, and from the full conditioning vector, to the minimum
+clearance along the straight line from $\svec$ to $\gvec$. Fitted and scored on
+\emph{disjoint} environments so a probe cannot memorise a scene; the conditioning
+row is the best score over $\lambda \in [1, 10^4]$.}
+\label{tab:probe}
+\end{table}
+
+A $30$-point gap invites the question of \emph{why}, and the architecture
+supplies an answer I can measure. The obstacle encoder max-pools all forty
+obstacles into a single $128$-d vector, and FiLM then applies that vector
+\emph{identically} to all $64$ waypoints.
+
+In the world frame the encoder's inputs do not depend on the query, so its output
+is constant across every query in an environment. The measured within-environment
+standard deviation is $0.000000$ --- exactly zero, because it is forced by the
+architecture rather than learned. In the reduced frame the obstacles arrive in the
+query's own frame, so the identical encoder produces a code whose variance is
+$95\%$ within-environment.
+
+Two things follow, and only the second was obvious to me in advance. First, the
+max-pool does \emph{not} destroy the query-relevant geometry: in the reduced frame
+a linear probe recovers how blocked the direct path is at $R^2 = 0.78$ on
+held-out environments, from that one global vector. Second, the world-frame arm's
+\emph{full conditioning} --- which does contain $(\svec, \gvec)$ --- cannot
+express the same quantity linearly across environments, topping out at $0.07$
+over four orders of magnitude of regularisation. And the treatment's score is not
+the separation $d$ in disguise: $d$ alone scores $0.000$.
+
+So the reduction moves the query--scene interaction out of the network's interior
+and into the input representation. In the world frame that interaction has to be
+rebuilt inside the trunk from a per-environment constant plus six query numbers,
+delivered through a global modulation; in the reduced frame it is already in the
+features. This is the mechanism behind the finding of
+Sec.~\ref{sec:calibration} that the world-frame arm never beats the straight
+line. I state its limits: it is a claim about representation \emph{content},
+measured with linear probes on two trained checkpoints, not a causal
+intervention, and the two arms are different networks, so part of the $R^2$ gap
+could reflect learned decodability rather than architecture. The
+$0.000000$ row is immune to that objection, and it is the row the rest depends
+on.
+
+It also bounds what this encoder can do. A single global code can say \emph{that}
+a path is blocked; it cannot say \emph{which} waypoint should move and in which
+direction, since every waypoint receives the same modulation. That is a plausible
+account of the level at which the reduced arm plateaus --- and it is separate
+from the gap, since both arms share the encoder. I have implemented an oracle
+diagnostic for it, appending the true SDF and its gradient at each waypoint,
+which measures the headroom a better encoder could reach without designing one.
+I report no result from it here: it is the next experiment, not a finding, and
+it is an upper bound rather than a method, since it supplies exact geometry that
+no perception-based system would have.
+
 \subsection{It replicates in a second state space}
 \label{sec:se3}
 

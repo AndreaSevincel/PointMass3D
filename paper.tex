@@ -1195,6 +1195,74 @@ rest this claim on the $3\times$ comparison alone. A matched convergence study i
 the point-mass domain is running at the time of writing;
 Sec.~\ref{sec:limits} states what each outcome would mean for the framing.
 
+\subsection{Where the benefit comes from}
+\label{sec:mechanism}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrr}
+\toprule
+Linear probe on the encoder output & World & Reduction \\
+\midrule
+scene code, within-env.\ std           & $0.000000$ & $0.182$ \\
+\quad as a fraction of total std        & $0.00$     & $0.95$ \\
+$R^2$, scene code $\to$ clearance       & $+0.015$   & $\mathbf{+0.778}$ \\
+$R^2$, full conditioning $\to$ clearance& $+0.07$    & $\mathbf{+0.878}$ \\
+$R^2$, separation $d$ alone             & ---        & $0.000$ \\
+\bottomrule
+\end{tabular}
+\caption{What the scene code knows about the query. Ridge probes from the
+$128$-d obstacle embedding, and from the full conditioning vector, to the
+minimum clearance along the straight line from $\svec$ to $\gvec$ --- the single
+thing a planner most needs to know about a query. Fitted and scored on
+\emph{disjoint} environments, so a probe cannot memorise a scene; the
+conditioning row is the best score over $\lambda \in [1, 10^4]$}
+\label{tab:probe}
+\end{table}
+
+The $30$-point gap invites a mechanism, and the architecture supplies one. Recall
+that the obstacle encoder max-pools all forty obstacles into a single $128$-d
+vector, which FiLM then applies \emph{identically} to all $64$ waypoints.
+
+In the world frame the encoder's inputs do not depend on the query at all, so its
+output is constant across every query in an environment --- measured within-env.\
+standard deviation $0.000000$, which is a fact about the architecture rather than
+about training. In the reduced frame the obstacles are expressed in the query's
+own frame, so the identical encoder produces a code that varies almost entirely
+within an environment ($95\%$ of its total variance).
+
+Two things follow, and only the second is obvious in advance.
+Table~\ref{tab:probe} shows that the max-pool does \emph{not} destroy the
+query-relevant geometry: in the reduced frame a linear probe recovers how blocked
+the direct path is at $R^2=0.78$, on held-out environments, from that single
+global vector. And the world-frame arm's \emph{full conditioning} --- which does
+contain $(\svec,\gvec)$ --- cannot express the same quantity linearly across
+environments, topping out at $0.07$ over four orders of magnitude of
+regularisation. The treatment's score is not the separation $d$ in disguise:
+$d$ alone scores $0.000$.
+
+The reduction therefore moves the query--scene interaction out of the network's
+interior and into the input representation. In the world frame that interaction
+must be reconstructed inside the trunk from a per-environment constant and six
+query numbers, delivered through a global modulation; in the reduced frame it is
+already present in the features. We offer this as the mechanism behind
+Sec.~\ref{sec:baselines}'s finding that the world-frame arm never exceeds the
+straight line, and we are explicit that it is a claim about representation
+content, measured with linear probes on two trained checkpoints, not a causal
+intervention.
+
+It also bounds what the encoder can do at all. A single global code can say
+\emph{that} a path is blocked; it cannot say \emph{which waypoint} should move
+and in which direction, because every waypoint receives the same modulation. That
+is a candidate explanation for the level at which the reduced arm plateaus, and
+it is separate from the gap: both arms share the encoder. We implement an oracle
+diagnostic for it --- appending the true SDF and its gradient at each waypoint,
+which measures the headroom a better encoder could reach without designing one
+--- and report no result from it here, since running it is future work rather
+than a finding.
+
 \subsection{Replication in a second state space}
 \label{sec:se3}
 

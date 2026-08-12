@@ -185,7 +185,7 @@ def sample(
         if anchor_endpoints:
             tt = ts[i]
             x[:, [0, -1], :] = (1.0 - tt) * known_eps + tt * known
-        v = net.decode(x, t, c)
+        v = net.decode(x, t, c, spheres, boxes, sphere_mask, box_mask)
         x = x + (ts[i + 1] - ts[i]) * v
 
     if anchor_endpoints:
@@ -194,14 +194,26 @@ def sample(
     return x
 
 
-def frame_averaged_velocity(net, x, t, c_k, roll, k_fa):
+def frame_averaged_velocity(net, x, t, c_k, roll, k_fa, sph_k=None, box_k=None):
     #v_bar(x) = (1/K) sum_k roll_k^T f(roll_k x).
     #Exact C_K-equivariance holds for ANY f: rolling x by 2*pi*j/K permutes the
     #quadrature points, and reindexing the sum is a bijection on them.
     #Returns (v_bar (B,N,3), vk (B,K,N,3)).
     B, N = x.shape[0], x.shape[1]
     xk = apply_vectors(roll, x.repeat_interleave(k_fa, 0))
-    vk = net.decode(xk, t.repeat_interleave(k_fa, 0) if t.shape[0] == B else t, c_k)
+    #sph_k/box_k are the K ROLLED scene tensors, i.e. already in the same
+    #frame as xk. Passing the unrolled originals here would evaluate the
+    #local geometry in a different frame from the state and silently break
+    #the C_K equivariance the whole operator exists to provide.
+    tk = t.repeat_interleave(k_fa, 0) if t.shape[0] == B else t
+    #Only forward the scene when the model actually consumes it. The diagnostic
+    #harnesses substitute their own minimal decode(x, t, c) stubs -- an
+    #unconditional 5-argument call would break them, and a test that cannot run
+    #is worse than the coupling it was meant to avoid.
+    if getattr(net, "local_geom", False):
+        vk = net.decode(xk, tk, c_k, sph_k, box_k)
+    else:
+        vk = net.decode(xk, tk, c_k)
     vk = torch.einsum("bji,bkj->bki", roll, vk)   # roll^T = un-roll, exact
     vk = vk.reshape(B, k_fa, N, 3)
     return vk.mean(dim=1), vk
@@ -295,7 +307,7 @@ def se3_residual(model, spheres, boxes, start, goal, reduced, k=8,
         xk = apply_points(Q, o, rep(x))
         if reduced:
             xk = apply_points(R0, origin, xk)
-        v = net.decode(xk, ts[i].expand(BK), c_k)
+        v = net.decode(xk, ts[i].expand(BK), c_k, sph_r, box_r)
         if reduced:
             v = torch.einsum("bji,bkj->bki", R0, v)     # un-reduce (rotation only)
         v = torch.einsum("bji,bkj->bki", Q, v)          # un-rotate: Q^T v
@@ -397,7 +409,7 @@ def sample_reduced(
             tt = ts[i]
             x[:, [0, -1], :] = (1.0 - tt) * known_eps + tt * known
         t = ts[i].expand(B * k_fa)
-        v, vk = frame_averaged_velocity(net, x, t, c_k, roll, k_fa)
+        v, vk = frame_averaged_velocity(net, x, t, c_k, roll, k_fa, sph_k, box_k)
         if return_residual:
             #The Hilbert norm, NOT a ratio of mean norms. The projection
             #identity ||f - Af|| / ||f|| = r / sqrt(1 + r^2) holds in

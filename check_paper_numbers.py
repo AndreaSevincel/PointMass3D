@@ -53,6 +53,9 @@ REQUIRED = {
     "SE(3) domain, reduction": r"\$8\.6\$|8\.6\%",
     "SE(3) trivial floor": r"4\.8\\%",
     "cross-domain ratio": r"2\.9\\times",
+    "probe: world-frame scene code is constant": r"0\.000000",
+    "probe: reduced scene code predicts clearance": r"\+0\.778",
+    "probe: world-frame conditioning cannot": r"\+0\.07",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.

@@ -113,9 +113,24 @@ class FlowVelocityField(nn.Module):
         #3 for a point-mass trajectory; 9 for an SE(3) pose trajectory
         #(3 position + a 6D rotation representation). See se3body/.
         state_dim=3,
+        #ORACLE DIAGNOSTIC, off by default. Appends the true SDF value and
+        #gradient at each waypoint to the trunk input, bypassing the global
+        #scene code for the local query.
+        #
+        #Why it exists: the obstacle encoder max-pools 40 obstacles into one
+        #128-d vector and FiLM applies it identically to all N waypoints, so a
+        #waypoint has no channel through which to ask "what is near me" --
+        #while collision avoidance is exactly that question. This measures the
+        #headroom a better encoder could reach WITHOUT designing one.
+        #
+        #It is not a method. It hands the model exact geometry that no
+        #perception-based system would have, so any number it produces is an
+        #upper bound, not a result to report as performance.
+        local_geom=False,
     ):
         super().__init__()
         self.state_dim = state_dim
+        self.local_geom = local_geom
         self.time_dim = time_dim
         self.time_mlp = nn.Sequential(
             nn.Linear(time_dim, time_dim), nn.SiLU(), nn.Linear(time_dim, time_dim)
@@ -124,7 +139,8 @@ class FlowVelocityField(nn.Module):
         self.cond_enc = ConditionEncoder(env_dim, cond_dim, sg_dim)
 
         global_dim = time_dim + cond_dim
-        self.init_conv = nn.Conv1d(state_dim, channels, 5, padding=2)
+        #+4 = scalar SDF and its 3-d gradient at each waypoint
+        self.init_conv = nn.Conv1d(state_dim + 4 * local_geom, channels, 5, padding=2)
         self.blocks = nn.ModuleList(
             [
                 FiLMResBlock(
@@ -145,8 +161,25 @@ class FlowVelocityField(nn.Module):
         env_emb = self.obstacle_enc(spheres, boxes, sphere_mask, box_mask)
         return self.cond_enc(env_emb, sg)  # (B, cond_dim)
 
-    def decode(self, x, t, c):
+    def decode(self, x, t, c, spheres=None, boxes=None, sphere_mask=None,
+               box_mask=None):
         # x: (B, N, state_dim), t: (B,), c: (B, cond_dim) from encode_cond
+        # spheres/boxes are needed ONLY with local_geom, and must be in the
+        # SAME frame as x -- pass the tensors that produced c, never the
+        # world-frame originals. Mixing frames here is the failure mode the
+        # equivariance diagnostic hit: it does not raise, it just measures
+        # something else.
+        if self.local_geom:
+            if spheres is None or boxes is None:
+                raise ValueError(
+                    "local_geom=True needs the obstacle tensors at decode(); "
+                    "pass the same frame-transformed tensors used for encode_cond"
+                )
+            from .sdf import scene_sdf_and_grad
+
+            pos = x[..., :3]  # SE(3) states carry rotation columns too
+            d, g = scene_sdf_and_grad(pos, spheres, boxes, sphere_mask, box_mask)
+            x = torch.cat([x, d[..., None], g], dim=-1)
         h = self.init_conv(x.transpose(1, 2))
         t_emb = self.time_mlp(sinusoidal_embedding(t, self.time_dim))
         cond = torch.cat([t_emb, c], dim=-1)
@@ -157,7 +190,8 @@ class FlowVelocityField(nn.Module):
 
     def forward(self, x, t, spheres, boxes, sg, sphere_mask=None, box_mask=None):
         return self.decode(
-            x, t, self.encode_cond(spheres, boxes, sg, sphere_mask, box_mask)
+            x, t, self.encode_cond(spheres, boxes, sg, sphere_mask, box_mask),
+            spheres, boxes, sphere_mask, box_mask,
         )
 
 
@@ -168,4 +202,5 @@ def build_model(cfg):
     cfg.setdefault("box_dim", 6)   # legacy: center + half-extents
     cfg.setdefault("sg_dim", 6)    # legacy: raw (start, goal)
     cfg.setdefault("state_dim", 3)  # legacy: point-mass trajectories
+    cfg.setdefault("local_geom", False)  # legacy: no oracle channels
     return FlowVelocityField(**cfg)
