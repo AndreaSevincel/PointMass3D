@@ -75,8 +75,8 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.1}The reduction scales; the baseline does not}{11}{subsection.7.1}\protected@file@percent }
 \newlabel{sec:scaling}{{7.1}{11}{The reduction scales; the baseline does not}{subsection.7.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{The trend is more informative than the endpoint.}{11}{section*.20}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\mathrm  {SE}(3)$ motions of the whole problem. The world-frame arm gains $2.6$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.6$ and has not plateaued. The $60$-environment row is a mean over three seeds; the rest are single seed.}}{12}{table.3}\protected@file@percent }
-\newlabel{tab:main}{{3}{12}{Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\SE $ motions of the whole problem. The world-frame arm gains $2.6$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.6$ and has not plateaued. The $60$-environment row is a mean over three seeds; the rest are single seed}{table.3}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\mathrm  {SE}(3)$ motions of the whole problem. The world-frame arm gains $2.5$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.4$ and has not plateaued. The $20$- and $60$-environment rows are means over three seeds, giving seed-matched differences of $+6.37 \pm 0.19$ and $+20.87 \pm 1.56$; the $150$- and $250$-environment rows are single seed.}}{12}{table.3}\protected@file@percent }
+\newlabel{tab:main}{{3}{12}{Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\SE $ motions of the whole problem. The world-frame arm gains $2.5$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.4$ and has not plateaued. The $20$- and $60$-environment rows are means over three seeds, giving seed-matched differences of $+6.37 \pm 0.19$ and $+20.87 \pm 1.56$; the $150$- and $250$-environment rows are single seed}{table.3}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces The gap widens with data. If the reduction were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed.}}{12}{figure.1}\protected@file@percent }
 \newlabel{fig:scaling}{{1}{12}{The gap widens with data. If the reduction were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}{figure.1}{}}
 \@writefile{toc}{\contentsline {paragraph}{Augmentation is not the same lever.}{12}{section*.21}\protected@file@percent }
@@ -107,30 +107,34 @@
 \@writefile{toc}{\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace  {}\ref {sec:budget}.}{16}{section*.27}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces The second state space at two budgets an $8\times $ factor apart. The world-frame arm gains $0.3$ points across the whole range and never clears its own floor at any budget; the reduction clears it and is still climbing. On the deployment metric the world-frame arm moves backwards, as it does in the point-mass domain. Single seed per cell.}}{17}{table.8}\protected@file@percent }
 \newlabel{tab:se3}{{8}{17}{The second state space at two budgets an $8\times $ factor apart. The world-frame arm gains $0.3$ points across the whole range and never clears its own floor at any budget; the reduction clears it and is still climbing. On the deployment metric the world-frame arm moves backwards, as it does in the point-mass domain. Single seed per cell}{table.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}Cost}{17}{subsection.7.8}\protected@file@percent }
-\newlabel{sec:cost}{{7.8}{17}{Cost}{subsection.7.8}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {8}Corrections}{17}{section.8}\protected@file@percent }
-\newlabel{sec:corrections}{{8}{17}{Corrections}{section.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{1. I thought the reduced representation was bit-identical under rigid motion.}{17}{section*.28}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces The generative-model control. Same backbone, conditioning, data, frame options and $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row.}}{17}{table.9}\protected@file@percent }
+\newlabel{tab:objective}{{9}{17}{The generative-model control. Same backbone, conditioning, data, frame options and $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row}{table.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.8}The effect is not specific to flow matching}{17}{subsection.7.8}\protected@file@percent }
+\newlabel{sec:objective}{{7.8}{17}{The effect is not specific to flow matching}{subsection.7.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.9}Cost}{18}{subsection.7.9}\protected@file@percent }
+\newlabel{sec:cost}{{7.9}{18}{Cost}{subsection.7.9}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {8}Corrections}{18}{section.8}\protected@file@percent }
+\newlabel{sec:corrections}{{8}{18}{Corrections}{section.8}{}}
+\@writefile{toc}{\contentsline {paragraph}{1. I thought the reduced representation was bit-identical under rigid motion.}{18}{section*.28}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{2. I reported roll augmentation as worth $+4.4$ points.}{18}{section*.29}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{3. I argued the roll gauge could be fixed by a $C_4$ argument.}{18}{section*.30}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{4. I reported the residual as falling with scale.}{18}{section*.31}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion and limitations}{18}{section.9}\protected@file@percent }
-\newlabel{sec:limits}{{9}{18}{Discussion and limitations}{section.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{What the technique contributes.}{18}{section*.32}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{The learned planner loses to the classical ones.}{18}{section*.33}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{18}{section*.34}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion and limitations}{19}{section.9}\protected@file@percent }
+\newlabel{sec:limits}{{9}{19}{Discussion and limitations}{section.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{What the technique contributes.}{19}{section*.32}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{The learned planner loses to the classical ones.}{19}{section*.33}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{19}{section*.34}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{What the residual does and does not bound.}{19}{section*.35}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{One honest asterisk.}{19}{section*.36}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Scope of the negative result.}{19}{section*.37}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Seeds only at one scale.}{19}{section*.38}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{One generative objective.}{19}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {10}What I would do next}{19}{section.10}\protected@file@percent }
-\newlabel{sec:future}{{10}{19}{What I would do next}{section.10}{}}
-\@writefile{toc}{\contentsline {paragraph}{1. Seeds at $250$ environments, both arms.}{19}{section*.40}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{2. The convergence study.}{19}{section*.41}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Scope of the negative result.}{20}{section*.37}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Seeds only at one scale.}{20}{section*.38}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Seeds are not yet at every scale.}{20}{section*.39}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {10}What I would do next}{20}{section.10}\protected@file@percent }
+\newlabel{sec:future}{{10}{20}{What I would do next}{section.10}{}}
+\@writefile{toc}{\contentsline {paragraph}{1. Seeds at $250$ environments, both arms.}{20}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{2. The convergence study.}{20}{section*.41}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{3. An $\mathrm  {SO}(2)$-equivariant backbone.}{20}{section*.42}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{4. The Brownian-bridge prior.}{20}{section*.43}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{5. More environments, generated differently.}{20}{section*.44}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Conclusion}{20}{section.11}\protected@file@percent }
-\gdef \@abspage@last{20}
+\@writefile{toc}{\contentsline {section}{\numberline {11}Conclusion}{21}{section.11}\protected@file@percent }
+\gdef \@abspage@last{21}

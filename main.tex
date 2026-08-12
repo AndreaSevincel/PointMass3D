@@ -734,7 +734,7 @@ require the planner to win, and I do not claim it does.
 Training & \multicolumn{3}{c}{Collision-free (\%)} & best-of-20 \\
 envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \midrule
-20  & 12.8 & 12.7 & 19.0 & 57.8 \\
+20  & 12.9 & 12.7 & 19.2 & 57.8 \\
 60  & 13.6 & 13.8 & 34.4 & 79.6 \\
 150 & 14.6 & 15.3 & 41.0 & 85.6 \\
 250 & 15.4 & 17.5 & \textbf{45.6} & \textbf{90.4} \\
@@ -742,10 +742,11 @@ envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \end{tabular}
 \caption{Held-out performance against training-set size. ``+aug.'' is the
 world-frame arm trained with random $\SE$ motions of the whole problem. The
-world-frame arm gains $2.6$ points across a $12.5\times$ increase in
+world-frame arm gains $2.5$ points across a $12.5\times$ increase in
 environments and augmentation adds at most $2.1$ more, while the reduction gains
-$26.6$ and has not plateaued. The $60$-environment row is a mean over three
-seeds; the rest are single seed.}
+$26.4$ and has not plateaued. The $20$- and $60$-environment rows are means over
+three seeds, giving seed-matched differences of $+6.37 \pm 0.19$ and
+$+20.87 \pm 1.56$; the $150$- and $250$-environment rows are single seed.}
 \label{tab:main}
 \end{table}
 
@@ -1127,6 +1128,53 @@ and that the implementation survives having the typing distinction moved inside
 the trajectory --- which is the failure mode Sec.~\ref{sec:impl} exists to
 prevent.
 
+\subsection{The effect is not specific to flow matching}
+\label{sec:objective}
+
+\begin{table}[t]
+\centering
+\begin{tabular}{llrrr}
+\toprule
+Objective & NFE & World frame & Reduction & Gap \\
+\midrule
+flow matching & $8$   & $13.57$ & $34.43$ & $+20.87 \pm 1.56$ \\
+DDPM          & $8$   & $8.88$  & $23.20$ & $+14.32 \pm 0.81$ \\
+DDPM          & $100$ & $12.27$ & $28.97$ & $\mathbf{+16.71 \pm 0.42}$ \\
+\bottomrule
+\end{tabular}
+\caption{The generative-model control. Same backbone, conditioning, data, frame
+options and $20$-epoch budget at $60$ environments; only the objective differs.
+Three seeds per cell, errors across seeds. Network evaluations are matched within
+a row.}
+\label{tab:objective}
+\end{table}
+
+Every learned number to this point comes from conditional flow matching, which
+leaves open whether the reduction exploits something about straight-line
+interpolants rather than something about the problem. So I ran the same two arms
+under a Diffuser/MPD-style DDPM objective --- $\epsilon$-prediction on a cosine
+schedule --- sharing the backbone, conditioning, oriented-box features and frame
+options unchanged, so the objective is the only difference.
+
+The gap replicates. It is smaller than under flow matching ($+16.7$ against
+$+20.9$, each at its own best integrator budget) and it is nowhere near zero: at
+three seeds the DDPM difference is over $30$ standard errors.
+
+One methodological point is worth recording, because scoring this arm carelessly
+would have produced the opposite reading. The $8$-step operating point used
+throughout was chosen because straight-line interpolants tolerate it; DDPM does
+not, and gains roughly four points on \emph{both} arms between $8$ and $100$
+evaluations. Reporting DDPM only at $8$ steps would have understated it and
+invited the fair objection that I had handicapped the baseline with a budget
+tuned for the method it was meant to test. I report both and read each objective
+at its own best setting.
+
+The budget caveat applies to both rows equally: these are $20$-epoch models, and
+Sec.~\ref{sec:budget} shows that is well short of convergence, where the flow gap
+widens from $20.9$ to $35.8$ points. The DDPM comparison is matched to the flow
+arm rather than converged, so $+16.7$ is the value at a common, inadequate
+budget, not the objective's ceiling.
+
 \subsection{Cost}
 \label{sec:cost}
 
@@ -1256,12 +1304,15 @@ seed. Even paired, $n=3$ gives two degrees of freedom and a critical $t$ of
 $4.3$: I can bound the sixth-degree-of-freedom mechanisms as small but cannot
 resolve whether they are zero.
 
-\paragraph{One generative objective.} Every learned number here comes from
-conditional flow matching. The reduction is a statement about the problem rather
-than about the interpolant, so it should transfer unchanged to a
-denoising-diffusion objective of the Diffuser/MPD family; I have not measured
-that, and until it is measured the possibility that the effect is specific to
-straight-line interpolants cannot be excluded.
+\paragraph{Seeds are not yet at every scale.} The $20$- and $60$-environment
+cells of both arms are three-seed means; $150$ and $250$, and several ablations,
+remain single seed. That is why any inferential claim in this report is quoted
+from the seed-matched $60$-environment cell.
+
+The generative-objective concern that stood here in an earlier draft --- that the
+effect might be specific to straight-line interpolants --- is now measured rather
+than open. Sec.~\ref{sec:objective} runs the same two arms under DDPM, and the
+gap survives at $+16.7 \pm 0.4$.
 
 \section{What I would do next}
 \label{sec:future}

@@ -911,7 +911,7 @@ does.
 Training & \multicolumn{3}{c}{Collision-free (\%)} & best-of-20 \\
 envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \midrule
-20  & 12.8 & 12.7 & 19.0 & 57.8 \\
+20  & 12.9 & 12.7 & 19.2 & 57.8 \\
 60  & 13.6 & 13.8 & 34.4 & 79.6 \\
 150 & 14.6 & 15.3 & 41.0 & 85.6 \\
 250 & 15.4 & 17.5 & \textbf{45.6} & \textbf{90.4} \\
@@ -919,11 +919,12 @@ envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \end{tabular}
 \caption{Held-out performance against training-set size. ``+aug.'' is the
 world-frame arm trained with random $\SE$ motions of the whole problem. The
-world-frame arm gains $2.6$ points across a $12.5\times$ increase in
+world-frame arm gains $2.5$ points across a $12.5\times$ increase in
 environments and augmentation adds at most $2.1$ more, while the reduction gains
-$26.6$ and has not plateaued. The $60$-environment row is a mean over three
-seeds; the rest are single seed. The last column is the deployment metric,
-best-of-$20$ behind a collision check}
+$26.4$ and has not plateaued. The $20$- and $60$-environment rows are means over
+three seeds, giving seed-matched differences of $+6.37\pm0.19$ and
+$+20.87\pm1.56$; the $150$- and $250$-environment rows are single seed. The last
+column is the deployment metric, best-of-$20$ behind a collision check}
 \label{tab:main}
 \end{table}
 
@@ -1342,6 +1343,58 @@ survives having the failure mode of Sec.~\ref{sec:impl} moved from the
 conditioning into the trajectory itself, which is the part most likely to break
 silently.
 
+\subsection{The effect is not specific to flow matching}
+\label{sec:objective}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{llrrr}
+\toprule
+Objective & NFE & World & Reduction & Gap \\
+\midrule
+flow matching & $8$   & $13.57$ & $34.43$ & $+20.87\pm1.56$ \\
+DDPM          & $8$   & $8.88$  & $23.20$ & $+14.32\pm0.81$ \\
+DDPM          & $100$ & $12.27$ & $28.97$ & $\mathbf{+16.71\pm0.42}$ \\
+\bottomrule
+\end{tabular}
+\caption{The generative-model control. Same backbone, same conditioning, same
+data, same frame options, same $20$-epoch budget at $60$ environments; only the
+objective differs. Three seeds per cell, errors across seeds. Network
+evaluations are matched within a row, so each column is a like-for-like
+comparison}
+\label{tab:objective}
+\end{table}
+
+Every learned number to this point comes from conditional flow matching, which
+leaves open whether the reduction is exploiting something about straight-line
+interpolants rather than something about the problem. We therefore ran the same
+two arms under a Diffuser/MPD-style DDPM objective~\cite{janner2022diffuser,
+carvalho2023mpd}: $\epsilon$-prediction on a cosine schedule, sharing the
+backbone, the conditioning, the oriented-box features and the frame options
+unchanged, so the objective is the only difference.
+
+The gap replicates (Table~\ref{tab:objective}). It is smaller than under flow
+matching --- $+16.7$ against $+20.9$, each at its own best integrator budget ---
+and it is not close to zero: at three seeds the DDPM difference is over $30$
+standard errors.
+
+One methodological point is worth recording, because scoring this arm carelessly
+would have produced the opposite reading. The $8$-step operating point used
+throughout this paper was chosen because straight-line interpolants tolerate it
+(Sec.~\ref{sec:cost}). DDPM does not: it gains roughly four points on
+\emph{both} arms between $8$ and $100$ evaluations. Reporting the DDPM arm only
+at $8$ steps would have understated it and invited the fair objection that the
+baseline was handicapped by a budget tuned for the method it is meant to test.
+We report both, and read the comparison at each objective's own best setting.
+
+We note the budget caveat that applies to both rows equally: these are $20$-epoch
+models, and Sec.~\ref{sec:budget} shows that budget is well short of convergence,
+where the flow gap widens from $20.9$ to $35.8$ points. The DDPM comparison is
+matched to the flow arm rather than converged, so $+16.7$ should be read as the
+value at a common, inadequate budget, not as the objective's ceiling.
+
 \subsection{Cost}
 \label{sec:cost}
 
@@ -1449,18 +1502,15 @@ seed noise. Even paired, $n{=}3$ gives two degrees of freedom and a critical $t$
 of $4.3$; we can bound these mechanisms as small but cannot resolve whether they
 are zero.
 
-\textbf{One generative objective; seeds only at one scale.} Every learned number
-here comes from conditional flow matching. The $60$-environment cells of both
-main arms are means over three seeds; every other cell, and every ablation, is a
-single seed. The reduction is a statement
-about the problem rather than about the interpolant, so it should transfer
-unchanged to a denoising-diffusion objective of the Diffuser/MPD
-family~\cite{janner2022diffuser,carvalho2023mpd}; we have not measured that, and
-until it is measured the possibility that the effect is specific to straight-line
-interpolants cannot be excluded. Likewise, the reported standard errors come from
-the spread over held-out problems, not over training seeds, so they do not capture
-run-to-run variance in optimisation. Both are cheap to close and both belong in a
-camera-ready version.
+\textbf{Seeds are not yet at every scale.} The $20$- and $60$-environment cells
+of both main arms are means over three seeds; the $150$- and $250$-environment
+cells, and several ablations, remain single seed, which is why
+Sec.~\ref{sec:baselines} quotes the seed-matched $60$-environment difference for
+any inferential claim and treats the $250$-environment gap as a point estimate.
+The generative-objective concern that stood here in an earlier version ---
+that the effect might be specific to straight-line interpolants --- is now
+measured rather than open: Sec.~\ref{sec:objective} reports the same two arms
+under a DDPM objective, where the gap survives at $+16.7\pm0.4$.
 
 \textbf{Why a generative planner on a problem with an exact SDF?} The question
 is fair and we answer it directly rather than by implication. PointMass3D is an

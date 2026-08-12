@@ -56,6 +56,9 @@ REQUIRED = {
     "probe: world-frame scene code is constant": r"0\.000000",
     "probe: reduced scene code predicts clearance": r"\+0\.778",
     "probe: world-frame conditioning cannot": r"\+0\.07",
+    "ddpm gap at its own best NFE": r"\+16\.71|\+16\.7",
+    "ddpm gap at 8 steps": r"\+14\.32",
+    "seed-matched gap at 20 envs": r"\+6\.37|6\.4",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -84,6 +87,7 @@ FORBIDDEN = {
                                              "250-env difference; quote +20.9+-1.6 at 60 instead",
     r"\\approx19 SE": "same, in the ablation table",
     r"\$\\approx 11\$ standard": "the 11-SE form of the same invalid test",
+    r"until it is measured the possibility": "the DDPM arm has now been run; the gap survives at +16.7+-0.4",
     r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
                                           "sigma^2 g(1-g) I and is roll-invariant. The real "
                                           "cost is the singular endpoint covariance",
