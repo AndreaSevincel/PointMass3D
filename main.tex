@@ -70,8 +70,9 @@ rule, for two independent reasons, so I handled it by symmetry: roll
 augmentation during training and frame averaging at inference.
 
 Holding architecture, data and budget fixed and varying only the representation
-raises the held-out per-sample collision-free rate from $15.4\%$ to $45.6\%$, a
-gap of $30.2$ points, and the gap \emph{widens} with training data rather than
+raises the held-out per-sample collision-free rate from $15.4\%$ to $45.5\%$, a
+gap of $+30.08 \pm 0.38$ points across three seeds, and the gap \emph{widens}
+with training data rather than
 shrinking. The two mechanisms built for the sixth degree of freedom are worth
 $+0.8 \pm 0.3$ and $+0.1$ points, neither distinguishable from zero at three
 seed-matched runs. I explain this rather than merely reporting it, by measuring
@@ -647,7 +648,7 @@ RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
 expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
 \midrule
 flow, world frame               & 15.4 & $-0.070$ & 0.067 \\
-flow, $(\svec,\gvec)$ reduction & \textbf{45.6} & $-0.010$ & 0.067 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{45.5} & $-0.010$ & 0.067 \\
 \bottomrule
 \end{tabular}
 \caption{The same $500$ held-out problems, solved five other ways. Classical
@@ -714,7 +715,7 @@ straight line. The reduction is what closes that second gap.
 
 \paragraph{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline
 $100\%$, in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
-initialisation solves $88.8\%$. The learned sampler at $45.6\%$ is not
+initialisation solves $88.8\%$. The learned sampler at $45.5\%$ is not
 competitive with any of them. I report this plainly because the alternative ---
 comparing a learned planner only against other configurations of itself --- is
 how a benchmark stops measuring anything. The contribution of this work is that
@@ -736,17 +737,18 @@ envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \midrule
 20  & 12.9 & 12.7 & 19.2 & 57.8 \\
 60  & 13.6 & 13.8 & 34.4 & 79.6 \\
-150 & 14.6 & 15.3 & 41.0 & 85.6 \\
-250 & 15.4 & 17.5 & \textbf{45.6} & \textbf{90.4} \\
+150 & 14.7 & 15.3 & 40.6 & 85.6 \\
+250 & 15.4 & 17.5 & \textbf{45.5} & \textbf{90.4} \\
 \bottomrule
 \end{tabular}
 \caption{Held-out performance against training-set size. ``+aug.'' is the
 world-frame arm trained with random $\SE$ motions of the whole problem. The
 world-frame arm gains $2.5$ points across a $12.5\times$ increase in
 environments and augmentation adds at most $2.1$ more, while the reduction gains
-$26.4$ and has not plateaued. The $20$- and $60$-environment rows are means over
-three seeds, giving seed-matched differences of $+6.37 \pm 0.19$ and
-$+20.87 \pm 1.56$; the $150$- and $250$-environment rows are single seed.}
+$26.2$ and has not plateaued. Every world-frame and reduction cell is a mean over
+three seeds; the seed-matched differences are $+6.37 \pm 0.19$,
+$+20.87 \pm 1.56$, $+25.85 \pm 0.37$ and $+30.08 \pm 0.38$. The ``+aug.'' column
+is single seed, so it is never differenced against a three-seed mean.}
 \label{tab:main}
 \end{table}
 
@@ -762,21 +764,26 @@ same arm with one component removed.}
 \end{figure}
 
 Table~\ref{tab:main} and Figure~\ref{fig:scaling} give the principal result. At
-$250$ environments the reduction reaches $45.6\%$ against the baseline's $15.4\%$,
-a gap of $30.2$ points.
+$250$ environments the reduction reaches $45.5\%$ against the baseline's
+$15.4\%$, a gap of $\mathbf{+30.08 \pm 0.38}$ points across three seeds per arm.
 
-I state the uncertainty on that number carefully, because the obvious phrasing
-overstates it. The seed spread was measured at $60$ environments, not at $250$:
-the seed-matched estimate there is $+20.9 \pm 1.6$ points ($n = 3$ on both arms).
-The $30.2$ at $250$ environments rests on one seed per arm, and quoting it as a
-multiple of a standard error measured in a different cell is not a valid
-significance statement. Adding seeds at $250$ environments is the highest-value
-missing experiment in this project (Sec.~\ref{sec:future}).
+The uncertainty is quoted from the seed spread in the same cell, which is what
+makes it a test rather than an extrapolation. Both arms ran at seeds $0,1,2$ at
+every scale, so all four differences are seed-matched: $+6.37 \pm 0.19$,
+$+20.87 \pm 1.56$, $+25.85 \pm 0.37$ and $+30.08 \pm 0.38$. The
+$250$-environment gap is roughly $79$ across-seed standard errors.
+
+The seed spread is not constant across the grid --- the reduction's is $1.56$ at
+$60$ environments and $0.11$ at $250$, an order of magnitude apart. That is
+exactly why a standard error must not be transported between cells, and an
+earlier draft of this report did precisely that, quoting the $60$-environment
+spread against the $250$-environment difference. The measurement, not the
+phrasing, is what fixed it.
 
 \paragraph{The trend is more informative than the endpoint.} The baseline
-improves by $2.6$ points across a $12.5\times$ increase in training environments:
+improves by $2.5$ points across a $12.5\times$ increase in training environments:
 it is close to unable to exploit additional layouts, because each new layout
-arrives at poses it must learn about separately. The reduction improves by $26.6$
+arrives at poses it must learn about separately. The reduction improves by $26.2$
 points over the same range and has not levelled off. This is the opposite of what
 a small-data-crutch account predicts, under which the advantage should shrink as
 data accumulates. Minimum clearance corroborates through an independent
@@ -789,7 +796,7 @@ practitioner who already knows about the symmetry would want is against the othe
 standard way of using it: augmenting training with random rigid motions of the
 whole problem. It helps, it helps more as data grows --- augmentation needs data
 to exploit --- and it is not close: $12.7$, $13.8$, $15.3$, $17.5$ against the
-reduction's $19.0$, $34.4$, $41.0$, $45.6$. At the largest scale augmentation
+reduction's $19.2$, $34.4$, $40.6$, $45.5$. At the largest scale augmentation
 captures about $7\%$ of what canonicalisation does, and leaves the world-frame arm
 within $2$ points of the straight-line floor. Making equivariance \emph{likely}
 through the data is a different and much weaker mechanism than removing the
@@ -809,7 +816,7 @@ $(\mp d/2, 0, 0)$ the model no longer spends capacity on \emph{where} they are.
 \toprule
 Mechanism & $\Delta$ free & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.2$ pp & single seed at 250 envs; grows \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.1$ pp & $\pm0.4$ across seeds, $n{=}3$ \\
 \quad of which: 3 translations    & $+12.3$ pp & recentring alone \\
 \quad of which: 2 rotations       & $+18.0$ pp & aligning the axis \\
 $\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
@@ -836,7 +843,8 @@ at $K=3$ --- $0.05$ across-seed standard errors. It bought $+0.1$ points.
 \paragraph{The reduction itself decomposes.} A translation-only variant, which
 recentres on the query midpoint without rotating, reaches $27.7\%$ at $250$
 environments, between the world frame's $15.4\%$ and the full reduction's
-$45.6\%$. So the three translational degrees of freedom are worth $+12.3$ points
+$45.6\%$ at the same seed. So the three translational degrees of freedom are
+worth $+12.3$ points
 and the two rotational ones a further $+18.0$: $41\%$ and $59\%$ of the total.
 Neither half carries the effect on its own, which is worth knowing --- recentring
 is the trivially easy part of the reduction and it accounts for two fifths of the
@@ -976,13 +984,61 @@ per-sample metric does not depend on it.
 \paragraph{Two points in this domain, but eight-fold in the other.} Neither arm
 here has been trained to a plateau, so the strongest form of the objection ---
 that the gap reflects convergence \emph{rate} rather than representation --- is
-answered in this domain by two points rather than by a limit. The rigid-body
-domain of Sec.~\ref{sec:se3} tests the same thing over an $8\times$ budget range
-and reaches the same conclusion, which is why I no longer rest the claim on the
-$3\times$ comparison alone. A matched convergence study at $60$ environments,
-training both arms until the held-out rate stops moving and scoring snapshots on
-a fixed epoch grid, is running at the time of writing; Sec.~\ref{sec:future}
-states what each outcome would mean.
+answered by a trend rather than by a limit, so I trained both arms at $60$
+environments to $300$ epochs --- a $15\times$ budget --- snapshotting every $10$
+epochs and scoring every snapshot on the same held-out problems.
+
+\begin{table}[t]
+\centering
+\begin{tabular}{lrrrrr}
+\toprule
+Epochs & $20$ & $60$ & $150$ & $300$ & last $10$ \\
+\midrule
+World frame               & $13.4$ & $13.9$ & $14.3$ & $15.0$ & $+0.2$ \\
+$(\svec,\gvec)$ reduction & $31.3$ & $42.6$ & $48.2$ & $\mathbf{50.8}$ & $+0.2$ \\
+\midrule
+Gap                       & $17.9$ & $28.7$ & $33.9$ & $\mathbf{35.8}$ & \\
+\bottomrule
+\end{tabular}
+\caption{Both arms trained to a plateau at $60$ environments. Each gains $0.2$
+points over the final ten epochs, so this is a converged comparison rather than a
+comparison of convergence rates. Single seed.}
+\label{tab:converged}
+\end{table}
+
+Both arms are flat by the end, and three things follow.
+
+The world-frame arm converges to $15.0\%$ against the $15.6\%$ straight line.
+Trained to a plateau with $15$ times the budget, it remains statistically
+indistinguishable from joining the endpoints with a line; from epoch $30$ onward
+it moves $1.3$ points in total, wandering between $13.7$ and $15.0$, which is
+about the evaluation noise. At $20$ epochs this claim was not available --- a
+reader could always answer ``it is undertrained''.
+
+The gap \emph{widens} monotonically, $17.9 \to 35.8$ points. Undertraining was
+not manufacturing it; had it been, the flat arm is the one that would have had
+headroom.
+
+And the reduction at $60$ environments and $300$ epochs ($50.8\%$) beats the
+reduction at $250$ environments and $20$ epochs ($45.5\%$): epochs and
+environments are substitutable over this range.
+
+\paragraph{Frame averaging pays more as the model improves.} Scoring each
+snapshot at both $K{=}1$ and $K{=}3$ costs nothing extra and turns the single
+``$+0.1$ points'' measurement of Sec.~\ref{sec:mechanisms} into a curve. The
+gain grows from $+0.08$ points at $20$ epochs to a mean of $+0.49$ over the final
+eight snapshots, positive in eight of eight, while $r$ stays flat at
+$0.0182$--$0.0183$ throughout.
+
+That is what the bound predicts once it is read as a statement about
+\emph{proportions}: the anti-equivariant fraction does not change with training,
+but total error falls, so the share of remaining error that symmetrisation can
+reach grows. The honest statement is not that frame averaging is inert, but that
+its value scales inversely with how much equivariant error is left --- and at the
+budget of my main grid there is far too much of it for the $r^2$ budget to
+matter. The statistics are unusually strong here: $K{=}1$ and $K{=}3$ share
+weights, problems and prior draws, so the difference is paired within a
+checkpoint and carries no seed variance at all.
 
 \subsection{Where the benefit comes from}
 \label{sec:mechanism}
@@ -1319,30 +1375,30 @@ gap survives at $+16.7 \pm 0.4$.
 
 In priority order, with the reasoning for the ordering.
 
-\paragraph{1. Seeds at $250$ environments, both arms.} The headline $30.2$ rests
-on one seed per arm. This is the cheapest experiment on the list and it fixes the
-most serious defect in the current evidence, so it goes first.
+\paragraph{1. Making $r$ vary deliberately.} Sec.~\ref{sec:twosigns} shows that
+$r$ does not forecast what a symmetry mechanism is worth --- but it shows it at
+three points, two of which have nearly identical $r$, and the fair objection is
+that nothing varied. The gauge is a deterministic function of $\xhat$ and the
+data supplies many start--goal directions per environment, so restricting
+training to a narrow cone of directions should starve the model of implicit roll
+diversity and drive $r$ up. Sweeping the cone width at fixed training-set size
+and fixed gradient-step count turns one measurement into a curve. If frame
+averaging starts to pay in proportion to $r$, the residual is predictive for
+post-hoc symmetrisation, which is a precise and useful decision rule; if it does
+not pay even at large $r$, that is the harder negative. It is also the cheapest
+experiment left, which is why it now goes first.
 
-\paragraph{2. The convergence study.} Training both arms at $60$ environments to
-a plateau converts Sec.~\ref{sec:budget} from a two-point trend into a limit. If
-the world-frame arm stays flat while the reduction plateaus higher, ``compute
-cannot buy what the representation forecloses'' becomes measured rather than
-extrapolated. If the world-frame arm climbs, the two-bottleneck framing is wrong
-and the contribution becomes a claim about convergence rate and sample
-efficiency, which is weaker but still real --- and reporting it after registering
-the opposite prediction is worth more than the framing it would cost.
-
-\paragraph{3. An $\SO(2)$-equivariant backbone.} The comparison this work
+\paragraph{2. An $\SO(2)$-equivariant backbone.} The comparison this work
 explicitly cannot make. It is the first question a reader will ask, and the
 honest answer is currently ``untested''.
 
-\paragraph{4. The Brownian-bridge prior.} For the reasons in
+\paragraph{3. The Brownian-bridge prior.} For the reasons in
 Sec.~\ref{sec:bridge}: the symmetry objection I originally raised does not hold,
 and the guarantee it was protecting has been measured to be worth $0.1$ points.
 The real cost is the singular endpoint covariance, and the standard fix is a
 variance floor.
 
-\paragraph{5. More environments, generated differently.} The scaling curve has
+\paragraph{4. Convergence at $250$ environments, and more environments.} The scaling curve has
 not plateaued at $250$ environments, which is the maximum available with $50$
 held out. Sec.~\ref{sec:diversity} indicates how to afford more: cutting
 trajectories per pair from $30$ to $5$ buys roughly six times the environments

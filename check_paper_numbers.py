@@ -26,10 +26,10 @@ REPORT = pathlib.Path("main.tex").read_text()
 #Values that must be present somewhere. Not exhaustive -- these are the ones
 #that appear in several places and so drift apart.
 REQUIRED = {
-    "reduction at 250 envs": r"45\.6",
+    "reduction at 250 envs (3-seed mean)": r"45\.5",
     "world frame at 250 envs": r"15\.4",
     "augmented control at 250 envs": r"17\.5",
-    "headline gap": r"30\.2",
+    "headline gap (3-seed)": r"\+30\.08|30\.1",
     "roll augmentation": r"\+0\.8",
     "frame averaging": r"\+0\.1",
     "SE(3) augmentation": r"\+2\.1|2\.1 pp",
@@ -58,7 +58,13 @@ REQUIRED = {
     "probe: world-frame conditioning cannot": r"\+0\.07",
     "ddpm gap at its own best NFE": r"\+16\.71|\+16\.7",
     "ddpm gap at 8 steps": r"\+14\.32",
-    "seed-matched gap at 20 envs": r"\+6\.37|6\.4",
+    "seed-matched gap at 20 envs": r"\+6\.37",
+    "seed-matched gap at 150 envs": r"\+25\.85",
+    "seed-matched gap at 250 envs": r"\+30\.08",
+    "converged world frame": r"15\.0\\%|\$15\.0\$",
+    "converged reduction": r"50\.8",
+    "converged gap": r"35\.8",
+    "frame averaging grows with quality": r"\+0\.49",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -88,6 +94,8 @@ FORBIDDEN = {
     r"\\approx19 SE": "same, in the ablation table",
     r"\$\\approx 11\$ standard": "the 11-SE form of the same invalid test",
     r"until it is measured the possibility": "the DDPM arm has now been run; the gap survives at +16.7+-0.4",
+    r"rests on one seed per arm": "all four scales now have three seeds; the 250-env gap is +30.08+-0.38",
+    r"running at the time of writing": "the convergence study finished; both arms plateau (15.0 vs 50.8)",
     r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
                                           "sigma^2 g(1-g) I and is roll-invariant. The real "
                                           "cost is the singular endpoint covariance",
