@@ -173,17 +173,33 @@ def cmd_score(args):
     todo = []
     for arm, seed, tag in cells(args):
         for snap in snapshots(args, tag):
-            dest = out_dir / f"{snap.stem}.json"
-            if dest.exists() and not args.force:
-                continue
-            todo.append((snap, dest))
+            #K=1 for every arm; K=3 additionally on the reduced arm, which is
+            #the only one with a roll gauge to average over (sweep_steps refuses
+            #k_fa>1 on a world-frame checkpoint).
+            #
+            #The pair is the point, not the K=1 number alone. r is flat across
+            #training scale while total error falls, so the anti-equivariant
+            #share of the REMAINING error should grow as the model improves --
+            #i.e. frame averaging should pay more on a better model. At 60
+            #environments the measured gain went 34.433 -> 34.517 (+0.08) at 20
+            #epochs and 42.400 -> 42.810 (+0.41) at 60. Two points, one of them
+            #single-seed. Scoring both K on every snapshot turns that hint into
+            #a curve at no extra training cost, and K=1 vs K=3 on one checkpoint
+            #is exact -- same weights, same problems, same prior draws -- so the
+            #difference carries no seed noise.
+            for k in (1, 3) if arm == "treatment" else (1,):
+                dest = out_dir / (f"{snap.stem}.json" if k == 1
+                                  else f"{snap.stem}-kfa{k}.json")
+                if dest.exists() and not args.force:
+                    continue
+                todo.append((snap, dest, k))
     if not todo:
         print("nothing to score (use --force to rescore)")
         return
     print(f"scoring {len(todo)} snapshots on envs "
           f"[{HOLDOUT_START}, {HOLDOUT_START + HOLDOUT_ENVS}) "
           f"x {N_PAIRS} pairs x {N_SAMPLES} samples at {STEPS} steps\n")
-    for snap, dest in todo:
+    for snap, dest, k in todo:
         cmd = [
             sys.executable, "sweep_steps.py",
             "--ckpt", str(snap),
@@ -196,7 +212,11 @@ def cmd_score(args):
             "--seed", str(args.eval_seed),
             "--out-json", str(dest),
         ]
-        print(f"  {snap.name}")
+        if k > 1:
+            #--residual gives r on the same pass, so the curve carries both the
+            #benefit and the quantity that is supposed to bound it
+            cmd += ["--k-fa", str(k), "--residual"]
+        print(f"  {snap.name}  K={k}")
         r = subprocess.run(cmd)
         if r.returncode != 0:
             print(f"FAILED: {snap.name}", file=sys.stderr)
@@ -207,11 +227,16 @@ def cmd_score(args):
 def cmd_table(args):
     out_dir = Path(args.results_dir)
     curve = {}
+    fa = {}   # (arm, seed) -> {epoch: K=3 row}
     for arm, seed, tag in cells(args):
         for path in sorted(out_dir.glob(f"{tag}.ep[0-9]*.json")):
-            epoch = int(path.stem.rsplit(".ep", 1)[1])
+            #"<tag>.ep0010.json" and "<tag>.ep0010-kfa3.json" both land here
+            suffix = path.stem.rsplit(".ep", 1)[1]
+            epoch_s, _, kfa_s = suffix.partition("-kfa")
+            epoch = int(epoch_s)
             row = json.loads(path.read_text())["rows"][0]
-            curve.setdefault((ARMS[arm], seed), {})[epoch] = row
+            target = fa if kfa_s else curve
+            target.setdefault((ARMS[arm], seed), {})[epoch] = row
     if not curve:
         sys.exit(f"no scored snapshots in {out_dir}; run `score` first")
 
@@ -239,9 +264,30 @@ def cmd_table(args):
         d = curve[k][b]["free"] - curve[k][a]["free"]
         print(f"  {k[0]}-s{k[1]}: {a} -> {b} epochs, {d:+.1f} points")
 
+    #Does symmetrisation pay more on a better model? r is flat across scale
+    #while total error falls, so the anti-equivariant share of the REMAINING
+    #error should grow as quality improves. K=1 vs K=3 on one checkpoint is an
+    #exact paired comparison -- same weights, same problems, same prior draws --
+    #so this delta carries no seed noise, unlike the columns above.
+    if fa:
+        print("\nframe averaging against model quality "
+              "(K=1 vs K=3, paired within checkpoint):")
+        print(f"{'epoch':>6}{'K=1':>9}{'K=3':>9}{'delta':>8}{'r':>9}")
+        for k in sorted(fa):
+            print(f"  {k[0]}-s{k[1]}")
+            for e in sorted(fa[k]):
+                base = curve.get(k, {}).get(e)
+                if base is None:
+                    continue
+                row = fa[k][e]
+                print(f"{e:>6}{base['free']:>9.2f}{row['free']:>9.2f}"
+                      f"{row['free'] - base['free']:>+8.2f}"
+                      f"{row.get('residual', float('nan')):>9.4f}")
+
     dest = out_dir / "curve.json"
     dest.write_text(json.dumps(
-        {f"{a}-s{s}": curve[(a, s)] for a, s in keys}, indent=1, sort_keys=True))
+        {f"{a}-s{s}": {"k1": curve[(a, s)], "k3": fa.get((a, s), {})}
+         for a, s in keys}, indent=1, sort_keys=True))
     print(f"\nwrote {dest}")
 
 
