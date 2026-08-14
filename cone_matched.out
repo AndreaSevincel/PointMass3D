@@ -1,0 +1,11 @@
+held-out queries within 15 deg of the first axis, envs [250, 300)
+ train cone     n     K=1     K=3   delta        r
+       15 deg   616   34.94   35.10   +0.15   0.0217
+       30 deg   616   45.02   45.40   +0.37   0.0195
+       45 deg   616   46.04   46.41   +0.37   0.0196
+       90 deg   616   46.92   46.60   -0.32   0.0187
+
+wrote results/cone_matched.json
+quality spread (K=1): 11.97 points [34.94, 46.92]
+r spread: 0.0031 [0.0187, 0.0217]
+corr(r, delta) = +0.344   corr(K=1, delta) = -0.133
