@@ -12,16 +12,21 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 ENVS = [20, 60, 150, 250]
-# 60-env cells are 3-seed means (seed 0 was the worst treatment draw of three);
-# the others are single seed. See aggregate_runs.py output, 2026-08-08.
-CONTROL = [12.77, 13.57, 14.60, 15.38]     # world frame
-AUGMENTED = [12.72, 13.84, 15.25, 17.50]   # world frame + random SE(3) augmentation
-TREATMENT = [18.97, 34.43, 41.00, 45.63]   # (s,g) reduction
-NOROLL_X, NOROLL_Y = 60, 30.06          # ablation: reduction without roll augmentation
+# Every CONTROL and TREATMENT cell is a mean over three seeds; the seed spreads
+# are carried alongside so the figure can show them, because a scaling curve
+# drawn without error bars from data that HAS them is a figure that overstates
+# its own precision. AUGMENTED and the no-roll ablation remain single seed and
+# are drawn without bars, which is the honest way to show that difference.
+CONTROL = [12.86, 13.57, 14.75, 15.37]     # world frame, 3-seed means
+CONTROL_SE = [0.048, 0.052, 0.204, 0.364]
+AUGMENTED = [12.72, 13.84, 15.25, 17.50]   # world frame + random SE(3) aug., n=1
+TREATMENT = [19.23, 34.43, 40.60, 45.45]   # (s,g) reduction, 3-seed means
+TREATMENT_SE = [0.185, 1.557, 0.314, 0.111]
+NOROLL_X, NOROLL_Y = 60, 33.53          # reduction without roll augmentation, 3 seeds
 
 # mechanism decomposition, percentage points on the held-out collision-free rate
 MECHANISMS = [
-    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.2),
+    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.1),
     (r"  of which: 3 translations", 12.3),
     (r"  of which: 2 rotations", 18.0),
     ("SE(3) augmentation\n(world frame)", 2.1),
@@ -80,10 +85,14 @@ def fig_scaling(out="fig_scaling.pdf", size=(6.4, 3.9), fs=9.0):
     # the gap between the arms is the result -- shade it
     ax.fill_between(ENVS, CONTROL, TREATMENT, color=C_TREAT, alpha=0.08, linewidth=0)
 
-    ax.plot(ENVS, TREATMENT, "-o", color=C_TREAT, linewidth=2, markersize=6,
-            label=r"$(s,g)$ reduction", zorder=3)
-    ax.plot(ENVS, CONTROL, "-s", color=C_CTRL, linewidth=2, markersize=5.5,
-            label="World frame", zorder=3)
+    #capsize=0: at this scale the bars are smaller than the markers on three of
+    #four points, and caps would read as data rather than as uncertainty.
+    ax.errorbar(ENVS, TREATMENT, yerr=TREATMENT_SE, fmt="-o", color=C_TREAT,
+                linewidth=2, markersize=6, capsize=0, elinewidth=1.4,
+                label=r"$(s,g)$ reduction", zorder=3)
+    ax.errorbar(ENVS, CONTROL, yerr=CONTROL_SE, fmt="-s", color=C_CTRL,
+                linewidth=2, markersize=5.5, capsize=0, elinewidth=1.4,
+                label="World frame", zorder=3)
     #Augmentation is the same arm using the symmetry a different way, so it
     #keeps the control's hue and is distinguished by a dashed stroke.
     ax.plot(ENVS, AUGMENTED, "--^", color=C_CTRL, linewidth=1.6, markersize=5,

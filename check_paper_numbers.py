@@ -22,6 +22,13 @@ import sys
 #a retired number is retired everywhere.
 TEX = pathlib.Path("paper.tex").read_text()
 REPORT = pathlib.Path("main.tex").read_text()
+#The figures are generated from HARD-CODED constants in make_figures.py, not
+#from the results files, so they drift independently of the prose and this
+#checker could not see them. That gap was real: the scaling figure plotted
+#single-seed values for several revisions after the tables had moved to
+#three-seed means, and no amount of checking the .tex would have caught a
+#figure that disagreed with the table beside it.
+FIGS = pathlib.Path("make_figures.py").read_text()
 
 #Values that must be present somewhere. Not exhaustive -- these are the ones
 #that appear in several places and so drift apart.
@@ -74,6 +81,17 @@ REQUIRED = {
     "density: gap peaks at 24 obstacles": r"\+41\.2",
 }
 
+#Figure constants that must match the tables. Checked separately because they
+#live in Python rather than LaTeX, and a mismatch here is invisible to a reader
+#who trusts the figure over the table -- or worse, to a reviewer who spots it.
+FIGURE_REQUIRED = {
+    "scaling curve: control is 3-seed means": r"12\.86, 13\.57, 14\.75, 15\.37",
+    "scaling curve: treatment is 3-seed means": r"19\.23, 34\.43, 40\.60, 45\.45",
+    "scaling curve carries seed spreads": r"TREATMENT_SE\s*=",
+    "no-roll ablation is the 3-seed mean": r"NOROLL_X, NOROLL_Y = 60, 33\.53",
+    "mechanism bar matches the ablation table": r"\(5 DOF, exact\)\", 30\.1\)",
+}
+
 #Values superseded by a later measurement. Their presence is a bug.
 FORBIDDEN = {
     r"\+11\.1": "epoch gain against the single-seed baseline; use +8.0",
@@ -114,7 +132,11 @@ def main():
     for name, pat in REQUIRED.items():
         if not re.search(pat, TEX):
             bad.append(f"MISSING  {name}  (/{pat}/)")
-    for fname, text in (("paper.tex", TEX), ("main.tex", REPORT)):
+    for name, pat in FIGURE_REQUIRED.items():
+        if not re.search(pat, FIGS):
+            bad.append(f"FIGURE   {name}  (/{pat}/ in make_figures.py)")
+    for fname, text in (("paper.tex", TEX), ("main.tex", REPORT),
+                        ("make_figures.py", FIGS)):
         for pat, why in FORBIDDEN.items():
             for m in re.finditer(pat, text):
                 line = text[:m.start()].count("\n") + 1
