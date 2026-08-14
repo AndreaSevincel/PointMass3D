@@ -1,0 +1,93 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/ddpm-ctrl-e60.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   100,
+   50,
+   20,
+   10,
+   8
+  ],
+  "k_fa": 1,
+  "residual": false,
+  "anchor_endpoints": false,
+  "residual_se3": 0,
+  "residual_se3_trans": 0.0,
+  "out_json": "results/ddpm-ctrl-e60.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "ddpm",
+ "reduced": false,
+ "arm": "ctrl",
+ "rows": [
+  {
+   "steps": 100,
+   "free": 12.15,
+   "solved_any": 51.0,
+   "clearance": -0.07991368165405743,
+   "ep_err": 0.006472048859297339,
+   "length": 1.956479441344738,
+   "sq_accel": 1.0888919863191404e-05,
+   "disp_ref": 0.0,
+   "s_per_query": 0.1545004096031189
+  },
+  {
+   "steps": 50,
+   "free": 11.78,
+   "solved_any": 50.6,
+   "clearance": -0.0805602752296262,
+   "ep_err": 0.006480554654175612,
+   "length": 1.970119952070713,
+   "sq_accel": 1.1588561146936626e-05,
+   "disp_ref": 0.015159832313656807,
+   "s_per_query": 0.10084512853622436
+  },
+  {
+   "steps": 20,
+   "free": 10.91,
+   "solved_any": 52.6,
+   "clearance": -0.083003460628249,
+   "ep_err": 0.007039337520389188,
+   "length": 2.0313028943419456,
+   "sq_accel": 1.8092970165173484e-05,
+   "disp_ref": 0.06461477279663086,
+   "s_per_query": 0.06762259006500244
+  },
+  {
+   "steps": 10,
+   "free": 8.88,
+   "solved_any": 52.400000000000006,
+   "clearance": -0.08834983710759035,
+   "ep_err": 0.01103197234848093,
+   "length": 2.2254830046892167,
+   "sq_accel": 0.00012714629511367549,
+   "disp_ref": 0.16433462500572205,
+   "s_per_query": 0.057291502475738526
+  },
+  {
+   "steps": 8,
+   "free": 8.27,
+   "solved_any": 53.400000000000006,
+   "clearance": -0.0904453664018998,
+   "ep_err": 0.015274863005733679,
+   "length": 2.363788846445084,
+   "sq_accel": 0.00039934896742687445,
+   "disp_ref": 0.2106151431798935,
+   "s_per_query": 0.05522655725479126
+  }
+ ]
+}

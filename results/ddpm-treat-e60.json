@@ -1,0 +1,93 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/ddpm-treat-e60.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   100,
+   50,
+   20,
+   10,
+   8
+  ],
+  "k_fa": 1,
+  "residual": false,
+  "anchor_endpoints": false,
+  "residual_se3": 0,
+  "residual_se3_trans": 0.0,
+  "out_json": "results/ddpm-treat-e60.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "ddpm",
+ "reduced": true,
+ "arm": "treat",
+ "rows": [
+  {
+   "steps": 100,
+   "free": 28.449999999999996,
+   "solved_any": 75.0,
+   "clearance": -0.039968294876242046,
+   "ep_err": 0.002576844789878021,
+   "length": 1.9513065964221954,
+   "sq_accel": 8.509926420640567e-06,
+   "disp_ref": 0.0,
+   "s_per_query": 0.1569363112449646
+  },
+  {
+   "steps": 50,
+   "free": 27.88,
+   "solved_any": 74.6,
+   "clearance": -0.040832948298504604,
+   "ep_err": 0.002627958683381806,
+   "length": 1.9612363508224486,
+   "sq_accel": 8.836763736672993e-06,
+   "disp_ref": 0.011948351748287678,
+   "s_per_query": 0.10339512872695923
+  },
+  {
+   "steps": 20,
+   "free": 27.12,
+   "solved_any": 73.0,
+   "clearance": -0.0437741121478107,
+   "ep_err": 0.0031012201266682393,
+   "length": 2.011650927698612,
+   "sq_accel": 1.2721866200178056e-05,
+   "disp_ref": 0.05144331604242325,
+   "s_per_query": 0.07059482145309448
+  },
+  {
+   "steps": 10,
+   "free": 24.310000000000002,
+   "solved_any": 72.0,
+   "clearance": -0.05291187034944207,
+   "ep_err": 0.00665704381353712,
+   "length": 2.194276983869076,
+   "sq_accel": 0.00011068838832725873,
+   "disp_ref": 0.13802044093608856,
+   "s_per_query": 0.060911878108978273
+  },
+  {
+   "steps": 8,
+   "free": 21.78,
+   "solved_any": 68.4,
+   "clearance": -0.060301016490452206,
+   "ep_err": 0.011469454604701935,
+   "length": 2.3561922026634217,
+   "sq_accel": 0.0005106679490331316,
+   "disp_ref": 0.18233434855937958,
+   "s_per_query": 0.05876355409622192
+  }
+ ]
+}

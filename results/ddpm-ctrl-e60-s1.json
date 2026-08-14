@@ -1,0 +1,93 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/ddpm-ctrl-e60-s1.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   100,
+   50,
+   20,
+   10,
+   8
+  ],
+  "k_fa": 1,
+  "residual": false,
+  "anchor_endpoints": false,
+  "residual_se3": 0,
+  "residual_se3_trans": 0.0,
+  "out_json": "results/ddpm-ctrl-e60-s1.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "ddpm",
+ "reduced": false,
+ "arm": "ctrl",
+ "rows": [
+  {
+   "steps": 100,
+   "free": 12.479999999999999,
+   "solved_any": 51.6,
+   "clearance": -0.07921709986538751,
+   "ep_err": 0.0064239936130319605,
+   "length": 1.957518912255764,
+   "sq_accel": 1.102213216817063e-05,
+   "disp_ref": 0.0,
+   "s_per_query": 0.15362921476364136
+  },
+  {
+   "steps": 50,
+   "free": 12.31,
+   "solved_any": 51.4,
+   "clearance": -0.07958022802963248,
+   "ep_err": 0.00644641682103609,
+   "length": 1.9713451527237893,
+   "sq_accel": 1.1835682383048151e-05,
+   "disp_ref": 0.014076893217861652,
+   "s_per_query": 0.09945361471176148
+  },
+  {
+   "steps": 20,
+   "free": 11.41,
+   "solved_any": 53.800000000000004,
+   "clearance": -0.08135437119610606,
+   "ep_err": 0.007035981631142219,
+   "length": 2.030167527008057,
+   "sq_accel": 1.8284246440668995e-05,
+   "disp_ref": 0.05992067977786064,
+   "s_per_query": 0.0668135962486267
+  },
+  {
+   "steps": 10,
+   "free": 9.77,
+   "solved_any": 53.800000000000004,
+   "clearance": -0.0865571117437618,
+   "ep_err": 0.01095224521644965,
+   "length": 2.211449510073662,
+   "sq_accel": 0.00011170043801032535,
+   "disp_ref": 0.15189358592033386,
+   "s_per_query": 0.05713948202133179
+  },
+  {
+   "steps": 8,
+   "free": 9.59,
+   "solved_any": 53.6,
+   "clearance": -0.08850707609166643,
+   "ep_err": 0.014790840831377449,
+   "length": 2.336731492257118,
+   "sq_accel": 0.0003333794509153336,
+   "disp_ref": 0.19395135343074799,
+   "s_per_query": 0.056311086654663084
+  }
+ ]
+}

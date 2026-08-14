@@ -1,0 +1,42 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/treat-e150.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   8
+  ],
+  "k_fa": 1,
+  "residual": false,
+  "anchor_endpoints": false,
+  "out_json": "results/treat-e150.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "flow",
+ "reduced": true,
+ "rows": [
+  {
+   "steps": 8,
+   "free": 41.0,
+   "solved_any": 85.6,
+   "clearance": -0.016275202208698363,
+   "ep_err": 0.002246033820092894,
+   "length": 1.9106652240514754,
+   "sq_accel": 1.5056000669483182e-05,
+   "disp_ref": 0.0,
+   "s_per_query": 0.05615641021728516
+  }
+ ]
+}

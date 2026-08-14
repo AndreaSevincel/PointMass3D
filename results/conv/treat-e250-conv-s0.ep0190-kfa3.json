@@ -1,0 +1,47 @@
+{
+ "config": {
+  "ckpt": "checkpoints/conv/treat-e250-conv-s0.ep0190.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   8
+  ],
+  "k_fa": 3,
+  "residual": true,
+  "anchor_endpoints": false,
+  "residual_se3": 0,
+  "residual_se3_trans": 0.0,
+  "out_json": "results/conv/treat-e250-conv-s0.ep0190-kfa3.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "flow",
+ "reduced": true,
+ "arm": "treat",
+ "rows": [
+  {
+   "steps": 8,
+   "free": 55.400000000000006,
+   "solved_any": 96.39999999999999,
+   "clearance": 0.002989864150812503,
+   "ep_err": 0.0008679254330815491,
+   "length": 1.9137977033495903,
+   "sq_accel": 3.6334726335155667e-06,
+   "disp_ref": 0.0,
+   "s_per_query": 0.06282727956771851,
+   "residual": 0.017132037444214803,
+   "residual_meannorm": 0.015521957437391393
+  }
+ ]
+}

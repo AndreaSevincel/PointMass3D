@@ -1,0 +1,44 @@
+{
+ "config": {
+  "ckpt": "checkpoints/long-e60.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   8
+  ],
+  "k_fa": 3,
+  "residual": true,
+  "anchor_endpoints": false,
+  "out_json": "results/long-e60-kfa3.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "flow",
+ "reduced": true,
+ "rows": [
+  {
+   "steps": 8,
+   "free": 42.809999999999995,
+   "solved_any": 87.0,
+   "clearance": -0.01306854371842405,
+   "ep_err": 0.0015704711080039239,
+   "length": 1.9084838221311569,
+   "sq_accel": 6.736618820025342e-06,
+   "disp_ref": 0.0,
+   "s_per_query": 0.05741072607040405,
+   "residual": 0.017845626940834337,
+   "residual_meannorm": 0.01684259781439323
+  }
+ ]
+}

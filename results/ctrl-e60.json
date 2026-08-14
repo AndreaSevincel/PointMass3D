@@ -1,0 +1,42 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/ctrl-e60.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   8
+  ],
+  "k_fa": 1,
+  "residual": false,
+  "anchor_endpoints": false,
+  "out_json": "results/ctrl-e60.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "flow",
+ "reduced": false,
+ "rows": [
+  {
+   "steps": 8,
+   "free": 13.530000000000001,
+   "solved_any": 42.4,
+   "clearance": -0.07461698429098773,
+   "ep_err": 0.007091482226292006,
+   "length": 1.9039125787377358,
+   "sq_accel": 3.899207325721363e-05,
+   "disp_ref": 0.0,
+   "s_per_query": 0.04838652324676514
+  }
+ ]
+}

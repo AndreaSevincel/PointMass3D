@@ -1,0 +1,47 @@
+{
+ "config": {
+  "ckpt": "checkpoints/grid/treat-e60-cone30.pt",
+  "data": "data",
+  "n_envs": 50,
+  "env_start": 250,
+  "n_pairs": 10,
+  "n_samples": 20,
+  "steps": [
+   8
+  ],
+  "k_fa": 3,
+  "residual": true,
+  "anchor_endpoints": false,
+  "residual_se3": 0,
+  "residual_se3_trans": 0.0,
+  "out_json": "results/treat-e60-cone30-kfa3.json",
+  "eta": 0.0,
+  "device": "cuda",
+  "seed": 0,
+  "wandb": false,
+  "wandb_project": "pointmass3d-flow",
+  "wandb_entity": null,
+  "wandb_name": null,
+  "wandb_group": null,
+  "wandb_tags": null,
+  "wandb_offline": false
+ },
+ "objective": "flow",
+ "reduced": true,
+ "arm": "treat",
+ "rows": [
+  {
+   "steps": 8,
+   "free": 27.93,
+   "solved_any": 69.8,
+   "clearance": -0.03650723386843087,
+   "ep_err": 0.0032732511990259693,
+   "length": 1.8949730748534201,
+   "sq_accel": 9.867193534500985e-06,
+   "disp_ref": 0.0,
+   "s_per_query": 0.0807507185935974,
+   "residual": 0.02015877581445966,
+   "residual_meannorm": 0.019304129390628078
+  }
+ ]
+}
