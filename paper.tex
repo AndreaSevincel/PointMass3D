@@ -973,8 +973,8 @@ Endpoint error falls by a factor of three to five under the reduction
 direct consequence of canonicalisation: with endpoints always at $(\mp d/2,0,0)$
 the model no longer spends capacity on \emph{where} they are.
 
-\subsection{Frame averaging is inert at this budget; the roll ablation is
-unresolved}
+\subsection{Frame averaging's value scales with model quality; the roll
+ablation is unresolved}
 \label{sec:inert}
 
 \begin{table}[t]
@@ -1232,6 +1232,34 @@ reduction at $250$ environments and $20$ epochs ($45.5\%$), so epochs and
 environments are substitutable over this range --- which bears directly on the
 dataset-generation argument of Sec.~\ref{sec:limits}.
 
+\textbf{At full data the control gains nothing at all.} Repeating the study at
+$250$ environments sharpens it. Over $300$ epochs the world-frame arm moves from
+$14.6\%$ to $14.4\%$ --- it ends \emph{below} where it began and never leaves the
+band $14.2$--$15.3$ --- while the reduction climbs from $38.8\%$ to $55.8\%$:
+
+\begin{center}\small
+\begin{tabular}{lrrrrr}
+\toprule
+$250$ environments & $10$ & $60$ & $150$ & $300$ & last $10$ \\
+\midrule
+World frame               & $14.6$ & $14.5$ & $14.9$ & $14.4$ & $-0.2$ \\
+$(\svec,\gvec)$ reduction & $38.8$ & $50.5$ & $53.1$ & $\mathbf{55.8}$ & $+0.6$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\noindent
+The gap reaches $\mathbf{41.4}$ points. At the full training set, trained to
+convergence, a world-frame flow-matching planner is at $14.4\%$ against a
+$15.6\%$ straight line --- and thirty times the optimisation buys it nothing.
+This is the strongest form of the claim in the paper, and at $20$ epochs it was
+unavailable.
+
+We are precise about what has and has not plateaued. The control is flat, and
+that is the claim. The reduction is still gaining $0.6$ points per ten epochs at
+epoch $300$, so $55.8\%$ is a lower bound on what this architecture reaches and
+not a measured ceiling.
+
 \textbf{Frame averaging pays more as the model improves, and this qualifies
 Sec.~\ref{sec:inert}.} Scoring each snapshot at $K{=}1$ and $K{=}3$ costs nothing
 extra and turns the single ``$+0.1$ points'' measurement into a curve. The gain
@@ -1248,12 +1276,43 @@ is inert, but that its value scales inversely with how much equivariant error is
 left, and at the budget of our main grid there is far too much of that for the
 $r^2$ budget to matter. On a better model it begins to.
 
+At $250$ environments the same curve is steeper: the gain rises from $+0.22$ at
+epoch $10$ to a peak of $+1.57$ at epoch $180$, settling at $+0.9$ over the final
+eight snapshots, while $r$ moves only from $0.0163$ to $0.0173$. So the mechanism
+built for the sixth degree of freedom, which the $20$-epoch grid of
+Table~\ref{tab:ablation} scores at $+0.1$ and cannot distinguish from zero, is
+worth roughly nine times that on a converged model. It remains an order of
+magnitude below the reduction's $+41.4$, and the paper's ordering is unchanged;
+what changes is that ``inert'' is the wrong word for it.
+
 The statistics here are stronger than elsewhere in the paper and it is worth
 saying why: $K{=}1$ and $K{=}3$ are evaluated on the same weights, the same
 problems and the same prior draws, so the difference is paired within a
 checkpoint and carries no seed variance at all. The across-seed standard error of
 $1.56$ points, which governs comparisons between separately trained arms, is the
 wrong noise model for it.
+
+\textbf{It is quality that drives this, not $r$.} The two are easy to conflate,
+so we separated them. Along the convergence curve $r$ is nearly constant while
+quality varies by $17$ points, and the benefit grows ninefold. To vary $r$
+instead we restricted training to a cone of start--goal directions about the
+first axis, which starves the reduced-frame data of the implicit roll diversity
+that makes the field near-equivariant in the first place. The manipulation works:
+at cone half-angles of $90$, $45$, $30$ and $15$ degrees --- with training-set
+size and gradient-step count held fixed --- $r$ rises monotonically through
+$0.0182$, $0.0192$, $0.0202$, $0.0238$. The frame-averaging benefit over the same
+sweep is $+0.02$, $-0.05$, $+0.44$, $-0.25$: scatter about zero, with the largest
+$r$ giving the most negative gain.
+
+We state the limitation of that sweep rather than resting on it, because it is
+real. Narrowing the cone also costs generalisation --- $K{=}1$ falls from $31.4$
+to $20.6$ --- so $r$ and quality move in opposite directions by construction, and
+a flat result is consistent both with $r$ being irrelevant and with $r$ mattering
+while quality cancels it. The sweep alone cannot separate the two. Read
+\emph{with} the convergence curve, where $r$ is fixed and quality alone varies,
+the variable that tracks the benefit is quality. A clean test would hold quality
+fixed and vary $r$, by training the narrow-cone arms until their $K{=}1$ matches
+the wide-cone arm; we have not run it.
 
 \subsection{Where the benefit comes from}
 \label{sec:mechanism}
@@ -1322,6 +1381,54 @@ diagnostic for it --- appending the true SDF and its gradient at each waypoint,
 which measures the headroom a better encoder could reach without designing one
 --- and report no result from it here, since running it is future work rather
 than a finding.
+
+\subsection{The world-frame arm is the straight line at every density}
+\label{sec:density}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrr}
+\toprule
+Obstacles & line & World & Reduction & Gap & Red.\ best-of-20 \\
+\midrule
+$8$            & $61.3$ & $61.4$ & $90.8$ & $+29.4$ & $100.0$ \\
+$16$           & $41.3$ & $44.5$ & $79.8$ & $+35.3$ & $100.0$ \\
+$24$           & $24.7$ & $24.8$ & $66.0$ & $\mathbf{+41.2}$ & $98.0$ \\
+$32$           & $18.0$ & $18.7$ & $53.5$ & $+34.8$ & $92.7$ \\
+$40$ (trained) & $11.3$ & $13.5$ & $46.4$ & $+32.9$ & $89.3$ \\
+\bottomrule
+\end{tabular}
+\caption{Both arms evaluated across a $5\times$ range of clutter, on freshly
+generated layouts neither model has seen. Scoring needs no expert trajectories
+--- only obstacles, starts, goals and the collision checker --- so a density axis
+costs minutes rather than the days a training sweep would. Both arms are trained
+at $40$ obstacles, so every other column is out of distribution: this measures
+generalisation across density, not the effect of training at another one}
+\label{tab:density}
+\end{table}
+
+The finding of Sec.~\ref{sec:baselines} --- that the world-frame arm scores what
+a straight line scores --- is stated at one density, where it can be read as
+coincidence. It is not. Across a $5\times$ range of clutter the world-frame arm
+tracks the straight-line floor to within a few points at every setting, and to
+within a tenth of a point at three of five (Table~\ref{tab:density}). The
+reduction clears the floor by $29$ to $41$ points everywhere.
+
+The gap is not monotone in difficulty. It peaks near $24$ obstacles at $+41.2$
+and falls off in both directions, which is what a quantity bounded below by the
+floor and above by the ceiling should do; our training density of $40$ sits on
+the dense side of that peak.
+
+This also answers a question about the benchmark's design that we would otherwise
+have to argue rather than measure. Thinning the clutter raises both arms
+substantially --- the reduction reaches $90.8\%$ per sample at $8$ obstacles ---
+but the \emph{deployment} metric saturates: best-of-$20$ hits $100\%$ below about
+$24$ obstacles, at which point the two arms are no longer distinguishable as
+planners even though they still differ by $29$ points per sample. Forty obstacles
+is not an arbitrary choice of difficulty; it is roughly the density at which
+best-of-$N$ still discriminates.
 
 \subsection{Replication in a second state space}
 \label{sec:se3}

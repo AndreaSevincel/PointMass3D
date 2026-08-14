@@ -65,6 +65,13 @@ REQUIRED = {
     "converged reduction": r"50\.8",
     "converged gap": r"35\.8",
     "frame averaging grows with quality": r"\+0\.49",
+    "converged at 250: world frame": r"14\.4",
+    "converged at 250: reduction": r"55\.8",
+    "converged gap at 250": r"41\.4",
+    "frame averaging at convergence": r"\+1\.57",
+    "cone sweep raises r": r"0\.0238",
+    "density: control tracks the line at 8 obstacles": r"61\.4",
+    "density: gap peaks at 24 obstacles": r"\+41\.2",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -94,6 +101,7 @@ FORBIDDEN = {
     r"\\approx19 SE": "same, in the ablation table",
     r"\$\\approx 11\$ standard": "the 11-SE form of the same invalid test",
     r"until it is measured the possibility": "the DDPM arm has now been run; the gap survives at +16.7+-0.4",
+    r"are inert; the roll": "frame averaging is +0.9 at convergence, not inert",
     r"rests on one seed per arm": "all four scales now have three seeds; the 250-env gap is +30.08+-0.38",
     r"running at the time of writing": "the convergence study finished; both arms plateau (15.0 vs 50.8)",
     r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
