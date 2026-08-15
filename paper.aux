@@ -116,24 +116,25 @@
 \newlabel{tab:probe}{{6}{12}{What the scene code knows about the query. Ridge probes from the $128$-d obstacle embedding, and from the full conditioning vector, to the minimum clearance along the straight line from $\svec $ to $\gvec $ --- the single thing a planner most needs to know about a query. Fitted and scored on \emph {disjoint} environments, so a probe cannot memorise a scene; the conditioning row is the best score over $\lambda \in [1, 10^4]$}{table.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {G}Where the benefit comes from}{12}{subsection.5.7}\protected@file@percent }
 \newlabel{sec:mechanism}{{V-G}{12}{Where the benefit comes from}{subsection.5.7}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {H}The world-frame arm is the straight line at every density}{12}{subsection.5.8}\protected@file@percent }
-\newlabel{sec:density}{{V-H}{12}{The world-frame arm is the straight line at every density}{subsection.5.8}{}}
-\citation{janner2022diffuser}
-\citation{carvalho2023mpd}
 \@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Both arms evaluated across a $5\times $ range of clutter, on freshly generated layouts neither model has seen. Scoring needs no expert trajectories --- only obstacles, starts, goals and the collision checker --- so a density axis costs minutes rather than the days a training sweep would. Both arms are trained at $40$ obstacles, so every other column is out of distribution: this measures generalisation across density, not the effect of training at another one}}{13}{table.7}\protected@file@percent }
 \newlabel{tab:density}{{7}{13}{Both arms evaluated across a $5\times $ range of clutter, on freshly generated layouts neither model has seen. Scoring needs no expert trajectories --- only obstacles, starts, goals and the collision checker --- so a density axis costs minutes rather than the days a training sweep would. Both arms are trained at $40$ obstacles, so every other column is out of distribution: this measures generalisation across density, not the effect of training at another one}{table.7}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {H}The world-frame arm is the straight line at every density}{13}{subsection.5.8}\protected@file@percent }
+\newlabel{sec:density}{{V-H}{13}{The world-frame arm is the straight line at every density}{subsection.5.8}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces The second state space, at two budgets an $8\times $ factor apart. The trivial baseline for this domain is geodesic interpolation --- straight in position, slerp in rotation --- the $\mathrm  {SE}(3)$ analogue of joining start to goal with a line. The world-frame arm gains $0.3$ points across the whole budget range and never clears its floor at any budget; the reduction clears it and is still climbing. On the deployment metric the world-frame arm moves \emph  {backwards}, as it does in the point-mass domain. Single seed per cell}}{13}{table.8}\protected@file@percent }
 \newlabel{tab:se3}{{8}{13}{The second state space, at two budgets an $8\times $ factor apart. The trivial baseline for this domain is geodesic interpolation --- straight in position, slerp in rotation --- the $\SE $ analogue of joining start to goal with a line. The world-frame arm gains $0.3$ points across the whole budget range and never clears its floor at any budget; the reduction clears it and is still climbing. On the deployment metric the world-frame arm moves \emph {backwards}, as it does in the point-mass domain. Single seed per cell}{table.8}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {I}Replication in a second state space}{13}{subsection.5.9}\protected@file@percent }
 \newlabel{sec:se3}{{V-I}{13}{Replication in a second state space}{subsection.5.9}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {J}The effect is not specific to flow matching}{13}{subsection.5.10}\protected@file@percent }
-\newlabel{sec:objective}{{V-J}{13}{The effect is not specific to flow matching}{subsection.5.10}{}}
+\citation{janner2022diffuser}
+\citation{carvalho2023mpd}
 \@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces The generative-model control. Same backbone, same conditioning, same data, same frame options, same $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row, so each column is a like-for-like comparison}}{14}{table.9}\protected@file@percent }
 \newlabel{tab:objective}{{9}{14}{The generative-model control. Same backbone, same conditioning, same data, same frame options, same $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row, so each column is a like-for-like comparison}{table.9}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {J}The effect is not specific to flow matching}{14}{subsection.5.10}\protected@file@percent }
+\newlabel{sec:objective}{{V-J}{14}{The effect is not specific to flow matching}{subsection.5.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {K}Cost}{14}{subsection.5.11}\protected@file@percent }
 \newlabel{sec:cost}{{V-K}{14}{Cost}{subsection.5.11}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion and Limitations}{14}{section.6}\protected@file@percent }
 \newlabel{sec:limits}{{VI}{14}{Discussion and Limitations}{section.6}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{16}{section.7}\protected@file@percent }
 \bibstyle{plain}
 \bibcite{albergo2023interpolants}{1}
 \bibcite{bronstein2021gdl}{2}
@@ -144,7 +145,6 @@
 \bibcite{elesedy2021strict}{7}
 \bibcite{fishman2022mpinets}{8}
 \bibcite{fuchs2020se3t}{9}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{16}{section.7}\protected@file@percent }
 \bibcite{geiger2022e3nn}{10}
 \bibcite{gruver2023lie}{11}
 \bibcite{janner2022diffuser}{12}

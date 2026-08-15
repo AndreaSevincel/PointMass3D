@@ -97,16 +97,16 @@
 \newlabel{sec:budget}{{7.5}{14}{Two bottlenecks, not one}{subsection.7.5}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces Tripling the optimisation at fixed data and fixed capacity. The $20$-epoch rows are means over three seeds; the $60$-epoch rows are single seed. On the per-sample metric the interaction is $+7.1$ points; on the deployment metric it is $+10.7$, and the world-frame arm moves backwards.}}{15}{table.6}\protected@file@percent }
 \newlabel{tab:budget}{{6}{15}{Tripling the optimisation at fixed data and fixed capacity. The $20$-epoch rows are means over three seeds; the $60$-epoch rows are single seed. On the per-sample metric the interaction is $+7.1$ points; on the deployment metric it is $+10.7$, and the world-frame arm moves backwards}{table.6}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Both arms trained to a plateau at $60$ environments. Each gains $0.2$ points over the final ten epochs, so this is a converged comparison rather than a comparison of convergence rates. Single seed.}}{15}{table.7}\protected@file@percent }
-\newlabel{tab:converged}{{7}{15}{Both arms trained to a plateau at $60$ environments. Each gains $0.2$ points over the final ten epochs, so this is a converged comparison rather than a comparison of convergence rates. Single seed}{table.7}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {7}{\ignorespaces Both arms trained to a plateau at $60$ environments, three seeds per cell. The control gains $0.1$ points over the final ten epochs and the reduction $0.2$, so this is a converged comparison rather than a comparison of convergence rates.}}{15}{table.7}\protected@file@percent }
+\newlabel{tab:converged}{{7}{15}{Both arms trained to a plateau at $60$ environments, three seeds per cell. The control gains $0.1$ points over the final ten epochs and the reduction $0.2$, so this is a converged comparison rather than a comparison of convergence rates}{table.7}{}}
 \@writefile{toc}{\contentsline {paragraph}{Two points in this domain, but eight-fold in the other.}{15}{section*.26}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{At full data the control gains nothing at all.}{16}{section*.27}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Frame averaging, and what actually drives it.}{16}{section*.28}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Frame averaging pays more as the model improves.}{16}{section*.29}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Where the benefit comes from}{16}{subsection.7.6}\protected@file@percent }
-\newlabel{sec:mechanism}{{7.6}{16}{Where the benefit comes from}{subsection.7.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {8}{\ignorespaces What the scene code knows about the query. Ridge probes from the $128$-d obstacle embedding, and from the full conditioning vector, to the minimum clearance along the straight line from $\mathbf  {s}$ to $\mathbf  {g}$. Fitted and scored on \emph  {disjoint} environments so a probe cannot memorise a scene; the conditioning row is the best score over $\lambda \in [1, 10^4]$.}}{17}{table.8}\protected@file@percent }
 \newlabel{tab:probe}{{8}{17}{What the scene code knows about the query. Ridge probes from the $128$-d obstacle embedding, and from the full conditioning vector, to the minimum clearance along the straight line from $\svec $ to $\gvec $. Fitted and scored on \emph {disjoint} environments so a probe cannot memorise a scene; the conditioning row is the best score over $\lambda \in [1, 10^4]$}{table.8}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {7.6}Where the benefit comes from}{17}{subsection.7.6}\protected@file@percent }
+\newlabel{sec:mechanism}{{7.6}{17}{Where the benefit comes from}{subsection.7.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.7}The world-frame arm is the straight line at every density}{17}{subsection.7.7}\protected@file@percent }
 \newlabel{sec:density}{{7.7}{17}{The world-frame arm is the straight line at every density}{subsection.7.7}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {9}{\ignorespaces Both arms across a $5\times $ range of clutter, on freshly generated layouts neither model has seen. Scoring needs no expert trajectories, only the collision checker, so this costs minutes. Both arms trained at $40$ obstacles, so every other row is out of distribution.}}{18}{table.9}\protected@file@percent }
@@ -115,9 +115,9 @@
 \newlabel{tab:se3}{{10}{18}{The second state space at two budgets an $8\times $ factor apart. The world-frame arm gains $0.3$ points across the whole range and never clears its own floor at any budget; the reduction clears it and is still climbing. On the deployment metric the world-frame arm moves backwards, as it does in the point-mass domain. Single seed per cell}{table.10}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.8}It replicates in a second state space}{18}{subsection.7.8}\protected@file@percent }
 \newlabel{sec:se3}{{7.8}{18}{It replicates in a second state space}{subsection.7.8}{}}
-\@writefile{toc}{\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace  {}\ref {sec:budget}.}{18}{section*.30}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {11}{\ignorespaces The generative-model control. Same backbone, conditioning, data, frame options and $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row.}}{19}{table.11}\protected@file@percent }
 \newlabel{tab:objective}{{11}{19}{The generative-model control. Same backbone, conditioning, data, frame options and $20$-epoch budget at $60$ environments; only the objective differs. Three seeds per cell, errors across seeds. Network evaluations are matched within a row}{table.11}{}}
+\@writefile{toc}{\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace  {}\ref {sec:budget}.}{19}{section*.30}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.9}The effect is not specific to flow matching}{19}{subsection.7.9}\protected@file@percent }
 \newlabel{sec:objective}{{7.9}{19}{The effect is not specific to flow matching}{subsection.7.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {7.10}Cost}{20}{subsection.7.10}\protected@file@percent }
@@ -128,14 +128,14 @@
 \@writefile{toc}{\contentsline {paragraph}{2. I reported roll augmentation as worth $+4.4$ points.}{20}{section*.32}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{3. I argued the roll gauge could be fixed by a $C_4$ argument.}{20}{section*.33}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{4. I reported the residual as falling with scale.}{20}{section*.34}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion and limitations}{20}{section.9}\protected@file@percent }
-\newlabel{sec:limits}{{9}{20}{Discussion and limitations}{section.9}{}}
-\@writefile{toc}{\contentsline {paragraph}{What the technique contributes.}{20}{section*.35}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {9}Discussion and limitations}{21}{section.9}\protected@file@percent }
+\newlabel{sec:limits}{{9}{21}{Discussion and limitations}{section.9}{}}
+\@writefile{toc}{\contentsline {paragraph}{What the technique contributes.}{21}{section*.35}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{The learned planner loses to the classical ones.}{21}{section*.36}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{21}{section*.37}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{What the residual does and does not bound.}{21}{section*.38}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{One honest asterisk.}{21}{section*.39}\protected@file@percent }
-\@writefile{toc}{\contentsline {paragraph}{Scope of the negative result.}{21}{section*.40}\protected@file@percent }
+\@writefile{toc}{\contentsline {paragraph}{Scope of the negative result.}{22}{section*.40}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Seeds only at one scale.}{22}{section*.41}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{Seeds are not yet at every scale.}{22}{section*.42}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {10}What I would do next}{22}{section.10}\protected@file@percent }
@@ -144,5 +144,5 @@
 \@writefile{toc}{\contentsline {paragraph}{2. An $\mathrm  {SO}(2)$-equivariant backbone.}{22}{section*.44}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{3. The Brownian-bridge prior.}{22}{section*.45}\protected@file@percent }
 \@writefile{toc}{\contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{22}{section*.46}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {11}Conclusion}{22}{section.11}\protected@file@percent }
+\@writefile{toc}{\contentsline {section}{\numberline {11}Conclusion}{23}{section.11}\protected@file@percent }
 \gdef \@abspage@last{23}

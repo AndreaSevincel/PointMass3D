@@ -49,10 +49,10 @@
 \contentsline {paragraph}{At full data the control gains nothing at all.}{16}{section*.27}%
 \contentsline {paragraph}{Frame averaging, and what actually drives it.}{16}{section*.28}%
 \contentsline {paragraph}{Frame averaging pays more as the model improves.}{16}{section*.29}%
-\contentsline {subsection}{\numberline {7.6}Where the benefit comes from}{16}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.6}Where the benefit comes from}{17}{subsection.7.6}%
 \contentsline {subsection}{\numberline {7.7}The world-frame arm is the straight line at every density}{17}{subsection.7.7}%
 \contentsline {subsection}{\numberline {7.8}It replicates in a second state space}{18}{subsection.7.8}%
-\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace {}\ref {sec:budget}.}{18}{section*.30}%
+\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace {}\ref {sec:budget}.}{19}{section*.30}%
 \contentsline {subsection}{\numberline {7.9}The effect is not specific to flow matching}{19}{subsection.7.9}%
 \contentsline {subsection}{\numberline {7.10}Cost}{20}{subsection.7.10}%
 \contentsline {section}{\numberline {8}Corrections}{20}{section.8}%
@@ -60,13 +60,13 @@
 \contentsline {paragraph}{2. I reported roll augmentation as worth $+4.4$ points.}{20}{section*.32}%
 \contentsline {paragraph}{3. I argued the roll gauge could be fixed by a $C_4$ argument.}{20}{section*.33}%
 \contentsline {paragraph}{4. I reported the residual as falling with scale.}{20}{section*.34}%
-\contentsline {section}{\numberline {9}Discussion and limitations}{20}{section.9}%
-\contentsline {paragraph}{What the technique contributes.}{20}{section*.35}%
+\contentsline {section}{\numberline {9}Discussion and limitations}{21}{section.9}%
+\contentsline {paragraph}{What the technique contributes.}{21}{section*.35}%
 \contentsline {paragraph}{The learned planner loses to the classical ones.}{21}{section*.36}%
 \contentsline {paragraph}{On the underfitting claim, and how it is supported.}{21}{section*.37}%
 \contentsline {paragraph}{What the residual does and does not bound.}{21}{section*.38}%
 \contentsline {paragraph}{One honest asterisk.}{21}{section*.39}%
-\contentsline {paragraph}{Scope of the negative result.}{21}{section*.40}%
+\contentsline {paragraph}{Scope of the negative result.}{22}{section*.40}%
 \contentsline {paragraph}{Seeds only at one scale.}{22}{section*.41}%
 \contentsline {paragraph}{Seeds are not yet at every scale.}{22}{section*.42}%
 \contentsline {section}{\numberline {10}What I would do next}{22}{section.10}%
@@ -74,4 +74,4 @@
 \contentsline {paragraph}{2. An $\mathrm {SO}(2)$-equivariant backbone.}{22}{section*.44}%
 \contentsline {paragraph}{3. The Brownian-bridge prior.}{22}{section*.45}%
 \contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{22}{section*.46}%
-\contentsline {section}{\numberline {11}Conclusion}{22}{section.11}%
+\contentsline {section}{\numberline {11}Conclusion}{23}{section.11}%

@@ -994,32 +994,35 @@ epochs and scoring every snapshot on the same held-out problems.
 \toprule
 Epochs & $20$ & $60$ & $150$ & $300$ & last $10$ \\
 \midrule
-World frame               & $13.4$ & $13.9$ & $14.3$ & $15.0$ & $+0.2$ \\
-$(\svec,\gvec)$ reduction & $31.3$ & $42.6$ & $48.2$ & $\mathbf{50.8}$ & $+0.2$ \\
+World frame               & $13.2$ & $14.4$ & $14.2$ & $14.60\pm0.20$ & $+0.1$ \\
+$(\svec,\gvec)$ reduction & $31.4$ & $42.3$ & $48.3$ & $\mathbf{51.10\pm0.25}$ & $+0.2$ \\
 \midrule
-Gap                       & $17.9$ & $28.7$ & $33.9$ & $\mathbf{35.8}$ & \\
+Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5\pm0.32}$ & \\
 \bottomrule
 \end{tabular}
-\caption{Both arms trained to a plateau at $60$ environments. Each gains $0.2$
-points over the final ten epochs, so this is a converged comparison rather than a
-comparison of convergence rates. Single seed.}
+\caption{Both arms trained to a plateau at $60$ environments, three seeds per
+cell. The control gains $0.1$ points over the final ten epochs and the reduction
+$0.2$, so this is a converged comparison rather than a comparison of convergence
+rates.}
 \label{tab:converged}
 \end{table}
 
 Both arms are flat by the end, and three things follow.
 
-The world-frame arm converges to $15.0\%$ against the $15.6\%$ straight line.
-Trained to a plateau with $15$ times the budget, it remains statistically
-indistinguishable from joining the endpoints with a line; from epoch $30$ onward
-it moves $1.3$ points in total, wandering between $13.7$ and $15.0$, which is
-about the evaluation noise. At $20$ epochs this claim was not available --- a
-reader could always answer ``it is undertrained''.
+The world-frame arm converges to $14.60 \pm 0.20\%$ against the $15.6\%$
+straight line, measured on the identical problems --- about five across-seed
+standard errors \emph{below} it. At $20$ epochs the two were indistinguishable
+($15.37 \pm 0.36$); trained to a plateau with fifteen times the budget the
+learned arm is worse than joining the endpoints with a line. The extra
+optimisation is what makes the deficit resolvable, not what causes it. At $20$
+epochs this claim was not available --- a reader could always answer ``it is
+undertrained''.
 
-The gap \emph{widens} monotonically, $17.9 \to 35.8$ points. Undertraining was
+The gap \emph{widens} monotonically, $18.2 \to 36.5$ points. Undertraining was
 not manufacturing it; had it been, the flat arm is the one that would have had
 headroom.
 
-And the reduction at $60$ environments and $300$ epochs ($50.8\%$) beats the
+And the reduction at $60$ environments and $300$ epochs ($51.1\%$) beats the
 reduction at $250$ environments and $20$ epochs ($45.5\%$): epochs and
 environments are substitutable over this range.
 
@@ -1038,7 +1041,9 @@ $300$, so $55.8\%$ is a lower bound rather than a measured ceiling.
 \paragraph{Frame averaging, and what actually drives it.} At $250$ environments
 the frame-averaging curve is steeper still: the gain rises from $+0.22$ at epoch
 $10$ to a peak of $+1.57$ at epoch $180$, settling near $+0.9$, while $r$ moves
-only $0.0163 \to 0.0173$. So the mechanism my main grid scores at $+0.1$ and
+only $0.0163 \to 0.0173$. Across three seeds at $60$ environments the same
+quantity averages $+0.68 \pm 0.13$ over the final eight snapshots against
+$+0.19$ early, positive in every seed. So the mechanism my main grid scores at $+0.1$ and
 cannot distinguish from zero is worth roughly nine times that on a converged
 model. It stays an order of magnitude below the reduction's $+41.4$ and the
 ordering of the paper is unchanged --- but ``inert'' is the wrong word.
@@ -1271,9 +1276,13 @@ prevent.
 \toprule
 Objective & NFE & World frame & Reduction & Gap \\
 \midrule
+\multicolumn{5}{l}{\emph{$20$ epochs, three seeds}}\\
 flow matching & $8$   & $13.57$ & $34.43$ & $+20.87 \pm 1.56$ \\
 DDPM          & $8$   & $8.88$  & $23.20$ & $+14.32 \pm 0.81$ \\
-DDPM          & $100$ & $12.27$ & $28.97$ & $\mathbf{+16.71 \pm 0.42}$ \\
+DDPM          & $100$ & $12.27$ & $28.97$ & $+16.71 \pm 0.42$ \\[3pt]
+\multicolumn{5}{l}{\emph{$300$ epochs}}\\
+flow matching & $8$   & $14.60$ & $51.10$ & $\mathbf{+36.50 \pm 0.32}$ \\
+DDPM          & $100$ & $13.51$ & $50.52$ & $\mathbf{+37.01}$ \\
 \bottomrule
 \end{tabular}
 \caption{The generative-model control. Same backbone, conditioning, data, frame
@@ -1290,9 +1299,14 @@ under a Diffuser/MPD-style DDPM objective --- $\epsilon$-prediction on a cosine
 schedule --- sharing the backbone, conditioning, oriented-box features and frame
 options unchanged, so the objective is the only difference.
 
-The gap replicates. It is smaller than under flow matching ($+16.7$ against
-$+20.9$, each at its own best integrator budget) and it is nowhere near zero: at
-three seeds the DDPM difference is over $30$ standard errors.
+The gap replicates, and the budget turns out to matter more than the objective.
+At $20$ epochs the DDPM gap is $+16.7$ against flow matching's $+20.9$, and an
+earlier draft of this report read that as a modest objective-dependence. Trained
+to convergence the two coincide: $+37.0$ against $+36.5$, with absolute
+performance within a point ($50.5$ against $51.1$). The apparent dependence on
+the interpolant was an artefact of a budget at which neither objective had
+converged. The reduction is a statement about the problem, not about the
+generative model.
 
 One methodological point is worth recording, because scoring this arm carelessly
 would have produced the opposite reading. The $8$-step operating point used
@@ -1303,11 +1317,9 @@ invited the fair objection that I had handicapped the baseline with a budget
 tuned for the method it was meant to test. I report both and read each objective
 at its own best setting.
 
-The budget caveat applies to both rows equally: these are $20$-epoch models, and
-Sec.~\ref{sec:budget} shows that is well short of convergence, where the flow gap
-widens from $20.9$ to $35.8$ points. The DDPM comparison is matched to the flow
-arm rather than converged, so $+16.7$ is the value at a common, inadequate
-budget, not the objective's ceiling.
+The converged DDPM cells are single seed against three for the $20$-epoch rows,
+so $+37.0$ is a point estimate; its agreement with the flow arm's seed-matched
+$+36.50 \pm 0.32$ is the informative part.
 
 \subsection{Cost}
 \label{sec:cost}

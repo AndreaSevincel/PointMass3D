@@ -130,6 +130,10 @@ class FlowVelocityField(nn.Module):
     ):
         super().__init__()
         self.state_dim = state_dim
+        #exposed on the model itself: sweep_steps.py identifies the arm from
+        #sg_dim, and reaching through to cond_enc breaks for any backbone that
+        #names its conditioning encoder differently
+        self.sg_dim = sg_dim
         self.local_geom = local_geom
         self.time_dim = time_dim
         self.time_mlp = nn.Sequential(
@@ -203,4 +207,12 @@ def build_model(cfg):
     cfg.setdefault("sg_dim", 6)    # legacy: raw (start, goal)
     cfg.setdefault("state_dim", 3)  # legacy: point-mass trajectories
     cfg.setdefault("local_geom", False)  # legacy: no oracle channels
+    #Dispatch on the architecture recorded in the checkpoint. Without this a
+    #constrained model would be rebuilt as an unconstrained one; load_state_dict
+    #would raise, but only after the caller had already decided which arm it was
+    #scoring, so the failure would be confusing rather than informative.
+    if cfg.pop("equivariant", False):
+        from .equivariant import EquivVelocityField
+        cfg.pop("local_geom", None)
+        return EquivVelocityField(**cfg)
     return FlowVelocityField(**cfg)

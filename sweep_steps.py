@@ -87,7 +87,9 @@ def main():
     #orientations.
     state_dim = getattr(model, "state_dim", 3)
     is_se3 = state_dim == 9
-    sg = model.cond_enc.sg_dim
+    sg = getattr(model, "sg_dim", None)
+    if sg is None:                      # checkpoints predating the attribute
+        sg = model.cond_enc.sg_dim
     reduced = (sg == 13) if is_se3 else (sg == 1)
     translation_only = (not is_se3) and sg == 3
     if translation_only and args.k_fa > 1:

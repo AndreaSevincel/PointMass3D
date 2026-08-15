@@ -15,6 +15,7 @@ from flowmatch import tracking
 from flowmatch.data import build_datasets
 from flowmatch.diffusion import Schedule, diffusion_loss
 from flowmatch.flow import EMA, flow_matching_loss
+from flowmatch.equivariant import EquivVelocityField
 from flowmatch.model import FlowVelocityField
 
 
@@ -71,6 +72,13 @@ def parse_args():
     ap.add_argument("--split-by", choices=["traj", "pair", "env"], default="pair",
                     help="what val holds out. traj is LEAKY on this dataset "
                          "(30 near-duplicate paths per pair); pair is the default")
+    ap.add_argument("--equivariant", action="store_true",
+                    help="use the SO(2)-equivariant backbone instead of the "
+                         "unconstrained one. Requires --reduced: the constraint "
+                         "is about the residual roll the reduction leaves, and a "
+                         "world-frame arm has no such axis. This is the third way "
+                         "of handling the sixth degree of freedom -- in the "
+                         "weights, rather than in the data or in the operator")
     ap.add_argument("--local-geom", action="store_true",
                     help="ORACLE DIAGNOSTIC: append the true SDF and its "
                          "gradient at each waypoint to the trunk input. "
@@ -128,6 +136,8 @@ def default_run_name(args):
     arm = "treat" if args.reduced else "ctrl"
     if args.reduced and args.no_roll:
         arm += "-noroll"
+    if args.equivariant:
+        arm += "-equiv"
     if args.objective != "flow":
         arm = f"{args.objective}-{arm}"
     if args.domain != "pointmass":
@@ -299,7 +309,20 @@ def main():
         )
 
     cfg = make_model_config(args)
-    core = FlowVelocityField(**cfg).to(device)
+    if args.equivariant:
+        if not args.reduced:
+            raise SystemExit("--equivariant requires --reduced: the SO(2) constraint "
+                             "is about the roll the (s,g) reduction leaves behind")
+        if args.local_geom:
+            raise SystemExit("--equivariant with --local-geom is not implemented: the "
+                             "SDF gradient is an m=1 feature and would need to enter "
+                             "the vector stream, not be concatenated to the state")
+        cfg = {k: v for k, v in cfg.items() if k != "local_geom"}
+        core = EquivVelocityField(**cfg).to(device)
+        #recorded so build_model() rebuilds the right class at scoring time
+        cfg = {**cfg, "equivariant": True}
+    else:
+        core = FlowVelocityField(**cfg).to(device)
     n_params = sum(p.numel() for p in core.parameters())
     print(f"model params: {n_params/1e6:.2f}M")
 

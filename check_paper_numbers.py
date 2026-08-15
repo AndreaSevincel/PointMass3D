@@ -68,10 +68,6 @@ REQUIRED = {
     "seed-matched gap at 20 envs": r"\+6\.37",
     "seed-matched gap at 150 envs": r"\+25\.85",
     "seed-matched gap at 250 envs": r"\+30\.08",
-    "converged world frame": r"15\.0\\%|\$15\.0\$",
-    "converged reduction": r"50\.8",
-    "converged gap": r"35\.8",
-    "frame averaging grows with quality": r"\+0\.49",
     "converged at 250: world frame": r"14\.4",
     "converged at 250: reduction": r"55\.8",
     "converged gap at 250": r"41\.4",
@@ -79,6 +75,12 @@ REQUIRED = {
     "cone sweep raises r": r"0\.0238",
     "density: control tracks the line at 8 obstacles": r"61\.4",
     "density: gap peaks at 24 obstacles": r"\+41\.2",
+    "converged at 60, 3 seeds: world frame": r"14\.60",
+    "converged at 60, 3 seeds: reduction": r"51\.10",
+    "converged gap at 60, 3 seeds": r"\+36\.5",
+    "frame averaging at convergence, 3 seeds": r"\+0\.68",
+    "DDPM converged gap": r"\+37\.0",
+    "cone decoupling failed": r"attempted\s*\n?decoupling that failed",
 }
 
 #Figure constants that must match the tables. Checked separately because they
@@ -120,6 +122,7 @@ FORBIDDEN = {
     r"\$\\approx 11\$ standard": "the 11-SE form of the same invalid test",
     r"until it is measured the possibility": "the DDPM arm has now been run; the gap survives at +16.7+-0.4",
     r"are inert; the roll": "frame averaging is +0.9 at convergence, not inert",
+    r"indistinguishable from joining the endpoints": "at convergence the control is BELOW the straight line, not indistinguishable from it",
     r"rests on one seed per arm": "all four scales now have three seeds; the 250-env gap is +30.08+-0.38",
     r"running at the time of writing": "the convergence study finished; both arms plateau (15.0 vs 50.8)",
     r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
