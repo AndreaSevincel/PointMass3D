@@ -55,9 +55,19 @@ say "training done"
 # sample count, same integrator budget. K=1 only -- frame averaging on a model
 # that is ALREADY equivariant is the identity up to floating point, and running
 # it would invite the reading that the two mechanisms stack.
+# train_flow.py names snapshots <stem>.epNNNN<suffix>, i.e. equiv-e60-conv-s0
+# .ep0010.pt -- NOT <name>.pt.epNNNN.pt. An earlier version of this loop globbed
+# the latter, matched nothing, and the per-file guard below turned that into
+# silence rather than an error: hours of training, no scores, no complaint.
+# Count the matches first and fail loudly if the pattern is wrong.
 for s in 0 1; do
-  for ck in checkpoints/conv/equiv-e60-conv-s${s}.pt.ep*.pt; do
-    [ -e "$ck" ] || continue
+  snaps=(checkpoints/conv/equiv-e60-conv-s${s}.ep*.pt)
+  if [ ! -e "${snaps[0]}" ]; then
+    say "ERROR: no snapshots matched for seed $s -- check the naming"
+    continue
+  fi
+  say "seed $s: ${#snaps[@]} snapshots to score"
+  for ck in "${snaps[@]}"; do
     tag="$(basename "$ck" .pt)"
     [ -e "results/conv/$tag.json" ] && continue
     $PY sweep_steps.py --ckpt "$ck" --data data --env-start 250 --n-envs 50 \

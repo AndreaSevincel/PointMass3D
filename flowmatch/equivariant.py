@@ -24,9 +24,16 @@
   #  * no pointwise nonlinearity may touch v. Gating -- multiplying v by a
   #    scalar computed from s -- is the standard equivariant substitute.
   #  * v enters the scalar stream only through invariants (|v|^2).
-  #  * pooling over obstacles must be permutation-invariant AND equivariant:
-  #    max is fine for s (invariant already), but for v it is not equivariant,
-  #    so v is mean-pooled.
+  #  * pooling over obstacles must be permutation-invariant AND equivariant.
+  #    Max is fine for s, which is invariant already. For v neither max nor mean
+  #    will do: max is not equivariant, and mean IS equivariant but computes the
+  #    centroid of a roughly symmetric obstacle cloud -- near zero, retaining
+  #    about 14% of a typical obstacle's magnitude on this benchmark, so the one
+  #    channel carrying direction in the plane arrives almost empty. We pool with
+  #    weights derived from the per-obstacle INVARIANTS instead: the weights are
+  #    scalars, so the weighted sum stays equivariant, and a softmax over
+  #    obstacles lets the encoder attend to the relevant one rather than
+  #    averaging them all away.
   #  * FiLM may scale and shift s freely; on v only a scalar SCALE is allowed,
   #    plus an additive shift that is itself an m=1 feature of the conditioning.
 
@@ -39,6 +46,21 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from .model import sinusoidal_embedding
+
+
+def vec_rms_norm(v, weight, eps=1e-6):
+    #Normalise m=1 features by an INVARIANT: the RMS magnitude across channels at
+    #each position. Dividing by a rotation-invariant scalar keeps the result
+    #equivariant, which is why an ordinary GroupNorm cannot be used here -- it
+    #would mix the two components and destroy the property.
+    #
+    #Without this the vector stream runs through eight residual blocks with
+    #nothing controlling its scale while the scalar stream is normalised twice
+    #per block. The first version of this module omitted it.
+    mag2 = (v * v).sum(dim=2)                                   # (B,Cv,...)
+    rms = mag2.mean(dim=1, keepdim=True).clamp_min(eps).sqrt()  # (B,1,...)
+    shape = (1, -1, 1) + (1,) * (v.dim() - 3)
+    return v / rms.unsqueeze(2) * weight.view(*shape)
 
 
 def vec_norm2(v, eps=1e-8):
@@ -93,6 +115,9 @@ class EquivBlock(nn.Module):
     def __init__(self, cs, cv, cond_s, cond_v, dilation, groups=8):
         super().__init__()
         self.norm1 = nn.GroupNorm(min(groups, cs), cs)
+        #per-channel invariant gain: the m=1 analogue of a normalisation's scale
+        self.vnorm1 = nn.Parameter(torch.ones(cv))
+        self.vnorm2 = nn.Parameter(torch.ones(cv))
         self.conv_s = nn.Conv1d(cs + cv, cs, 3, padding=dilation, dilation=dilation)
         self.conv_v = ComplexConv1d(cv, cv, 3, dilation=dilation)
         #FiLM: free on scalars; on vectors a scalar gate plus an m=1 shift, both
@@ -109,7 +134,7 @@ class EquivBlock(nn.Module):
         h_s = F.silu(self.norm1(s))
         #the only route from the m=1 stream into the scalar stream
         h_s = self.conv_s(torch.cat([h_s, vec_norm2(v)], dim=1))
-        h_v = self.conv_v(v)
+        h_v = self.conv_v(vec_rms_norm(v, self.vnorm1))
 
         scale, shift = self.film_s(cs_cond)[..., None].chunk(2, dim=1)
         h_s = h_s * (1 + scale) + shift
@@ -118,7 +143,8 @@ class EquivBlock(nn.Module):
         h_v = h_v + self.film_shift(cv_cond)[..., None]
 
         h_s = self.conv_s2(F.silu(self.norm2(h_s)))
-        h_v = self.conv_v2(h_v) * torch.sigmoid(self.gate2(h_s))[:, :, None, :]
+        h_v = self.conv_v2(vec_rms_norm(h_v, self.vnorm2))
+        h_v = h_v * torch.sigmoid(self.gate2(h_s))[:, :, None, :]
         return s + h_s, v + h_v
 
 
@@ -132,10 +158,13 @@ class EquivObstacleEncoder(nn.Module):
         self.sph_s = nn.Sequential(nn.Linear(2 + 1, hidden_s), nn.SiLU(),
                                    nn.Linear(hidden_s, hidden_s))
         self.sph_v = ComplexLinear(1, hidden_v)
+        #one attention logit per m=1 channel, from the invariant features only
+        self.sph_w = nn.Linear(hidden_s, hidden_v)
         #boxes: 4 x components are invariant, 4 (y,z) pairs are m=1
         self.box_s = nn.Sequential(nn.Linear(4 + 4, hidden_s), nn.SiLU(),
                                    nn.Linear(hidden_s, hidden_s))
         self.box_v = ComplexLinear(4, hidden_v)
+        self.box_w = nn.Linear(hidden_s, hidden_v)
         self.out_s = nn.Sequential(nn.Linear(2 * hidden_s, out_s), nn.SiLU(),
                                    nn.Linear(out_s, out_s))
         self.out_v = ComplexLinear(2 * hidden_v, out_v)
@@ -168,19 +197,20 @@ class EquivObstacleEncoder(nn.Module):
                 x = x.masked_fill(~m[..., None], float("-inf"))
             return torch.nan_to_num(x.amax(dim=1), neginf=0.0)
 
-        def masked_mean(x, m):
-            #MEAN, not max: max over an m=1 feature picks a component-wise
-            #extremum, which is not equivariant. Mean is linear, hence both
-            #permutation-invariant and equivariant.
-            if m is None:
-                return x.mean(dim=-1)
-            w = m[:, None, None, :].to(x.dtype)
-            return (x * w).sum(-1) / w.sum(-1).clamp_min(1.0)
+        def attn_pool(x, logits, m):
+            #x (B,Cv,2,K); logits (B,K,Cv) from INVARIANTS only, so the weights
+            #are scalars and the pooled vector is still equivariant. Softmax over
+            #the obstacle axis keeps it permutation-invariant.
+            w = logits.permute(0, 2, 1)                      # (B,Cv,K)
+            if m is not None:
+                w = w.masked_fill(~m[:, None, :], float("-inf"))
+            w = torch.softmax(w, dim=-1)
+            return (x * w[:, :, None, :]).sum(-1)            # (B,Cv,2)
 
         s = torch.cat([masked_max(s_feat, sphere_mask),
                        masked_max(b_feat, box_mask)], dim=-1)
-        v = torch.cat([masked_mean(v_feat, sphere_mask),
-                       masked_mean(b_vfeat, box_mask)], dim=1)
+        v = torch.cat([attn_pool(v_feat, self.sph_w(s_feat), sphere_mask),
+                       attn_pool(b_vfeat, self.box_w(b_feat), box_mask)], dim=1)
         return self.out_s(s), self.out_v(v)
 
 
