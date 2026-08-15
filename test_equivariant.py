@@ -144,6 +144,61 @@ def main():
     check("still equivariant after perturbing every weight", rel < 1e-5,
           f"relative {rel:.2e} (absolute {err:.2e} at |v|~{v0b.abs().max():.1e})")
 
+    # --- the oracle geometry channels keep the constraint --------------------
+    # local_geom feeds the SDF value and gradient into the trunk. That is only
+    # legal because the split is by irrep: d and g_x are invariant, g_yz is m=1.
+    # Get the routing wrong -- g concatenated to the state the way the
+    # unconstrained backbone does it -- and the model still runs, still trains,
+    # and is quietly no longer equivariant. So check, with REAL obstacle
+    # geometry: the SDF needs positive radii and orthogonal box edges.
+    torch.manual_seed(1)
+    netg = EquivVelocityField(channels=32, vec_channels=8, n_blocks=2,
+                              time_dim=32, env_hidden=32, env_dim=32, env_vec=8,
+                              cond_dim=48, cond_vec=8, groups=4,
+                              local_geom=True).eval()
+    nn.init.normal_(netg.out_s.weight, std=0.5)
+    nn.init.normal_(netg.out_s.bias, std=0.5)
+    nn.init.normal_(netg.out_v.re.weight, std=0.5)
+    nn.init.normal_(netg.out_v.im.weight, std=0.5)
+
+    sph_g = torch.cat([torch.randn(B, S, 3), torch.rand(B, S, 1) * 0.2 + 0.05], -1)
+    edges = []
+    for _ in range(B * K):
+        q, rr = torch.linalg.qr(torch.randn(3, 3))
+        q = q * torch.sign(torch.diagonal(rr))[None, :]
+        edges.append(q * (torch.rand(3) * 0.2 + 0.05))
+    E = torch.stack(edges).reshape(B, K, 3, 3)
+    box_g = torch.cat([torch.randn(B, K, 3), E.reshape(B, K, 9)], dim=-1)
+
+    with torch.no_grad():
+        vg0 = netg(x, t, sph_g, box_g, sg)
+    R = roll_x(0.9)
+    sph_r, box_r = rotate_scene(R, sph_g, box_g)
+    with torch.no_grad():
+        vg1 = netg(rotate_points(R, x), t, sph_r, box_r, sg)
+    errg = (rotate_points(R, vg0) - vg1).abs().max().item()
+    check("local_geom SDF channels preserve exact equivariance",
+          errg < 1e-4 and vg0.abs().max().item() > 1e-3,
+          f"max |dv| {errg:.2e} at |v|~{vg0.abs().max().item():.2f}")
+
+    # --- the hand-written norms survive half precision -----------------------
+    # The training runs use --amp. torch promotes GroupNorm to fp32 by its own
+    # cast policy, so the scalar stream is safe for free and a hand-written norm
+    # is not. The binding failure is OVERFLOW, not underflow: fp16 tops out at
+    # 65504, so squaring any activation past ~256 gives inf, the mean is inf,
+    # and every channel at that waypoint is divided to zero. The weight
+    # perturbation test above already reaches |v|~1e2, so this is in range.
+    # (At the small end the eps floor suppresses the output in fp32 too -- that
+    # is the intended "do not amplify noise" behaviour, not a precision bug.)
+    from flowmatch.equivariant import vec_rms_norm
+    big = (torch.randn(2, 8, 2, 16) * 400).half()
+    w = torch.ones(8).half()
+    out = vec_rms_norm(big, w)
+    rms = (out.float() ** 2).sum(2).mean(1).sqrt()
+    check("vec_rms_norm survives fp16 activations whose squares overflow",
+          torch.isfinite(out).all().item() and (rms - 1).abs().max().item() < 0.05,
+          f"output RMS {rms.mean().item():.4f} (want 1.0)")
+
     n_par = sum(p.numel() for p in net.parameters())
     print(f"\n(test net: {n_par/1e3:.0f}k parameters)")
     print(f"{PASS}/{PASS + FAIL} passed")

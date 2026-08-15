@@ -57,10 +57,19 @@ def vec_rms_norm(v, weight, eps=1e-6):
     #Without this the vector stream runs through eight residual blocks with
     #nothing controlling its scale while the scalar stream is normalised twice
     #per block. The first version of this module omitted it.
+    #
+    #Computed in fp32 even under autocast. torch forces GroupNorm to fp32 by its
+    #own cast policy, so the scalar stream is protected and a hand-written norm
+    #is not: squaring an fp16 activation flushes anything below 2.4e-4 to zero,
+    #the clamp then returns eps and the division amplifies that channel by 1e3.
+    #Measured at initialisation the margin is wide (smallest mag2 ~1e-5 against
+    #fp16's 6e-8 floor), so this is insurance, not a diagnosed fault.
+    dtype = v.dtype
+    v = v.float()
     mag2 = (v * v).sum(dim=2)                                   # (B,Cv,...)
     rms = mag2.mean(dim=1, keepdim=True).clamp_min(eps).sqrt()  # (B,1,...)
     shape = (1, -1, 1) + (1,) * (v.dim() - 3)
-    return v / rms.unsqueeze(2) * weight.view(*shape)
+    return (v / rms.unsqueeze(2) * weight.float().view(*shape)).to(dtype)
 
 
 def vec_norm2(v, eps=1e-8):
@@ -68,7 +77,10 @@ def vec_norm2(v, eps=1e-8):
     #Squared norm rather than norm: |v| has an infinite derivative at zero and
     #the field genuinely passes through zero, so the sqrt is a gradient hazard
     #for no expressive gain.
-    return (v * v).sum(dim=2) + eps
+    #fp32 for the same reason as vec_rms_norm -- and here eps=1e-8 is below
+    #fp16's smallest subnormal, so in half precision the guard silently is not
+    #one.
+    return ((v.float() * v.float()).sum(dim=2) + eps).to(v.dtype)
 
 
 class ComplexLinear(nn.Module):
@@ -225,7 +237,19 @@ class EquivVelocityField(nn.Module):
     def __init__(self, channels=136, vec_channels=34, n_blocks=8,
                  dilations=(1, 2, 4, 8), time_dim=128, env_hidden=128,
                  env_dim=128, env_vec=32, cond_dim=192, cond_vec=32, groups=8,
-                 box_dim=12, sg_dim=1, state_dim=3):
+                 box_dim=12, sg_dim=1, state_dim=3,
+                 #ORACLE DIAGNOSTIC, off by default -- see FlowVelocityField for
+                 #why it is not a method. It matters more here than there. The
+                 #only obstacle-derived m=1 signal reaching the trunk is
+                 #cv_cond, ONE vector per query broadcast to all N waypoints, so
+                 #"which way do I dodge, here" has no channel to arrive on; the
+                 #scalar stream carries per-waypoint geometry but reaches the
+                 #vector stream only through non-negative gates. The SDF
+                 #gradient splits cleanly along the irreps -- d and g_x are
+                 #invariant, g_yz is m=1 -- so it can enter both streams at the
+                 #right type and test whether that missing channel is the
+                 #bottleneck.
+                 local_geom=False):
         super().__init__()
         assert state_dim == 3, "SE(3) poses need a different irrep decomposition"
         assert sg_dim == 1, ("the equivariant backbone is for the reduced arm; "
@@ -233,7 +257,7 @@ class EquivVelocityField(nn.Module):
         self.state_dim = state_dim
         self.sg_dim = sg_dim
         self.time_dim = time_dim
-        self.local_geom = False
+        self.local_geom = local_geom
 
         self.obstacle_enc = EquivObstacleEncoder(env_hidden, env_vec, env_dim,
                                                  env_vec, box_dim)
@@ -244,8 +268,10 @@ class EquivVelocityField(nn.Module):
                                     nn.Linear(cond_dim, cond_dim))
         self.cond_v = ComplexLinear(env_vec, cond_vec)
 
-        self.in_s = nn.Conv1d(1, channels, 5, padding=2)
-        self.in_v = ComplexConv1d(1, vec_channels, 5)
+        #+2 invariants (the SDF value and the x component of its gradient) and
+        #+1 m=1 feature (the gradient's (y,z) part), each to its own stream
+        self.in_s = nn.Conv1d(1 + 2 * local_geom, channels, 5, padding=2)
+        self.in_v = ComplexConv1d(1 + local_geom, vec_channels, 5)
         self.blocks = nn.ModuleList([
             EquivBlock(channels, vec_channels, cond_dim + time_dim, cond_vec,
                        dilations[i % len(dilations)], groups)
@@ -268,6 +294,21 @@ class EquivVelocityField(nn.Module):
         cs_cond, cv_cond = c
         s = x[..., 0:1].transpose(1, 2)                       # (B,1,N)
         v = x[..., 1:3].transpose(1, 2)[:, None]              # (B,1,2,N)
+        if self.local_geom:
+            if spheres is None or boxes is None:
+                raise ValueError(
+                    "local_geom=True needs the obstacle tensors at decode(); "
+                    "pass the same frame-transformed tensors used for encode_cond"
+                )
+            from .sdf import scene_sdf_and_grad
+
+            d, g = scene_sdf_and_grad(x[..., :3], spheres, boxes,
+                                      sphere_mask, box_mask)
+            #d and g_x are invariant under the roll, g_yz rotates with it --
+            #which is the whole reason this can be added without breaking the
+            #constraint. test_equivariant.py checks it rather than trusting it.
+            s = torch.cat([s, d[:, None], g[..., 0][:, None]], dim=1)  # (B,3,N)
+            v = torch.cat([v, g[..., 1:3].transpose(1, 2)[:, None]], dim=1)
         s, v = self.in_s(s), self.in_v(v)
         t_emb = self.time_mlp(sinusoidal_embedding(t, self.time_dim))
         cs = torch.cat([t_emb, cs_cond], dim=-1)

@@ -213,6 +213,5 @@ def build_model(cfg):
     #scoring, so the failure would be confusing rather than informative.
     if cfg.pop("equivariant", False):
         from .equivariant import EquivVelocityField
-        cfg.pop("local_geom", None)
         return EquivVelocityField(**cfg)
     return FlowVelocityField(**cfg)

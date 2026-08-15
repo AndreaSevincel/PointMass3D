@@ -72,6 +72,14 @@ def parse_args():
     ap.add_argument("--split-by", choices=["traj", "pair", "env"], default="pair",
                     help="what val holds out. traj is LEAKY on this dataset "
                          "(30 near-duplicate paths per pair); pair is the default")
+    ap.add_argument("--vec-channels", type=int, default=34,
+                    help="width of the m=1 (rotating) stream in the equivariant "
+                         "backbone; the scalar stream uses --channels")
+    ap.add_argument("--env-vec", type=int, default=32,
+                    help="width of the m=1 stream in the equivariant obstacle "
+                         "encoder and conditioning (defaults differ from "
+                         "--vec-channels; changing either invalidates existing "
+                         "equivariant checkpoints)")
     ap.add_argument("--equivariant", action="store_true",
                     help="use the SO(2)-equivariant backbone instead of the "
                          "unconstrained one. Requires --reduced: the constraint "
@@ -313,12 +321,34 @@ def main():
         if not args.reduced:
             raise SystemExit("--equivariant requires --reduced: the SO(2) constraint "
                              "is about the roll the (s,g) reduction leaves behind")
-        if args.local_geom:
-            raise SystemExit("--equivariant with --local-geom is not implemented: the "
-                             "SDF gradient is an m=1 feature and would need to enter "
-                             "the vector stream, not be concatenated to the state")
-        cfg = {k: v for k, v in cfg.items() if k != "local_geom"}
+        #--local-geom IS supported here: the SDF gradient is split by irrep and
+        #routed to both streams (d, g_x -> scalars; g_yz -> the m=1 stream)
+        #rather than concatenated to the state, which is what the earlier
+        #version refused to guess at.
+        #
+        #Recorded explicitly rather than left to the module defaults. They were
+        #chosen to match the baseline at 2.15M, but make_model_config overrides
+        #channels/time_dim/cond_dim from the shared CLI flags, so what actually
+        #gets built is 2.58M -- 19% ABOVE the 2.16M baseline. Leaving that
+        #implicit is how the run/config disagreement went unnoticed; leaving it
+        #unrecorded would mean a checkpoint could not be rebuilt if a default
+        #ever moved.
+        #Three separate widths, NOT one. The first draft of this line set all
+        #three from --vec-channels and so moved env_vec/cond_vec from 32 to 34,
+        #which changes the architecture: 2,582,233 -> 2,584,649 parameters, and
+        #every checkpoint already on disk stops loading. The defaults below are
+        #the module's, so recording them is a no-op by construction.
+        cfg = {**cfg, "vec_channels": args.vec_channels,
+               "env_vec": args.env_vec, "cond_vec": args.env_vec}
         core = EquivVelocityField(**cfg).to(device)
+        from flowmatch.model import FlowVelocityField as _Base
+        base = sum(p.numel() for p in
+                   _Base(**{k: v for k, v in cfg.items()
+                            if k not in ("vec_channels", "env_vec", "cond_vec")}
+                         ).parameters())
+        got = sum(p.numel() for p in core.parameters())
+        print(f"capacity: equivariant {got:,} vs unconstrained {base:,} "
+              f"({100 * (got / base - 1):+.1f}%)")
         #recorded so build_model() rebuilds the right class at scoring time
         cfg = {**cfg, "equivariant": True}
     else:
