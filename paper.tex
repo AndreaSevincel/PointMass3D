@@ -260,6 +260,22 @@ world-frame arm is at the straight-line floor per sample, but well above the
 untrained prior per query, so it has learned sample \emph{diversity} without
 learning sample \emph{quality}.
 
+A reader may reasonably ask why a generative planner is worth studying on a
+problem with an exact SDF, where RRT-Connect solves essentially everything in a
+third of a second. We answer it here rather than by implication. PointMass3D is
+an analytical sandbox chosen \emph{because} the SDF is exact: an analytic
+collision checker makes the floor and the ceiling computable on the identical
+problems, so a representation change can be measured against both rather than
+only against other configurations of itself. On this benchmark one should use
+RRT-Connect, and we say so in Sec.~\ref{sec:baselines}. The measurement is worth
+making anyway because the quantity being isolated --- what a generative planner
+gains from being shown its query in a canonical frame --- is a property of the
+representation rather than of the collision checker, and it transfers to the
+settings where generative planners are the right instrument: learned or
+perceptual cost fields, contact-rich dynamics, multi-modal solution sets. None of
+those admit an analytic SDF, and a result of this kind can only be isolated where
+the confounds are removable.
+
 We regard (iii) as the transferable contribution. The residual is a few lines of
 code, costs one forward pass, requires no retraining, and can be computed on any
 model with a group action on its inputs. It converts ``we tried equivariance and
@@ -981,27 +997,29 @@ ablation is unresolved}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrl}
+\begin{tabular}{lrrl}
 \toprule
-Mechanism & $\Delta$ free & Assessment \\
+Mechanism & $20$ ep. & converged & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.1$ pp & $\pm0.4$ across seeds, $n{=}3$ \\
-\quad of which: 3 translations    & $+12.3$ pp & recentring alone \\
-\quad of which: 2 rotations       & $+18.0$ pp & aligning the axis \\
-$\SE$ augmentation (world frame)  & $+2.1$ pp  & real, but $7\%$ of the above \\
-Roll augmentation                 & $+0.8$ pp  & $\pm0.3$ paired, $n{=}3$; n.s. \\
-Frame averaging ($K{:}1\!\to\!3$) & $+0.1$ pp  & $0.05$ SE ($\approx 0$) \\
+$(\svec,\gvec)$ reduction (5 DOF) & $+30.1$ & $+36.5$ & $\pm0.4$ / $\pm0.3$, $n{=}3$ \\
+\quad of which: 3 translations    & $+12.3$ & --- & recentring alone \\
+\quad of which: 2 rotations       & $+18.0$ & --- & aligning the axis \\
+$\SE$ augmentation (world frame)  & $+2.1$  & --- & real, but $7\%$ of the above \\
+Roll augmentation                 & $+0.8$  & --- & $\pm0.3$ paired, $n{=}3$; n.s. \\
+Frame averaging ($K{:}1\!\to\!3$) & $+0.1$  & $+0.68$ & $\pm0.13$ converged, $n{=}3$ \\
 \bottomrule
 \end{tabular}
-\caption{Decomposition by mechanism on the same held-out set. Among the
-mechanisms tested, canonicalisation accounts for the effect, and both parts of it
-matter: recentring and axis alignment contribute $41\%$ and $59\%$ of the total.
-The reduction row is a three-seed difference; the $\SE$-augmentation and
-translation-only rows are single-seed arms and are therefore differenced against
-the SAME seed rather than against a three-seed mean.
-Neither mechanism built for the sixth degree of freedom is distinguishable from
-zero. The $\Delta$ column is against the arm without that mechanism, so the rows
-are not additive; the two indented rows decompose the row above them}
+\caption{Decomposition by mechanism on the same held-out set, in percentage
+points against the arm without that mechanism --- so the rows are not additive,
+and the two indented rows decompose the row above them. Canonicalisation accounts
+for the effect at either budget, and both of its parts matter: recentring and
+axis alignment contribute $41\%$ and $59\%$. The two columns are the same
+mechanisms measured at $20$ epochs and at convergence; reading only the first
+would put frame averaging at zero, which Sec.~\ref{sec:inert} shows is an
+artefact of the budget rather than a property of the mechanism. Dashes are
+comparisons we did not run to convergence. The $\SE$-augmentation and
+translation-only arms are single seed and are therefore differenced against the
+SAME seed, never against a three-seed mean}
 \label{tab:ablation}
 \end{table}
 
@@ -1039,13 +1057,71 @@ carries the effect on its own, which is worth knowing --- recentring is the
 trivially easy part of the reduction, and it accounts for two fifths of the
 benefit.
 
-Rather than infer inertness from flat curves, we measure $r$. On the best model
-$r=0.0168$ at $K{=}3$: under $2\%$ of the field is
-non-equivariant. By Eq.~\eqref{eq:budget} the squared error any equivariantisation
-can remove is at most $r^2$ of the field's squared magnitude, i.e.\ about
-under $3\times10^{-4}$, while the model is failing on more than half of its
-samples.
-The remaining error respects the symmetry and is untouchable by symmetrisation.
+Rather than infer that from flat curves, we measure $r$. On the best model
+$r=0.0168$ at $K{=}3$: under $2\%$ of the field is non-equivariant. By
+Eq.~\eqref{eq:budget} the squared error any equivariantisation can remove is at
+most $r^2$ of the field's squared magnitude, i.e.\ under $3\times10^{-4}$, while
+the model is failing on more than half of its samples. At \emph{this} budget the
+remaining error is overwhelmingly equivariant error, which no symmetrisation
+reaches.
+
+\textbf{But the budget is doing the work, not the mechanism.} Scoring every
+snapshot of the convergence runs at both $K{=}1$ and $K{=}3$ costs nothing extra
+and turns that single number into a curve. Across three seeds at $60$
+environments the gain rises from $+0.19$ early to $+0.68\pm0.13$ over the final
+eight snapshots, positive in every seed, while $r$ sits at $0.0180$--$0.0183$
+throughout. At $250$ environments it is steeper still: $+0.22$ at epoch $10$,
+peaking at $+1.57$ near epoch $180$, settling around $+0.9$, with $r$ moving only
+from $0.0163$ to $0.0173$. The mechanism the $20$-epoch grid cannot distinguish
+from zero is worth roughly seven times that on a converged model.
+
+That is what Corollary~\ref{cor:budget} predicts once it is read as a statement
+about \emph{proportions}. The anti-equivariant fraction of the field does not
+change with training, but the total error falls, so the share of the remaining
+error lying outside the equivariant subspace --- the only part symmetrisation can
+reach --- grows. The honest claim is therefore not that frame averaging is inert,
+but that its value scales inversely with how much equivariant error is left. At
+our main grid's budget there is far too much of it for the $r^2$ ceiling to
+matter; on a better model it begins to. The ordering of Table~\ref{tab:ablation}
+is unchanged either way --- $+0.68$ against the reduction's $+36.5$ --- but
+``inert'' is the wrong word.
+
+The statistics here are stronger than elsewhere in the paper, and it is worth
+saying why: $K{=}1$ and $K{=}3$ are evaluated on the same weights, the same
+problems and the same prior draws, so the difference is paired within a
+checkpoint and carries no seed variance at all. The across-seed standard error of
+$1.56$ points, which governs comparisons between separately trained arms, is
+simply the wrong noise model for it.
+
+\textbf{It is quality that drives this, not $r$.} The two are easy to conflate,
+so we separated them. Along the convergence curve $r$ is nearly constant while
+quality varies by $17$ points and the benefit grows sevenfold. To vary $r$
+instead, we restricted training to a cone of start--goal directions about the
+first axis, starving the reduced-frame data of the implicit roll diversity that
+makes the field near-equivariant in the first place. The manipulation works: at
+cone half-angles of $90$, $45$, $30$ and $15$ degrees, with training-set size and
+gradient-step count held fixed, $r$ rises monotonically through $0.0182$,
+$0.0192$, $0.0202$, $0.0238$. The frame-averaging benefit over the same sweep is
+$+0.02$, $-0.05$, $+0.44$, $-0.25$: scatter about zero, with the largest $r$
+giving the most negative gain.
+
+We report that sweep as an attempted decoupling that \emph{failed}, because it
+is confounded and saying so is more useful than the conclusion it appears to
+support. Narrowing the cone also costs generalisation --- $K{=}1$ falls from
+$31.4$ to $20.6$ --- so $r$ and quality move in opposite directions by
+construction, and a flat result is consistent both with $r$ being irrelevant and
+with $r$ mattering while quality cancels it. Re-scoring every arm on a common
+$15$-degree cone of held-out queries, a subset of all four training cones so that
+no arm extrapolates, lifts them all by about $15$ points and confirms that much
+of the collapse was distribution shift --- but it does not equalise them: the
+spread stays at $12$ points, because an arm trained on a narrow cone generalises
+worse even \emph{within} that cone despite seeing the same number of
+trajectories. And among the three arms whose quality does match ($45.0$, $46.0$,
+$46.9$), $r$ barely varies ($0.0195$, $0.0196$, $0.0187$). The only setting that
+moves $r$ appreciably is the one that destroys quality, so on this benchmark the
+cone dial cannot separate them. Read \emph{with} the convergence curve, where $r$
+is fixed and quality alone varies, the variable that tracks the benefit is
+quality.
 
 Two observations sharpen this. First, removing roll augmentation raises the
 residual by $64\%$ ($0.0170\!\to\!0.0279$ at $60$ environments) --- a large
@@ -1263,74 +1339,6 @@ that is the claim. The reduction is still gaining $0.6$ points per ten epochs at
 epoch $300$, so $55.8\%$ is a lower bound on what this architecture reaches and
 not a measured ceiling.
 
-\textbf{Frame averaging pays more as the model improves, and this qualifies
-Sec.~\ref{sec:inert}.} Scoring each snapshot at $K{=}1$ and $K{=}3$ costs nothing
-extra and turns the single ``$+0.1$ points'' measurement into a curve. The gain
-grows from $+0.08$ points at $20$ epochs to a mean of $+0.49$ over the final
-eight snapshots, positive in eight of eight, while $r$ stays flat at
-$0.0182$--$0.0183$ throughout.
-
-That is what Corollary~\ref{cor:budget} predicts once it is read as a statement
-about \emph{proportions}. The anti-equivariant fraction of the field does not
-change with training, but the total error falls, so the share of the remaining
-error that lies outside the equivariant subspace --- the only part symmetrisation
-can reach --- grows. The honest statement is therefore not that frame averaging
-is inert, but that its value scales inversely with how much equivariant error is
-left, and at the budget of our main grid there is far too much of that for the
-$r^2$ budget to matter. On a better model it begins to.
-
-Across three seeds at $60$ environments the gain averages $+0.68\pm0.13$ over
-the final eight snapshots against $+0.19$ early, and is positive in every seed,
-while $r$ sits at $0.0180$--$0.0183$ throughout. At $250$ environments the curve
-is steeper still: $+0.22$ at epoch $10$ rising to a peak of $+1.57$ at epoch
-$180$ and settling near $+0.9$, with $r$ moving only from $0.0163$ to $0.0173$. So the mechanism
-built for the sixth degree of freedom, which the $20$-epoch grid of
-Table~\ref{tab:ablation} scores at $+0.1$ and cannot distinguish from zero, is
-worth roughly nine times that on a converged model. It remains an order of
-magnitude below the reduction's $+41.4$, and the paper's ordering is unchanged;
-what changes is that ``inert'' is the wrong word for it.
-
-The statistics here are stronger than elsewhere in the paper and it is worth
-saying why: $K{=}1$ and $K{=}3$ are evaluated on the same weights, the same
-problems and the same prior draws, so the difference is paired within a
-checkpoint and carries no seed variance at all. The across-seed standard error of
-$1.56$ points, which governs comparisons between separately trained arms, is the
-wrong noise model for it.
-
-\textbf{It is quality that drives this, not $r$.} The two are easy to conflate,
-so we separated them. Along the convergence curve $r$ is nearly constant while
-quality varies by $17$ points, and the benefit grows ninefold. To vary $r$
-instead we restricted training to a cone of start--goal directions about the
-first axis, which starves the reduced-frame data of the implicit roll diversity
-that makes the field near-equivariant in the first place. The manipulation works:
-at cone half-angles of $90$, $45$, $30$ and $15$ degrees --- with training-set
-size and gradient-step count held fixed --- $r$ rises monotonically through
-$0.0182$, $0.0192$, $0.0202$, $0.0238$. The frame-averaging benefit over the same
-sweep is $+0.02$, $-0.05$, $+0.44$, $-0.25$: scatter about zero, with the largest
-$r$ giving the most negative gain.
-
-We state the limitation of that sweep rather than resting on it, because it is
-real. Narrowing the cone also costs generalisation --- $K{=}1$ falls from $31.4$
-to $20.6$ --- so $r$ and quality move in opposite directions by construction, and
-a flat result is consistent both with $r$ being irrelevant and with $r$ mattering
-while quality cancels it. The sweep alone cannot separate the two. Read
-\emph{with} the convergence curve, where $r$ is fixed and quality alone varies,
-the variable that tracks the benefit is quality.
-
-We attempted to decouple them and record that it did not work, because the
-failure is informative about the design rather than about $r$. The narrow-cone
-arms are scored on the full held-out set, spanning every direction, so most of
-their apparent collapse is distribution shift rather than anything about roll
-diversity. Re-scoring every arm on a common $15$-degree cone of held-out queries
---- a subset of all four training cones, so no arm extrapolates --- lifts them
-all by about $15$ points, confirming that diagnosis. It does not equalise them:
-the quality spread stays at $12$ points, because an arm trained on a narrow cone
-generalises worse even \emph{within} that cone despite seeing the same number of
-trajectories. And among the three arms whose quality does match ($45.0$, $46.0$,
-$46.9$), $r$ barely varies ($0.0195$, $0.0196$, $0.0187$). The only setting that
-moves $r$ appreciably is the one that destroys quality, so on this benchmark the
-cone dial cannot separate the two. We report the sweep as an attempted
-decoupling that failed, not as evidence in either direction.
 
 \subsection{Where the benefit comes from}
 \label{sec:mechanism}
@@ -1620,13 +1628,14 @@ is exactly the half the single-seed ablation leaves unresolved.
 
 \textbf{The learned planner loses to the classical ones.} Table~\ref{tab:baselines}
 is unambiguous: RRT-Connect solves essentially every problem in $0.28$\,s of
-single-core CPU time, and the best learned arm solves $45.5\%$ per sample. Part of
-this is budget --- the model is small ($2.16$M parameters) and briefly trained
-($20$ epochs) --- and part is that a $64$-waypoint unconditional-prior
-sampler is simply a weaker instrument than a complete planner on a problem with an
-exact SDF. We draw the comparison anyway, because a representation result that is
-only ever measured against other configurations of itself is not anchored to
-anything.
+single-core CPU time, while the best learned arm reaches $55.8\%$ per sample even
+trained to convergence. Part of the shortfall is capacity --- the model is small,
+at $2.16$M parameters --- and part is that a $64$-waypoint sampler from an
+unconditional prior is a weaker instrument than a complete planner on a problem
+with an exact SDF. What it is \emph{not}, any longer, is training budget:
+Sec.~\ref{sec:budget} runs both arms to a plateau. We draw the comparison anyway,
+because a representation result measured only against other configurations of
+itself is not anchored to anything.
 
 We are careful about how the underfitting claim is supported, because the obvious
 support is confounded. Comparing the epoch-averaged training loss against a
@@ -1655,23 +1664,19 @@ generalising our answer: the measurement is cheap and well defined wherever a
 group acts, even where our conclusion does not carry over. We do not claim it is
 predictive --- Sec.~\ref{sec:twosigns} shows it is not.
 
-\textbf{What the residual does and does not bound.} As stated in
-Sec.~\ref{sec:residual}, Corollary~\ref{cor:budget} only bounds post-hoc symmetrisation
-of a given model, not the achievable performance of a differently-parameterised
-equivariant model. A conclusive test would train an $\mathrm{SO}(2)$-equivariant
-backbone and compare, and we do not use the smallness of $r$ to argue that such
-an experiment would be low-yield. Sec.~\ref{sec:twosigns} shows that $r$ does not
-forecast what a symmetry mechanism is worth --- augmentation and canonicalisation
-reach the same $r$ and differ by $28$ points
---- so the smallness of $r$ cannot be turned around to predict that a constrained
-architecture would gain little. What rules out \emph{symmetrising this model} is
-Corollary~\ref{cor:budget}; what a differently parameterised equivariant model
-would achieve is untested.
+\textbf{The one comparison we cannot make.} Corollary~\ref{cor:budget} bounds
+post-hoc symmetrisation of a given field; a constrained architecture searches a
+different hypothesis class and is not covered by it. We are careful not to borrow
+the bound for that purpose, and Sec.~\ref{sec:twosigns} is why: $r$ does not
+forecast what a symmetry mechanism is worth, so its smallness cannot be turned
+around into a prediction that an $\mathrm{SO}(2)$-equivariant backbone would gain
+little. That experiment is the largest single gap in this work and we state it as
+untested rather than as unpromising.
 
-\textbf{One honest asterisk.} Frame averaging \emph{does} consistently improve
-endpoint error, by roughly $35\%$ ($0.0020\!\to\!0.0013$), on every checkpoint
-tested. This is a real effect. It simply does not propagate to the collision-free
-rate, because endpoint precision was not the failure mode.
+Frame averaging also improves endpoint error by roughly $35\%$
+($0.0020\!\to\!0.0013$) on every checkpoint tested --- a real effect that does not
+propagate to the collision-free rate, because endpoint precision was never the
+failure mode.
 
 \textbf{Dataset diversity.} The dataset is less diverse than its nominal size
 suggests: $30$ near-duplicate trajectories per pair means $10.8$M paths carry on
@@ -1687,39 +1692,15 @@ to saturation.
 \textbf{Ablations must be seed-matched, and at $n{=}3$ they are underpowered.}
 Comparing a three-seed mean against a single-seed ablation would put roll
 augmentation at $+4.4$ points. Seed $0$ happens to be the worst draw for
-\emph{both} arms ($31.3$ and $30.1$ against
-$36.0/35.8$ and $35.9/34.8$), so the mismatch manufactured most of the effect.
-Run at matched seeds the difference is $+0.8\pm0.3$. The lesson generalises: the
-treatment arm's across-seed spread is $1.6$ points, five times the paired spread
-of the ablation, so any ablation compared unpaired at this scale is measuring
-seed noise. Even paired, $n{=}3$ gives two degrees of freedom and a critical $t$
-of $4.3$; we can bound these mechanisms as small but cannot resolve whether they
-are zero.
-
-\textbf{Seeds are not yet at every scale.} The $20$- and $60$-environment cells
-of both main arms are means over three seeds; the $150$- and $250$-environment
-cells, and several ablations, remain single seed, which is why
-Sec.~\ref{sec:baselines} quotes the seed-matched $60$-environment difference for
-any inferential claim and treats the $250$-environment gap as a point estimate.
-The generative-objective concern that stood here in an earlier version ---
-that the effect might be specific to straight-line interpolants --- is now
-measured rather than open: Sec.~\ref{sec:objective} reports the same two arms
-under a DDPM objective, where the gap survives at $+16.7\pm0.4$.
-
-\textbf{Why a generative planner on a problem with an exact SDF?} The question
-is fair and we answer it directly rather than by implication. PointMass3D is an
-analytical sandbox, chosen \emph{because} the SDF is exact: an analytic collision
-checker makes the floor and the ceiling computable on the identical problems, so
-a representation change can be measured against both instead of only against
-other configurations of itself. On this benchmark one should use RRT-Connect,
-and we say so. The reason the measurement is worth making anyway is that the
-quantity being isolated --- how much a generative planner gains from being shown
-the query in a canonical frame --- is a property of the representation, not of
-the collision checker, and it transfers to the settings where generative planners
-are actually the right instrument: learned or perceptual cost fields, contact-rich
-dynamics, and multi-modal solution sets, none of which admit the analytic SDF
-this benchmark provides. A result of that kind can only be \emph{isolated} where
-the confounds are removable, which is here.
+\emph{both} arms ($31.3$ and $30.1$ against $36.0/35.8$ and $35.9/34.8$), so the
+mismatch manufactured most of the effect; run at matched seeds it is
+$+0.8\pm0.3$. The lesson generalises. The treatment arm's across-seed spread is
+$1.6$ points, five times the paired spread of the ablation, so any ablation
+compared unpaired at this scale is measuring seed noise. Even paired, $n{=}3$
+gives two degrees of freedom and a critical $t$ of $4.3$: we can bound these
+mechanisms as small but cannot resolve whether they are zero. All four cells of
+the main grid now carry three seeds; several ablations, and the converged DDPM
+cells, remain single seed and are reported as point estimates.
 
 \textbf{Extending beyond two points in $\mathbb{R}^3$.} The reduction needs a
 frame derivable from the query in closed form, which is what a start and a goal

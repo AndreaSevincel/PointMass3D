@@ -133,7 +133,8 @@ The internship ran in three stages, and this report follows them.
   \item[Stage 3 --- the symmetry study.] The $(\svec,\gvec)$ reduction, the two
   obstructions that show the sixth degree of freedom is not removable, the two
   mechanisms built for it, and the residual diagnostic that explains why they are
-  inert (Sec.~\ref{sec:method} onward).
+  worth little at the budget of the main grid, and why that qualifier matters
+  (Sec.~\ref{sec:method} onward).
 \end{description}
 
 \subsection{Contributions}
@@ -153,8 +154,9 @@ instead fails because the obstacle law is symmetric under central inversion, so
 the angular moment such a gauge would use vanishes in expectation.
 
 \textbf{(iii) The symmetry machinery buys little, and I measured why.} Rather
-than infer inertness from flat quality curves --- a weak conclusion --- I measured
-the quantity frame averaging exists to remove, and proved exactly what it bounds.
+than infer inertness from flat quality curves --- a weak conclusion, and as it
+turns out a budget-dependent one --- I measured the quantity frame averaging
+exists to remove, and proved exactly what it bounds.
 
 \textbf{(iv) Calibration, and two bottlenecks.} A collision-free rate on a new
 benchmark means nothing without a scale. Measuring the floor is what revealed
@@ -850,15 +852,19 @@ Neither half carries the effect on its own, which is worth knowing --- recentrin
 is the trivially easy part of the reduction and it accounts for two fifths of the
 benefit.
 
-\subsection{Why they are inert: the measured residual}
+\subsection{Why the residual is small, and why that is not the whole story}
 
-Rather than infer inertness from flat curves, I measured $r$. On the best model
+Rather than read anything off flat curves, I measured $r$. On the best model
 $r = 0.0168$ at $K=3$: under $2\%$ of the field is non-equivariant. By
 Eq.~\eqref{eq:budget} the squared error any equivariantisation can remove is at
 most $r^2$ of the field's squared magnitude, i.e.\ under $3 \times 10^{-4}$,
 while the model is failing on more than half of its samples. The two quantities
-are not the same order, and no rearrangement of the symmetry can close the gap.
-The remaining error respects the symmetry and is untouchable by symmetrisation.
+are not the same order, and at \emph{this} budget no rearrangement of the
+symmetry closes the gap: the remaining error is overwhelmingly equivariant error,
+which symmetrisation does not reach. Sec.~\ref{sec:budget} shows that the
+qualifier is doing real work --- trained to convergence, the same mechanism is
+worth $+0.68 \pm 0.13$ rather than $+0.1$ --- so this section establishes why
+frame averaging is small \emph{here}, not that it is inert in general.
 
 Two observations sharpen this.
 

@@ -1,8 +1,8 @@
 \contentsline {section}{\numberline {1}Introduction}{2}{section.1}%
 \contentsline {subsection}{\numberline {1.1}What I did, in the order I did it}{3}{subsection.1.1}%
 \contentsline {subsection}{\numberline {1.2}Contributions}{3}{subsection.1.2}%
-\contentsline {section}{\numberline {2}Stage 1: The PointMass3D benchmark}{3}{section.2}%
-\contentsline {subsection}{\numberline {2.1}Environments and queries}{3}{subsection.2.1}%
+\contentsline {section}{\numberline {2}Stage 1: The PointMass3D benchmark}{4}{section.2}%
+\contentsline {subsection}{\numberline {2.1}Environments and queries}{4}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}Expert trajectories}{4}{subsection.2.2}%
 \contentsline {subsection}{\numberline {2.3}A caveat about dataset size}{4}{subsection.2.3}%
 \contentsline {section}{\numberline {3}Stage 2: The flow-matching planner}{4}{section.3}%
@@ -20,7 +20,7 @@
 \contentsline {subsection}{\numberline {4.4}The non-equivariance residual}{8}{subsection.4.4}%
 \contentsline {paragraph}{What $r$ bounds.}{8}{section*.8}%
 \contentsline {paragraph}{What $r$ does not bound.}{8}{section*.9}%
-\contentsline {subsection}{\numberline {4.5}Implementation}{8}{subsection.4.5}%
+\contentsline {subsection}{\numberline {4.5}Implementation}{9}{subsection.4.5}%
 \contentsline {paragraph}{Oriented boxes.}{9}{section*.10}%
 \contentsline {paragraph}{Points and free vectors transform differently.}{9}{section*.11}%
 \contentsline {paragraph}{Verification.}{9}{section*.12}%
@@ -42,7 +42,7 @@
 \contentsline {paragraph}{Roll augmentation.}{13}{section*.23}%
 \contentsline {paragraph}{Frame averaging.}{13}{section*.24}%
 \contentsline {paragraph}{The reduction itself decomposes.}{13}{section*.25}%
-\contentsline {subsection}{\numberline {7.3}Why they are inert: the measured residual}{13}{subsection.7.3}%
+\contentsline {subsection}{\numberline {7.3}Why the residual is small, and why that is not the whole story}{13}{subsection.7.3}%
 \contentsline {subsection}{\numberline {7.4}What the residual does not predict}{14}{subsection.7.4}%
 \contentsline {subsection}{\numberline {7.5}Two bottlenecks, not one}{14}{subsection.7.5}%
 \contentsline {paragraph}{Two points in this domain, but eight-fold in the other.}{15}{section*.26}%

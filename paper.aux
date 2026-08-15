@@ -25,6 +25,7 @@
 \citation{yang2024equibot}
 \citation{puny2022fa}
 \citation{kaba2023canon}
+\newlabel{eq:equivariance}{{1}{2}{Introduction}{equation.1.1}{}}
 \citation{cohen2016gcnn}
 \citation{thomas2018tfn}
 \citation{fuchs2020se3t}
@@ -35,7 +36,6 @@
 \citation{ryu2023edf}
 \citation{wang2024equidp}
 \citation{yang2024equibot}
-\newlabel{eq:equivariance}{{1}{2}{Introduction}{equation.1.1}{}}
 \citation{puny2022fa}
 \citation{kaba2023canon}
 \citation{janner2022diffuser}
@@ -60,9 +60,9 @@
 \@writefile{toc}{\contentsline {subsection}{\numberline {A}Benchmark}{3}{subsection.3.1}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {B}Flow-matching planner}{3}{subsection.3.2}\protected@file@percent }
 \newlabel{eq:cfm}{{2}{3}{Flow-matching planner}{equation.3.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {IV}Method}{3}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Decomposing the group}{3}{subsection.4.1}\protected@file@percent }
 \citation{milnor1978hairy}
+\@writefile{toc}{\contentsline {section}{\numberline {IV}Method}{4}{section.4}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Decomposing the group}{4}{subsection.4.1}\protected@file@percent }
 \newlabel{eq:frame}{{3}{4}{Decomposing the group}{equation.4.3}{}}
 \newlabel{prop:exact}{{1}{4}{$\SE $ reduces to a single roll}{proposition.1}{}}
 \newlabel{eq:prop1}{{4}{4}{$\SE $ reduces to a single roll}{equation.4.4}{}}
@@ -80,38 +80,38 @@
 \newlabel{prop:fa}{{4}{5}{Exact $C_K$ equivariance and projection}{proposition.4}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {D}The non-equivariance residual}{5}{subsection.4.4}\protected@file@percent }
 \newlabel{sec:residual}{{IV-D}{5}{The non-equivariance residual}{subsection.4.4}{}}
-\newlabel{eq:resid}{{8}{5}{The non-equivariance residual}{equation.4.8}{}}
-\newlabel{cor:budget}{{5}{5}{Symmetrisation budget}{proposition.5}{}}
-\newlabel{eq:budget}{{9}{5}{Symmetrisation budget}{equation.4.9}{}}
+\newlabel{eq:resid}{{8}{6}{The non-equivariance residual}{equation.4.8}{}}
+\newlabel{cor:budget}{{5}{6}{Symmetrisation budget}{proposition.5}{}}
+\newlabel{eq:budget}{{9}{6}{Symmetrisation budget}{equation.4.9}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {E}Implementation}{6}{subsection.4.5}\protected@file@percent }
 \newlabel{sec:impl}{{IV-E}{6}{Implementation}{subsection.4.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {V}Experiments}{6}{section.5}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {A}Protocol}{6}{subsection.5.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {B}Calibration: floors and ceilings}{7}{subsection.5.2}\protected@file@percent }
-\newlabel{sec:baselines}{{V-B}{7}{Calibration: floors and ceilings}{subsection.5.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {V}Experiments}{7}{section.5}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {A}Protocol}{7}{subsection.5.1}\protected@file@percent }
 \@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}}{7}{table.1}\protected@file@percent }
 \newlabel{tab:baselines}{{1}{7}{The same $500$ held-out problems, solved five other ways. Classical timings are one CPU core and one query; the learned rows are one GPU and $20$ samples per query, so the time column is not a like-for-like comparison. Classical clearance is averaged over solved problems; the learned rows are per-sample rates at $250$ training environments}{table.1}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.1$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}}{7}{figure.1}\protected@file@percent }
 \newlabel{fig:baselines}{{1}{7}{Where the learned planner actually sits. The world-frame arm lies on the straight-line floor; the reduction lifts it by $30.1$ points; the classical planners remain far above. We show this rather than omit it: the contribution here is the representation result, not a competitive planner}{figure.1}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {B}Calibration: floors and ceilings}{7}{subsection.5.2}\protected@file@percent }
+\newlabel{sec:baselines}{{V-B}{7}{Calibration: floors and ceilings}{subsection.5.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}}{8}{table.2}\protected@file@percent }
 \newlabel{tab:prior}{{2}{8}{The untrained stochastic baseline: Brownian bridges pinned at the endpoints, $20$ samples per query, same collision check. Widening the prior buys nothing at any setting, so best-of-$N$ over random detours is not what a learned sampler is competing against}{table.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\mathrm  {SE}(3)$ motions of the whole problem. The world-frame arm gains $2.5$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.2$ and has not plateaued. Every world-frame and reduction cell is a mean over three seeds; the seed-matched differences are $+6.37\pm 0.19$, $+20.87\pm 1.56$, $+25.85\pm 0.37$ and $+30.08\pm 0.38$. The ``+aug.'' column is single seed, so it is not compared against a three-seed mean anywhere. The last column is the deployment metric, best-of-$20$ behind a collision check}}{8}{table.3}\protected@file@percent }
 \newlabel{tab:main}{{3}{8}{Held-out performance against training-set size. ``+aug.'' is the world-frame arm trained with random $\SE $ motions of the whole problem. The world-frame arm gains $2.5$ points across a $12.5\times $ increase in environments and augmentation adds at most $2.1$ more, while the reduction gains $26.2$ and has not plateaued. Every world-frame and reduction cell is a mean over three seeds; the seed-matched differences are $+6.37\pm 0.19$, $+20.87\pm 1.56$, $+25.85\pm 0.37$ and $+30.08\pm 0.38$. The ``+aug.'' column is single seed, so it is not compared against a three-seed mean anywhere. The last column is the deployment metric, best-of-$20$ behind a collision check}{table.3}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}}{8}{figure.2}\protected@file@percent }
-\newlabel{fig:scaling}{{2}{8}{The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}{figure.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {C}The reduction scales; the baseline does not}{8}{subsection.5.3}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Decomposition by mechanism on the same held-out set. Among the mechanisms tested, canonicalisation accounts for the effect, and both parts of it matter: recentring and axis alignment contribute $41\%$ and $59\%$ of the total. The reduction row is a three-seed difference; the $\mathrm  {SE}(3)$-augmentation and translation-only rows are single-seed arms and are therefore differenced against the SAME seed rather than against a three-seed mean. Neither mechanism built for the sixth degree of freedom is distinguishable from zero. The $\Delta $ column is against the arm without that mechanism, so the rows are not additive; the two indented rows decompose the row above them}}{9}{table.4}\protected@file@percent }
-\newlabel{tab:ablation}{{4}{9}{Decomposition by mechanism on the same held-out set. Among the mechanisms tested, canonicalisation accounts for the effect, and both parts of it matter: recentring and axis alignment contribute $41\%$ and $59\%$ of the total. The reduction row is a three-seed difference; the $\SE $-augmentation and translation-only rows are single-seed arms and are therefore differenced against the SAME seed rather than against a three-seed mean. Neither mechanism built for the sixth degree of freedom is distinguishable from zero. The $\Delta $ column is against the arm without that mechanism, so the rows are not additive; the two indented rows decompose the row above them}{table.4}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}}{9}{figure.2}\protected@file@percent }
+\newlabel{fig:scaling}{{2}{9}{The gap widens with data. If canonicalisation were compensating for a shortage of training data one would expect it to close; instead the world-frame baseline is nearly flat while the reduced model continues to improve. The hollow marker is the no-roll ablation, drawn on the treatment line because it is the same arm with one component removed}{figure.2}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {D}Frame averaging's value scales with model quality; the roll ablation is unresolved}{9}{subsection.5.4}\protected@file@percent }
 \newlabel{sec:inert}{{V-D}{9}{Frame averaging's value scales with model quality; the roll ablation is unresolved}{subsection.5.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {E}What the residual does not predict}{9}{subsection.5.5}\protected@file@percent }
-\newlabel{sec:twosigns}{{V-E}{9}{What the residual does not predict}{subsection.5.5}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces Decomposition by mechanism on the same held-out set, in percentage points against the arm without that mechanism --- so the rows are not additive, and the two indented rows decompose the row above them. Canonicalisation accounts for the effect at either budget, and both of its parts matter: recentring and axis alignment contribute $41\%$ and $59\%$. The two columns are the same mechanisms measured at $20$ epochs and at convergence; reading only the first would put frame averaging at zero, which Sec.\nobreakspace  {}\ref {sec:inert} shows is an artefact of the budget rather than a property of the mechanism. Dashes are comparisons we did not run to convergence. The $\mathrm  {SE}(3)$-augmentation and translation-only arms are single seed and are therefore differenced against the SAME seed, never against a three-seed mean}}{9}{table.4}\protected@file@percent }
+\newlabel{tab:ablation}{{4}{9}{Decomposition by mechanism on the same held-out set, in percentage points against the arm without that mechanism --- so the rows are not additive, and the two indented rows decompose the row above them. Canonicalisation accounts for the effect at either budget, and both of its parts matter: recentring and axis alignment contribute $41\%$ and $59\%$. The two columns are the same mechanisms measured at $20$ epochs and at convergence; reading only the first would put frame averaging at zero, which Sec.~\ref {sec:inert} shows is an artefact of the budget rather than a property of the mechanism. Dashes are comparisons we did not run to convergence. The $\SE $-augmentation and translation-only arms are single seed and are therefore differenced against the SAME seed, never against a three-seed mean}{table.4}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces (a) Canonicalisation is seven times the next largest mechanism. The band is $\pm 2$ across-seed standard errors, measured on the treatment arm at $60$ environments; frame averaging sits inside it, and the roll-augmentation bar rests on a single-seed ablation. (b) The non-equivariance residual of Eq.\nobreakspace  {}\eqref  {eq:resid} is flat across a $12.5\times $ range of training data --- it is not something the model acquires from seeing more layouts. The hollow marker shows that removing roll augmentation raises the residual by $64\%$ but leaves it under $3\%$}}{10}{figure.3}\protected@file@percent }
 \newlabel{fig:mechanisms}{{3}{10}{(a) Canonicalisation is seven times the next largest mechanism. The band is $\pm 2$ across-seed standard errors, measured on the treatment arm at $60$ environments; frame averaging sits inside it, and the roll-augmentation bar rests on a single-seed ablation. (b) The non-equivariance residual of Eq.~\eqref {eq:resid} is flat across a $12.5\times $ range of training data --- it is not something the model acquires from seeing more layouts. The hollow marker shows that removing roll augmentation raises the residual by $64\%$ but leaves it under $3\%$}{figure.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces The residual does not predict what a mechanism is worth. Augmentation and canonicalisation leave the learned field equally equivariant, and differ by $28$ points of held-out performance. Both columns are read from the SAME seed-0 checkpoints, since $r$ is a property of a particular trained field; the three-seed mean for the reduction row is $45.5$}}{10}{table.5}\protected@file@percent }
-\newlabel{tab:twosigns}{{5}{10}{The residual does not predict what a mechanism is worth. Augmentation and canonicalisation leave the learned field equally equivariant, and differ by $28$ points of held-out performance. Both columns are read from the SAME seed-0 checkpoints, since $r$ is a property of a particular trained field; the three-seed mean for the reduction row is $45.5$}{table.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {F}How much of the level is training budget}{10}{subsection.5.6}\protected@file@percent }
-\newlabel{sec:budget}{{V-F}{10}{How much of the level is training budget}{subsection.5.6}{}}
+\@writefile{lot}{\contentsline {table}{\numberline {5}{\ignorespaces The residual does not predict what a mechanism is worth. Augmentation and canonicalisation leave the learned field equally equivariant, and differ by $28$ points of held-out performance. Both columns are read from the SAME seed-0 checkpoints, since $r$ is a property of a particular trained field; the three-seed mean for the reduction row is $45.5$}}{11}{table.5}\protected@file@percent }
+\newlabel{tab:twosigns}{{5}{11}{The residual does not predict what a mechanism is worth. Augmentation and canonicalisation leave the learned field equally equivariant, and differ by $28$ points of held-out performance. Both columns are read from the SAME seed-0 checkpoints, since $r$ is a property of a particular trained field; the three-seed mean for the reduction row is $45.5$}{table.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {E}What the residual does not predict}{11}{subsection.5.5}\protected@file@percent }
+\newlabel{sec:twosigns}{{V-E}{11}{What the residual does not predict}{subsection.5.5}{}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {F}How much of the level is training budget}{11}{subsection.5.6}\protected@file@percent }
+\newlabel{sec:budget}{{V-F}{11}{How much of the level is training budget}{subsection.5.6}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {6}{\ignorespaces What the scene code knows about the query. Ridge probes from the $128$-d obstacle embedding, and from the full conditioning vector, to the minimum clearance along the straight line from $\mathbf  {s}$ to $\mathbf  {g}$ --- the single thing a planner most needs to know about a query. Fitted and scored on \emph  {disjoint} environments, so a probe cannot memorise a scene; the conditioning row is the best score over $\lambda \in [1, 10^4]$}}{12}{table.6}\protected@file@percent }
 \newlabel{tab:probe}{{6}{12}{What the scene code knows about the query. Ridge probes from the $128$-d obstacle embedding, and from the full conditioning vector, to the minimum clearance along the straight line from $\svec $ to $\gvec $ --- the single thing a planner most needs to know about a query. Fitted and scored on \emph {disjoint} environments, so a probe cannot memorise a scene; the conditioning row is the best score over $\lambda \in [1, 10^4]$}{table.6}{}}
 \@writefile{toc}{\contentsline {subsection}{\numberline {G}Where the benefit comes from}{12}{subsection.5.7}\protected@file@percent }
@@ -134,7 +134,6 @@
 \newlabel{sec:cost}{{V-K}{14}{Cost}{subsection.5.11}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {VI}Discussion and Limitations}{14}{section.6}\protected@file@percent }
 \newlabel{sec:limits}{{VI}{14}{Discussion and Limitations}{section.6}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{16}{section.7}\protected@file@percent }
 \bibstyle{plain}
 \bibcite{albergo2023interpolants}{1}
 \bibcite{bronstein2021gdl}{2}
@@ -142,6 +141,7 @@
 \bibcite{chi2023dp}{4}
 \bibcite{cohen2016gcnn}{5}
 \bibcite{deng2021vn}{6}
+\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{16}{section.7}\protected@file@percent }
 \bibcite{elesedy2021strict}{7}
 \bibcite{fishman2022mpinets}{8}
 \bibcite{fuchs2020se3t}{9}

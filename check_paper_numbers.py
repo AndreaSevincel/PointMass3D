@@ -80,7 +80,7 @@ REQUIRED = {
     "converged gap at 60, 3 seeds": r"\+36\.5",
     "frame averaging at convergence, 3 seeds": r"\+0\.68",
     "DDPM converged gap": r"\+37\.0",
-    "cone decoupling failed": r"attempted\s*\n?decoupling that failed",
+    "cone decoupling failed": r"attempted decoupling that\s*\n?\\emph\{failed\}",
 }
 
 #Figure constants that must match the tables. Checked separately because they
