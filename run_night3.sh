@@ -19,7 +19,11 @@ cd "$(dirname "$(readlink -f "$0")")"
 mkdir -p logs results/conv checkpoints/conv
 
 PY=.venv/bin/python
-ARMS=(equiv2-e60-conv-s0 equivgeo-e60-conv-s0)
+#Arms to watch, as arguments: ./run_night3.sh treatgeo-e60-conv-s0 equiv2-e60-conv-s1
+#NOT ("${@:-a b}") -- that expands the default as ONE word, so the loop would
+#watch a single arm named "a b" and silently score nothing.
+ARMS=("$@")
+[ ${#ARMS[@]} -eq 0 ] && ARMS=(equiv2-e60-conv-s0 equivgeo-e60-conv-s0)
 say() { echo "[$(date -Is)] $*"; }
 
 # Match the TRAINER specifically. Matching the bare run name would also match
@@ -44,13 +48,20 @@ score_new() {
   return 0
 }
 
+any_training() {
+  local a
+  for a in "${ARMS[@]}"; do training "$a" && return 0; done
+  return 1
+}
+
 say "watching ${ARMS[*]}"
-while training "equiv2-e60" || training "equivgeo-e60"; do
+while any_training; do
   for a in "${ARMS[@]}"; do score_new "$a"; done
   sleep 600
 done
 say "training finished; final scoring pass"
 for a in "${ARMS[@]}"; do score_new "$a"; done
+exit 0
 
 # Both GPUs are now free. The val-loss curve says the v1 backbone stopped
 # improving at epoch 40 and got WORSE by 70, while the unconstrained arm
