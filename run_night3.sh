@@ -54,6 +54,19 @@ any_training() {
   return 1
 }
 
+#Wait for the trainers to appear before deciding they are finished. Launching
+#the watcher and the trainer in the same shell block is a race the watcher can
+#win: pgrep finds nothing, any_training is false on the first evaluation, and
+#the loop falls straight through to the final pass and exits -- leaving a real
+#training run with nothing scoring its snapshots. Cost of being wrong here is
+#one wasted overnight, so wait generously.
+say "waiting for ${ARMS[*]} to start"
+for _ in $(seq 60); do
+  any_training && break
+  sleep 10
+done
+any_training || { say "ERROR: none of ${ARMS[*]} started within 10 min"; exit 1; }
+
 say "watching ${ARMS[*]}"
 while any_training; do
   for a in "${ARMS[@]}"; do score_new "$a"; done

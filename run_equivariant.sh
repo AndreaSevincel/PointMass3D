@@ -24,9 +24,15 @@
 #
 # Every outcome is reportable; only the third would be a surprise.
 #
-# Capacity is matched to 0.8% (2.144M against 2.161M), deliberately: a
-# constrained model that is also smaller confounds architecture with capacity,
-# and the uncharitable reading is the one a reviewer reaches for.
+# Capacity is NOT matched, and the earlier claim here that it was matched to
+# 0.8% was wrong: the run builds 2.582M parameters against the unconstrained
+# 2.161M, i.e. 19.5% MORE. The module defaults were chosen to match, but
+# make_model_config overrides channels/time_dim/cond_dim from the shared CLI
+# flags, so those defaults never reach a run. Left as-is deliberately, because
+# the direction is favourable: a constrained model that is also SMALLER
+# confounds architecture with capacity and invites the uncharitable reading,
+# whereas one that is larger and still no better at the ceiling does not.
+# train_flow.py now prints the comparison at startup so it cannot drift again.
 
 set -uo pipefail
 cd "$(dirname "$(readlink -f "$0")")"

@@ -81,6 +81,22 @@ REQUIRED = {
     "frame averaging at convergence, 3 seeds": r"\+0\.68",
     "DDPM converged gap": r"\+37\.0",
     "cone decoupling failed": r"attempted decoupling that\s*\n?\\emph\{failed\}",
+    #--- the constrained architecture, measured 2026-08-18 -------------------
+    "equivariant backbone at convergence": r"\+0\.05",
+    "equivariant backbone, epoch 10": r"\+13\.3",
+    "equivariant parameter count": r"2\{,\}582\{,\}233",
+    "unconstrained parameter count": r"2\{,\}161\{,\}283",
+    "equivariant capacity is LARGER": r"19\.5\\%",
+    "equivariance verified untrained": r"1\.2\\times10\^\{-6\}",
+    "equivariance test is not vacuous": r"5\.03",
+    #--- local geometry ------------------------------------------------------
+    "local geometry, world frame": r"54\.5",
+    "local geometry, reduction": r"79\.2",
+    "local geometry + equivariant": r"82\.2",
+    "geometry beats the reduction": r"\+39\.5",
+    "reduction survives a good encoder": r"\+24\.7",
+    "sub-additive": r"90\.3",
+    "equivariance pays only with geometry": r"\+3\.0",
 }
 
 #Figure constants that must match the tables. Checked separately because they
@@ -128,6 +144,13 @@ FORBIDDEN = {
     r"not isotropic in the plane normal": "false; an i.i.d. bridge has covariance "
                                           "sigma^2 g(1-g) I and is roll-invariant. The real "
                                           "cost is the singular endpoint covariance",
+    #--- retired when the equivariant backbone was actually built ------------
+    r"untested rather than as unpromising": "the constrained architecture has been "
+                                            "built and measured; see Sec. arch",
+    r"largest single gap in this work": "same -- the gap is closed",
+    r"explicitly cannot make": "the comparison was made",
+    r"The two mechanisms built for the sixth": "there are three now, all measured",
+    r"honest answer is currently ``untested''": "it is measured",
 }
 
 def main():

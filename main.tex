@@ -73,9 +73,16 @@ Holding architecture, data and budget fixed and varying only the representation
 raises the held-out per-sample collision-free rate from $15.4\%$ to $45.5\%$, a
 gap of $+30.08 \pm 0.38$ points across three seeds, and the gap \emph{widens}
 with training data rather than
-shrinking. The two mechanisms built for the sixth degree of freedom are worth
-$+0.8 \pm 0.3$ and $+0.1$ points, neither distinguishable from zero at three
-seed-matched runs. I explain this rather than merely reporting it, by measuring
+shrinking. All three mechanisms built for the sixth degree of freedom are worth
+almost nothing at convergence: roll augmentation $+0.8 \pm 0.3$, frame averaging
+$+0.68$, and an exactly $\SO(2)$-equivariant backbone $+0.05$, seed-matched. The
+architecture is not pointless, though --- it reaches in a quarter of the epochs
+what the unconstrained model needs to converge, so the symmetry buys optimisation
+rather than accuracy. I also bound my own contribution from above: supplying each
+waypoint with the signed distance to the scene and its gradient is worth $+39.5$
+points where the reduction is worth $+35.8$, so the representation change studied
+here is not the largest effect available on this benchmark --- and yet, with that
+information supplied, the reduction is still worth $+24.7$. I explain this rather than merely reporting it, by measuring
 the \emph{non-equivariance residual}: only about $1.7\%$ of the learned velocity
 field lies outside the equivariant subspace, and frame averaging is exactly the
 orthogonal projection onto it, so that $1.7\%$ is the whole budget any post-hoc
@@ -930,6 +937,156 @@ of how it was trained. That is the sharpest form of the point: $r$ being small i
 compatible with having solved the problem, with having learned the symmetry and
 nothing else, and with having learned nothing at all.
 
+\subsection{The third mechanism: I built the equivariant architecture}
+\label{sec:arch}
+
+Sec.~\ref{sec:sixth} lists three places a symmetry can be imposed --- in the
+data, in the operator, or in the weights --- and for most of this internship I
+had measured only the first two. I was careful not to let the budget corollary
+stand in for the third, because it bounds post-hoc projection of a field I
+already have, not a model searching a different hypothesis class. This section
+reports the experiment I was missing.
+
+The backbone is exactly $\mathrm{SO}(2)$-equivariant about the start--goal axis
+by construction. I separate features by irreducible representation: the
+component along the axis is invariant, and the pair in the normal plane rotates
+together as one complex number. Only operations that respect the separation are
+allowed --- complex-linear channel mixing, obstacle pooling whose attention
+weights are computed from invariants alone, normalisation of the rotating stream
+by an invariant quantity, and gating of that stream by scalars. I verified the
+property on an \emph{untrained} network, which is the case that matters: it
+shows equivariance comes from the structure of the weights rather than from
+having been trained in. The error is $1.2\times10^{-6}$ and survives multiplying
+every parameter by three. The same test reports $5.03$ for a rotation off the
+axis, which is the control that stops it passing vacuously --- a network that
+ignored its vector inputs entirely would be trivially equivariant and would fail
+that second check.
+
+I did not match capacity downward. At the shared hyper-parameters the
+constrained model has $2{,}582{,}233$ parameters against the unconstrained
+backbone's $2{,}161{,}283$, which is $19.5\%$ more. That was deliberate: a
+constrained model that is also smaller confounds the architecture with capacity,
+and I would rather defend a comparison against a larger model than a smaller one.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Epoch & Equivariant & Unconstrained & $\Delta$ \\
+\midrule
+$10$  & $35.4$ & $22.1$ & $+13.3$ \\
+$40$  & $44.6$ & $37.9$ & $+6.7$ \\
+$100$ & $48.7$ & $45.8$ & $+2.9$ \\
+$300$ & $51.3$ & $51.1$ & $+0.05$ \\
+\bottomrule
+\end{tabular}
+\caption{The equivariant backbone against the unconstrained one at $60$
+environments, identical data and schedule. The final row is seed-matched over
+two runs: $50.9$ against $50.8$, and $51.6$ against $51.6$.}
+\label{tab:arch}
+\end{table}
+
+The answer, in Table~\ref{tab:arch}, is that the constraint buys training
+efficiency and not a higher ceiling. The equivariant model reaches at epoch $10$
+what the unconstrained one needs epoch $40$ to reach, and at epoch $40$ what it
+needs epoch $90$ to reach. By convergence the difference is $+0.05$ points,
+which is zero. The same shape appears at $250$ environments, where it reaches
+$54.8$ by epoch $80$ against $51.6$.
+
+I find this the most satisfying result in the report, because all three
+mechanisms now agree. Roll augmentation is worth $+0.8$, frame averaging
+$+0.68$, and a constrained architecture $+0.05$. Three unrelated ways of
+imposing the same symmetry all recover almost nothing, which is a much stronger
+claim than any one of them makes alone.
+
+It also shows exactly how far my earlier reasoning was wrong. I had argued from
+the smallness of $r$ that an equivariant architecture would gain little, and
+Sec.~\ref{sec:twosigns} had already established that inference was unsound. Here
+the conclusion it pointed at happens to be right about the ceiling and entirely
+misses the fourfold saving in optimisation --- a residual measured on a converged
+model says nothing about the path taken to get there. Being right for a bad
+reason is still being wrong.
+
+\paragraph{A bug worth recording.} My first implementation of this backbone
+plateaued at $22.2\%$ and overfitted from epoch $40$ onward, and the mathematics
+was correct throughout --- every equivariance test passed at
+$10^{-6}$. The fault was in how information moved through it. I was pooling the
+obstacles' rotating features by taking their mean, and the mean of a roughly
+symmetric cloud of directions is close to nothing: I measured that it retained
+$14\%$ of a typical obstacle's magnitude. The one channel carrying ``which way do
+the obstacles lie'' was arriving empty. Replacing the mean with attention
+weights computed from invariants, and adding the normalisation the rotating
+stream was missing, produced the numbers above. \emph{Correct and useless are
+different failure modes, and only one of them has a test.}
+
+\subsection{Local geometry, and how much of my result it explains}
+\label{sec:localgeom}
+
+Late in the internship I ran an experiment that I expected to be a diagnostic
+and that turned out to be the largest effect in the project.
+
+The obstacle encoder pools $40$ obstacles into a single scene vector, and FiLM
+applies that vector identically to all $64$ waypoints, so an individual waypoint
+has no channel through which to ask what is near \emph{it} --- although
+collision avoidance is precisely that question. Sec.~\ref{sec:mechanism} shows
+the reduction addresses this indirectly, by making the scene code vary with the
+query. It can also be addressed head-on: I append to each waypoint the signed
+distance to the scene and its gradient there, which for the constrained backbone
+splits neatly by irreducible representation, since $d$ and the axial component of
+$\nabla d$ are invariant while the normal component rotates.
+
+I want to be careful about what this is. It is a featurisation, not an oracle:
+the signed distance is a deterministic function of the obstacle primitives the
+network already receives, so no privileged information enters. What it assumes
+is that obstacles are given as explicit primitives at inference time, which is
+true here and false for a planner working from perception.
+
+\begin{table}[t]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+$60$ environments, converged & Global only & $+$ local & $\Delta$ \\
+\midrule
+World frame                    & $15.0$ & $54.5$ & $+39.5$ \\
+$(\svec,\gvec)$ reduction      & $50.8$ & $79.2$ & $+28.4$ \\
+\quad $+$ equivariant backbone & $50.9$ & $\mathbf{82.2}$ & $+31.3$ \\
+\midrule
+\emph{reduction contributes}   & $+35.8$ & $+24.7$ & \\
+\bottomrule
+\end{tabular}
+\caption{Local geometry against the query frame. Every cell is seed $0$, so the
+differences are seed-matched; the three-seed means for the two upper-left cells
+are $14.60\pm0.20$ and $51.10\pm0.25$. The right-hand column is a single seed
+so far.}
+\label{tab:localgeom}
+\end{table}
+
+The uncomfortable number first. \textbf{Local geometry is worth more than my
+reduction is.} Against the world frame it buys $+39.5$ points where the
+reduction buys $+35.8$. The representation change this report is about is not
+the largest effect available on its own benchmark, and I would rather say that
+myself than have it pointed out to me. What survives is the claim I actually
+want to make: a frame derived from the query is worth a great deal at zero
+cost --- not that symmetry is the dominant consideration when designing a
+generative planner.
+
+The obvious follow-up is whether my reduction was only ever a workaround for a
+weak obstacle encoder. If it were, supplying per-waypoint geometry should absorb
+its benefit. \textbf{It does not.} With local geometry present the reduction is
+still worth $+24.7$ points. I ran that cell specifically to find out whether it
+would overturn the main result of the internship, and it did not.
+
+The two effects are sub-additive: treating them as independent predicts
+$15.0+35.8+39.5=90.3$ and the measured value is $79.2$. That is what I would
+expect, since both attack the same difficulty --- relating the geometry of the
+query to the geometry of the scene --- and neither subsumes the other. One last
+observation, which I like because the architecture predicts it: the equivariant
+backbone is worth $+0.1$ points without local geometry and $+3.0$ with it. The
+rotating stream has nothing to act on until directional information reaches
+individual waypoints; once it does, constraining that stream starts to matter.
+
 \subsection{Two bottlenecks, not one}
 \label{sec:budget}
 
@@ -1344,10 +1501,9 @@ points and runs $1.4\times$ faster, so $8$ steps is used throughout.
 \section{Corrections}
 \label{sec:corrections}
 
-Four claims I made during the internship turned out to be wrong. I record them
+Five claims I made during the internship turned out to be wrong. I record them
 because in each case the corrected statement is more useful than the original,
-and because two of them are mistakes that would be easy for someone else to
-repeat.
+and because several are mistakes that would be easy for someone else to repeat.
 
 \paragraph{1. I thought the reduced representation was bit-identical under rigid
 motion.} It is not. The gauge is built from a fixed world axis, so a global
@@ -1383,6 +1539,19 @@ becomes more equivariant with data, so an equivariant architecture would
 constrain something already free''), and that argument does not survive. The
 replacement is Sec.~\ref{sec:twosigns}, which is a stronger result reached by a
 different route.
+
+\paragraph{5. I decided not to build the equivariant architecture, and gave two
+reasons, and both were wrong.} I argued that the residual was small and falling
+with scale, so a constrained architecture would be enforcing a property that was
+arriving on its own. The trend was an artefact (correction 4), and
+Sec.~\ref{sec:twosigns} shows the level does not predict what a mechanism is
+worth either. When I finally built it (Sec.~\ref{sec:arch}) the ceiling was
+indeed unchanged, at $+0.05$ points --- so the conclusion I had reached was
+right, by an argument that does not support it, and it missed entirely the
+fourfold saving in optimisation that the architecture does deliver. This is the
+correction I find most instructive: a reasonable-sounding argument produced the
+right answer to the question I asked and hid a better answer to the question I
+should have asked.
 
 \section{Discussion and limitations}
 \label{sec:limits}
@@ -1432,8 +1601,10 @@ the smallness of $r$ to argue that such an experiment would be low-yield ---
 Sec.~\ref{sec:twosigns} shows that $r$ does not forecast what a symmetry
 mechanism is worth, so its smallness cannot be turned around to predict that a
 constrained architecture would gain little. What rules out \emph{symmetrising
-this model} is Eq.~\eqref{eq:budget}; what a constrained architecture would
-achieve is untested, and is the largest single gap in this work.
+this model} is Eq.~\eqref{eq:budget}. What a constrained architecture achieves
+was the largest gap in this work until I closed it: Sec.~\ref{sec:arch} reports
+$+0.05$ points at the ceiling and roughly a fourfold saving in optimisation, and
+neither number was predictable from $r$.
 
 \paragraph{One honest asterisk.} Frame averaging \emph{does} consistently improve
 endpoint error, by roughly $35\%$ ($0.0020 \to 0.0013$), on every checkpoint
@@ -1484,9 +1655,11 @@ post-hoc symmetrisation, which is a precise and useful decision rule; if it does
 not pay even at large $r$, that is the harder negative. It is also the cheapest
 experiment left, which is why it now goes first.
 
-\paragraph{2. An $\SO(2)$-equivariant backbone.} The comparison this work
-explicitly cannot make. It is the first question a reader will ask, and the
-honest answer is currently ``untested''.
+\paragraph{2. Seeds on the local-geometry arms.} The four cells of
+Table~\ref{tab:localgeom} that use local geometry are single-seed, where every
+other comparison in this report carries three. Two more rounds of training fix
+the two cells that carry the argument, and nothing in
+Sec.~\ref{sec:localgeom} should be quoted without that caveat until they land.
 
 \paragraph{3. The Brownian-bridge prior.} For the reasons in
 Sec.~\ref{sec:bridge}: the symmetry objection I originally raised does not hold,

@@ -32,6 +32,11 @@ MECHANISMS = [
     ("SE(3) augmentation\n(world frame)", 2.1),
     ("roll augmentation\n(training)", 0.8),
     ("frame averaging\n($K{=}1\\to3$)", 0.1),
+    # the third mechanism, measured 2026-08-18: seed-matched at convergence the
+    # constrained architecture is worth +0.05 at the CEILING. Its real value is
+    # a ~4x saving in optimisation, which this bar chart cannot show -- the
+    # caption has to say so, or the figure understates the result.
+    ("$\\mathrm{SO}(2)$-equivariant\nbackbone (weights)", 0.05),
 ]
 # across-SEED standard error at 60 envs, treatment arm (n=3). This is the right
 # floor for a claim about a method; the old 2.0 came from the spread over

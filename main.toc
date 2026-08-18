@@ -5,32 +5,32 @@
 \contentsline {subsection}{\numberline {2.1}Environments and queries}{4}{subsection.2.1}%
 \contentsline {subsection}{\numberline {2.2}Expert trajectories}{4}{subsection.2.2}%
 \contentsline {subsection}{\numberline {2.3}A caveat about dataset size}{4}{subsection.2.3}%
-\contentsline {section}{\numberline {3}Stage 2: The flow-matching planner}{4}{section.3}%
+\contentsline {section}{\numberline {3}Stage 2: The flow-matching planner}{5}{section.3}%
 \contentsline {subsection}{\numberline {3.1}The Brownian-bridge prior: considered, and not adopted}{5}{subsection.3.1}%
 \contentsline {section}{\numberline {4}Stage 3: Method}{5}{section.4}%
 \contentsline {subsection}{\numberline {4.1}Decomposing the symmetry group}{5}{subsection.4.1}%
 \contentsline {paragraph}{What the reduction is invariant to, exactly.}{6}{section*.2}%
 \contentsline {subsection}{\numberline {4.2}Why the sixth degree of freedom is not removable}{6}{subsection.4.2}%
 \contentsline {paragraph}{Obstruction from geometry.}{6}{section*.3}%
-\contentsline {paragraph}{Obstruction from the scene.}{6}{section*.4}%
+\contentsline {paragraph}{Obstruction from the scene.}{7}{section*.4}%
 \contentsline {subsection}{\numberline {4.3}Three ways to handle the leftover roll}{7}{subsection.4.3}%
 \contentsline {paragraph}{Roll augmentation (in the data).}{7}{section*.5}%
-\contentsline {paragraph}{Frame averaging (in the operator).}{7}{section*.6}%
+\contentsline {paragraph}{Frame averaging (in the operator).}{8}{section*.6}%
 \contentsline {paragraph}{An $\mathrm {SO}(2)$-equivariant architecture (in the weights).}{8}{section*.7}%
 \contentsline {subsection}{\numberline {4.4}The non-equivariance residual}{8}{subsection.4.4}%
 \contentsline {paragraph}{What $r$ bounds.}{8}{section*.8}%
-\contentsline {paragraph}{What $r$ does not bound.}{8}{section*.9}%
+\contentsline {paragraph}{What $r$ does not bound.}{9}{section*.9}%
 \contentsline {subsection}{\numberline {4.5}Implementation}{9}{subsection.4.5}%
 \contentsline {paragraph}{Oriented boxes.}{9}{section*.10}%
 \contentsline {paragraph}{Points and free vectors transform differently.}{9}{section*.11}%
 \contentsline {paragraph}{Verification.}{9}{section*.12}%
 \contentsline {section}{\numberline {5}Experimental protocol}{9}{section.5}%
-\contentsline {paragraph}{Validation split.}{9}{section*.13}%
+\contentsline {paragraph}{Validation split.}{10}{section*.13}%
 \contentsline {paragraph}{Two success metrics, kept separate.}{10}{section*.14}%
 \contentsline {paragraph}{Statistics.}{10}{section*.15}%
 \contentsline {paragraph}{Loss is not comparable across arms.}{10}{section*.16}%
 \contentsline {section}{\numberline {6}Calibration: floors and ceilings}{10}{section.6}%
-\contentsline {paragraph}{The floor.}{10}{section*.17}%
+\contentsline {paragraph}{The floor.}{11}{section*.17}%
 \contentsline {paragraph}{The stochastic floor.}{11}{section*.18}%
 \contentsline {paragraph}{The ceiling.}{11}{section*.19}%
 \contentsline {section}{\numberline {7}Results}{11}{section.7}%
@@ -38,40 +38,44 @@
 \contentsline {paragraph}{The trend is more informative than the endpoint.}{12}{section*.20}%
 \contentsline {paragraph}{Augmentation is not the same lever.}{12}{section*.21}%
 \contentsline {paragraph}{Endpoint error.}{12}{section*.22}%
-\contentsline {subsection}{\numberline {7.2}The mechanisms for the sixth degree of freedom}{13}{subsection.7.2}%
-\contentsline {paragraph}{Roll augmentation.}{13}{section*.23}%
+\contentsline {subsection}{\numberline {7.2}The mechanisms for the sixth degree of freedom}{12}{subsection.7.2}%
+\contentsline {paragraph}{Roll augmentation.}{12}{section*.23}%
 \contentsline {paragraph}{Frame averaging.}{13}{section*.24}%
 \contentsline {paragraph}{The reduction itself decomposes.}{13}{section*.25}%
 \contentsline {subsection}{\numberline {7.3}Why the residual is small, and why that is not the whole story}{13}{subsection.7.3}%
 \contentsline {subsection}{\numberline {7.4}What the residual does not predict}{14}{subsection.7.4}%
-\contentsline {subsection}{\numberline {7.5}Two bottlenecks, not one}{14}{subsection.7.5}%
-\contentsline {paragraph}{Two points in this domain, but eight-fold in the other.}{15}{section*.26}%
-\contentsline {paragraph}{At full data the control gains nothing at all.}{16}{section*.27}%
-\contentsline {paragraph}{Frame averaging, and what actually drives it.}{16}{section*.28}%
-\contentsline {paragraph}{Frame averaging pays more as the model improves.}{16}{section*.29}%
-\contentsline {subsection}{\numberline {7.6}Where the benefit comes from}{17}{subsection.7.6}%
-\contentsline {subsection}{\numberline {7.7}The world-frame arm is the straight line at every density}{17}{subsection.7.7}%
-\contentsline {subsection}{\numberline {7.8}It replicates in a second state space}{18}{subsection.7.8}%
-\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace {}\ref {sec:budget}.}{19}{section*.30}%
-\contentsline {subsection}{\numberline {7.9}The effect is not specific to flow matching}{19}{subsection.7.9}%
-\contentsline {subsection}{\numberline {7.10}Cost}{20}{subsection.7.10}%
-\contentsline {section}{\numberline {8}Corrections}{20}{section.8}%
-\contentsline {paragraph}{1. I thought the reduced representation was bit-identical under rigid motion.}{20}{section*.31}%
-\contentsline {paragraph}{2. I reported roll augmentation as worth $+4.4$ points.}{20}{section*.32}%
-\contentsline {paragraph}{3. I argued the roll gauge could be fixed by a $C_4$ argument.}{20}{section*.33}%
-\contentsline {paragraph}{4. I reported the residual as falling with scale.}{20}{section*.34}%
-\contentsline {section}{\numberline {9}Discussion and limitations}{21}{section.9}%
-\contentsline {paragraph}{What the technique contributes.}{21}{section*.35}%
-\contentsline {paragraph}{The learned planner loses to the classical ones.}{21}{section*.36}%
-\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{21}{section*.37}%
-\contentsline {paragraph}{What the residual does and does not bound.}{21}{section*.38}%
-\contentsline {paragraph}{One honest asterisk.}{21}{section*.39}%
-\contentsline {paragraph}{Scope of the negative result.}{22}{section*.40}%
-\contentsline {paragraph}{Seeds only at one scale.}{22}{section*.41}%
-\contentsline {paragraph}{Seeds are not yet at every scale.}{22}{section*.42}%
-\contentsline {section}{\numberline {10}What I would do next}{22}{section.10}%
-\contentsline {paragraph}{1. Making $r$ vary deliberately.}{22}{section*.43}%
-\contentsline {paragraph}{2. An $\mathrm {SO}(2)$-equivariant backbone.}{22}{section*.44}%
-\contentsline {paragraph}{3. The Brownian-bridge prior.}{22}{section*.45}%
-\contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{22}{section*.46}%
-\contentsline {section}{\numberline {11}Conclusion}{23}{section.11}%
+\contentsline {subsection}{\numberline {7.5}The third mechanism: I built the equivariant architecture}{15}{subsection.7.5}%
+\contentsline {paragraph}{A bug worth recording.}{15}{section*.26}%
+\contentsline {subsection}{\numberline {7.6}Local geometry, and how much of my result it explains}{16}{subsection.7.6}%
+\contentsline {subsection}{\numberline {7.7}Two bottlenecks, not one}{17}{subsection.7.7}%
+\contentsline {paragraph}{Two points in this domain, but eight-fold in the other.}{17}{section*.27}%
+\contentsline {paragraph}{At full data the control gains nothing at all.}{18}{section*.28}%
+\contentsline {paragraph}{Frame averaging, and what actually drives it.}{18}{section*.29}%
+\contentsline {paragraph}{Frame averaging pays more as the model improves.}{18}{section*.30}%
+\contentsline {subsection}{\numberline {7.8}Where the benefit comes from}{19}{subsection.7.8}%
+\contentsline {subsection}{\numberline {7.9}The world-frame arm is the straight line at every density}{20}{subsection.7.9}%
+\contentsline {subsection}{\numberline {7.10}It replicates in a second state space}{20}{subsection.7.10}%
+\contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace {}\ref {sec:budget}.}{20}{section*.31}%
+\contentsline {subsection}{\numberline {7.11}The effect is not specific to flow matching}{21}{subsection.7.11}%
+\contentsline {subsection}{\numberline {7.12}Cost}{22}{subsection.7.12}%
+\contentsline {section}{\numberline {8}Corrections}{22}{section.8}%
+\contentsline {paragraph}{1. I thought the reduced representation was bit-identical under rigid motion.}{22}{section*.32}%
+\contentsline {paragraph}{2. I reported roll augmentation as worth $+4.4$ points.}{22}{section*.33}%
+\contentsline {paragraph}{3. I argued the roll gauge could be fixed by a $C_4$ argument.}{22}{section*.34}%
+\contentsline {paragraph}{4. I reported the residual as falling with scale.}{23}{section*.35}%
+\contentsline {paragraph}{5. I decided not to build the equivariant architecture, and gave two reasons, and both were wrong.}{23}{section*.36}%
+\contentsline {section}{\numberline {9}Discussion and limitations}{23}{section.9}%
+\contentsline {paragraph}{What the technique contributes.}{23}{section*.37}%
+\contentsline {paragraph}{The learned planner loses to the classical ones.}{23}{section*.38}%
+\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{23}{section*.39}%
+\contentsline {paragraph}{What the residual does and does not bound.}{24}{section*.40}%
+\contentsline {paragraph}{One honest asterisk.}{24}{section*.41}%
+\contentsline {paragraph}{Scope of the negative result.}{24}{section*.42}%
+\contentsline {paragraph}{Seeds only at one scale.}{24}{section*.43}%
+\contentsline {paragraph}{Seeds are not yet at every scale.}{24}{section*.44}%
+\contentsline {section}{\numberline {10}What I would do next}{24}{section.10}%
+\contentsline {paragraph}{1. Making $r$ vary deliberately.}{24}{section*.45}%
+\contentsline {paragraph}{2. Seeds on the local-geometry arms.}{25}{section*.46}%
+\contentsline {paragraph}{3. The Brownian-bridge prior.}{25}{section*.47}%
+\contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{25}{section*.48}%
+\contentsline {section}{\numberline {11}Conclusion}{25}{section.11}%

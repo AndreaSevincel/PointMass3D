@@ -27,3 +27,7 @@ venv/
 
 # Stray directory from an rsync whose destination lost its colon.
 andreone@10.181.6.34/
+findings.aux
+findings.log
+findings.out
+findings.toc
