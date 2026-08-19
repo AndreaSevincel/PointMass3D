@@ -165,6 +165,7 @@ FORBIDDEN = {
                               "an expectation under a symmetric obstacle law; "
                               "neither forbids a discontinuous rule",
     r"sixth degree of freedom is not removable": "same overreach",
+    r"does not benchmark a constrained backbone": "Sec. arch benchmarks one",
 }
 
 def main():

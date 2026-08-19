@@ -97,85 +97,47 @@ What Canonicalisation Buys, and What It Does Not}
 
 \begin{abstract}
 \noindent
-This is a controlled study of how to exploit rigid-body symmetry in a generative
-motion planner, not a proposal for a competitive planner. Motion planning is
-exactly equivariant under rigid transformations, and a substantial literature
-builds that symmetry into network architectures. We hold the architecture, data
-and training budget fixed, vary only the representation of the problem, and find
-that almost all of the available benefit is obtained without touching the
-architecture at all. We then measure how far the trained field departs from
-equivariance, prove exactly what that quantity bounds --- the error any post-hoc
-symmetrisation of a given model can remove --- and show what it does not bound:
-two arms that are equally equivariant differ by $28$ points of held-out
-performance. Equivariance of the learned field and performance are separable,
-and the measurement sees only the first.
+Motion planning is exactly equivariant under rigid transformations, and a large
+literature builds that symmetry into network architectures. We ask where the
+symmetry is best placed, and answer by decomposition rather than by advocacy:
+we enumerate the mechanisms available, build all of them on one benchmark with
+architecture, data and budget held fixed, and measure them against each other.
 
-Our starting point is that the start and goal of a planning query themselves
-define a frame, and that this frame removes five of the six degrees of freedom of
-$\SE$ exactly, at zero computational cost. The sixth --- a roll about the
-start--goal axis --- cannot be removed by any continuous rule; we give two
-independent obstructions, one topological and one distributional. We therefore
-treat the sixth by symmetry: roll augmentation during training and frame
-averaging at inference.
+A planning query supplies its own frame. Placing the origin at the midpoint of
+$\svec$ and $\gvec$ and aligning the first axis with the start--goal direction
+removes five of the six degrees of freedom of $\SE$ exactly, at initialisation,
+at no computational cost. On a cluttered 3D point-mass benchmark, trained to
+convergence, this raises the held-out per-sample collision-free rate from
+$14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three seeds. The world-frame arm
+converges \emph{below} the $15.6\%$ obtained by joining start to goal with a
+straight line on the identical problems.
 
-The size of the effect is best read against a floor rather than in isolation. On
-a cluttered 3D point-mass benchmark, world-frame flow matching reaches $15.4\%$
-of individual samples collision-free on held-out environments --- statistically
-indistinguishable from the $15.6\%$ obtained by joining start to goal with a
-straight line, measured on the identical problems. Per sample, training on raw
-world coordinates buys nothing over joining the endpoints with a line. With
-the reduction, the same network, data and budget reach $45.5\%$, and,
-contrary to the hypothesis that canonicalisation is a small-data crutch, the gap
-\emph{widens} monotonically with training data: the world-frame arm gains $2.6$
-points across a $12.5\times$ increase in training environments while the
-canonicalised arm gains $26.2$ and has not plateaued. Every cell of that grid is
-a mean over three seeds, and the gap at $250$ environments is
-$+30.1\pm0.4$ points across seeds.
+The sixth degree of freedom, a roll about that axis, admits no continuous
+canonical rule; we give two independent obstructions, one topological and one
+distributional. It can therefore be handled only by symmetry, and there are
+exactly three places to put a symmetry: in the data, in the inference operator,
+or in the weights. Roll augmentation is worth $+0.8$ points, frame averaging
+$+0.68$, and an exactly $\mathrm{SO}(2)$-equivariant backbone $+0.05$. Three
+unrelated mechanisms recovering almost nothing is a considerably stronger
+statement than any one of them makes alone. The constrained architecture is not
+idle: it reaches in a quarter of the epochs what the unconstrained one needs to
+converge, so the symmetry buys optimisation rather than accuracy.
 
-All three mechanisms built for the sixth degree of freedom are worth almost
-nothing at convergence: seed-matched, frame averaging contributes $+0.68$ points,
-roll augmentation $+0.8\pm0.3$, and an exactly $\mathrm{SO}(2)$-equivariant
-backbone $+0.05$ --- three unrelated ways of imposing the same symmetry, all
-recovering nothing. The constrained architecture is not useless, however: it
-reaches in a quarter of the epochs what the unconstrained one needs to converge,
-so the symmetry buys optimisation rather than accuracy. A
-translation-only reduction splits it: recentring alone is worth $+12.3$
-and aligning the axis a further $+18.0$. We explain this rather than merely reporting it,
-by measuring the \emph{non-equivariance residual}: only $1.7\%$ of the learned
-velocity field lies outside the equivariant subspace. Because frame averaging is
-the orthogonal projection
-onto that subspace, $1.7\%$ is the entire budget any post-hoc symmetrisation of
-this model can spend. We propose the residual as a cheap diagnostic of how much
-non-equivariant structure a learned field retains: it is one forward pass, needs
-no retraining, and it quantifies the headroom available to post-hoc
-symmetrisation exactly. The separation asserted above is measured, not assumed:
-under the full $\SE$ action, augmentation and canonicalisation leave the field
-equally equivariant ($r=0.018$ against $0.017$) while differing by $28$ points.
+We explain that null result rather than merely reporting it. The
+non-equivariance residual, the disagreement among rotated copies of the learned
+field, is $1.7\%$; frame averaging is exactly the orthogonal projection onto the
+equivariant subspace, so $1.7\%$ bounds what any post-hoc symmetrisation of this
+model can remove. We also measure what the residual does \emph{not} do: two arms
+that are equally equivariant differ by $28$ points of held-out performance, so it
+does not forecast what a symmetry mechanism is worth.
 
-The obvious alternative --- exploiting the same symmetry by augmenting training
-with random rigid motions --- recovers little of this: at $250$ environments it
-lifts the world-frame arm from $15.4\%$ to $17.5\%$, about $7\%$ of what the
-reduction achieves. We also find that optimisation and representation are
-\emph{separate} bottlenecks: tripling the training budget is worth $+8.0$ points
-to the canonicalised arm and $+0.9$ to the world-frame one, so compute cannot buy
-what the representation forecloses --- and on the deployment metric the same
-tripling moves the world-frame arm \emph{backwards}. The pattern replicates in a
-second state space, an L-shaped rigid body whose state is a full pose rather than
-a point: the world-frame arm fails to clear its own trivial floor in both
-domains, the reduction clears it in both, and the ratio between arms is
-$2.9\times$ in each. Finally we bound our own contribution from above. Appending the signed distance
-to the scene and its gradient at each waypoint --- a featurisation of obstacle
-data the network already receives, not privileged information --- is worth
-$+40.0$ points against the world frame where the reduction is worth $+36.5$, so
-the representation change studied here is not the largest effect available on
-this benchmark. It is, however, not merely a substitute for that information:
-with local geometry supplied, the reduction is still worth $+24.8$ points. We
-calibrate both ends on the same $500$
-problems: an untrained Brownian-bridge prior, swept over widths, never exceeds
-$15.8\%$ at best-of-$20$, while classical planners reach $74$--$100\%$ in under
-$0.4$\,s on one CPU core. The learned sampler
-does not approach the latter, and we present this as a controlled study of
-representation choices, not as a planner proposal.
+Finally we bound our own contribution from above. Supplying each waypoint with
+the signed distance to the scene and its gradient, a featurisation of data the
+network already receives rather than privileged information, is worth $+40.0$
+points against the world frame where the reduction is worth $+36.5$. The
+representation change studied here is not the largest effect available on this
+benchmark. It is also not a substitute for local geometry: with that information
+present, the reduction is still worth $+24.8$.
 \end{abstract}
 
 \section{Introduction}
@@ -201,12 +163,13 @@ equivariance holds by construction~\cite{cohen2016gcnn,thomas2018tfn,fuchs2020se
 deng2021vn,geiger2022e3nn}, an approach that has been carried into robot learning
 with real success~\cite{ryu2023edf,wang2024equidp,simeonov2022ndf,yang2024equibot}.
 Our question is not whether that route works --- it does --- but how much of its
-benefit is available without it. We are deliberate about not asserting more:
-this paper does not benchmark a constrained backbone, so it is in no position to
-claim that constrained layers cost expressiveness or generalise worse, and we
-make no such claim. What we do establish is a lower bound on what the
-\emph{unconstrained} route reaches, obtained from a frame that is read off the
-query in closed form.
+benefit is available without it, and we answer it by building the constrained
+route as well and comparing the two directly. We are deliberate about what that
+comparison does and does not license. It shows that on this problem a
+constrained backbone reaches the same ceiling as an unconstrained one given a
+frame, and reaches it in a quarter of the epochs; it does not show that
+constrained layers cost expressiveness or generalise worse, and we make no such
+claim.
 
 There is a second route, older and much cheaper: build the symmetry into the
 \emph{representation of the problem}, so that the network is never shown the pose
@@ -244,29 +207,33 @@ vanishes in expectation for every start--goal direction
 (Proposition~\ref{prop:moments}). We therefore handle the sixth degree of freedom
 by symmetry rather than canonicalisation.
 
-\textbf{(iii) The symmetry machinery buys little, and we measure why.} Roll
-augmentation and frame averaging contribute $+0.8$ and $+0.1$ percentage points,
-neither distinguishable from zero across three seed-matched runs, while the
-reduction contributes $+30.1\pm0.4$. Rather than infer
-inertness from flat curves --- a weak conclusion --- we measure the quantity frame
-averaging exists to remove. The \emph{non-equivariance residual}, the disagreement
-among rotated copies of the velocity field, is $1.7\%$ and is flat across a
-$12.5\times$ range of training data. Since frame averaging is
-the orthogonal projection onto the equivariant subspace
-(Proposition~\ref{prop:fa}), the error it can remove is bounded by that $1.7\%$
-(Corollary~\ref{cor:budget}), while the model is failing on most of its samples:
-the model's error is overwhelmingly equivariant error.
+\textbf{(iii) All three mechanisms for the sixth, measured against each other.}
+A symmetry can be imposed in exactly three places: in the data, in the inference
+operator, or in the weights. We build all three on the same benchmark. Roll
+augmentation is worth $+0.8$ points, frame averaging $+0.68$, and an exactly
+$\mathrm{SO}(2)$-equivariant backbone $+0.05$, all seed-matched at convergence.
+The backbone is verified equivariant to $1.2\times10^{-6}$ on an \emph{untrained}
+network and carries $19.5\%$ \emph{more} parameters than the unconstrained one,
+so the comparison is not confounded by capacity, and a negative control confirms
+it is not equivariant off-axis, so the verification cannot pass vacuously. The
+constrained architecture does buy something the other two do not: roughly a
+fourfold saving in optimisation, reaching by epoch $10$ what the unconstrained
+arm reaches by epoch $40$. Three unrelated mechanisms agreeing that the residual
+roll is nearly exhausted is a considerably stronger statement than any one of
+them makes alone.
 
-\textbf{(iv) The third mechanism, and what it does buy.} A symmetry can be
-imposed in the data, in the operator, or in the weights. Earlier versions of this
-work measured the first two and recorded the third as untested, declining to let
-Corollary~\ref{cor:budget} stand in for it. We now build an exactly
-$\mathrm{SO}(2)$-equivariant backbone --- verified to $1.2\times10^{-6}$ on an
-\emph{untrained} network, and carrying $19.5\%$ \emph{more} parameters than the
-unconstrained one, so the comparison is not confounded by capacity. It is worth
-$+0.05$ points at convergence and roughly a fourfold saving in optimisation. The
-caution was justified in both directions: the residual's smallness did not
-predict the first number, and nothing about $r$ could have predicted the second.
+\textbf{(iv) An explanation for the null result, and a limit on it.} Rather than
+infer inertness from flat curves --- a weak conclusion --- we measure the
+quantity frame averaging exists to remove. The \emph{non-equivariance residual},
+the disagreement among rotated copies of the velocity field, is $1.7\%$ and is
+flat across a $12.5\times$ range of training data. Since frame averaging is the
+orthogonal projection onto the equivariant subspace (Proposition~\ref{prop:fa}),
+the error it can remove is bounded by that $1.7\%$ (Corollary~\ref{cor:budget}),
+while the model is failing on most of its samples: the model's error is
+overwhelmingly equivariant error. We are equally explicit about what the residual
+does not do. It does not forecast what a mechanism is worth --- two arms with
+indistinguishable residuals differ by $28$ points --- and it did not, and could
+not, predict the fourfold optimisation saving in (iii).
 
 \textbf{(v) Calibration against floors and ceilings, including an upper bound on
 our own contribution.} A collision-free rate is
@@ -1841,6 +1808,22 @@ rather than on the loss.
 
 The claim we make is comparative and holds at every point of the scaling
 curve; the claim we do not make is that this planner should be used.
+
+\textbf{Which robots this transfers to, and which it does not.} The reduction
+needs the group to act on the \emph{state space}, not merely on the workspace,
+and that condition is restrictive enough to state precisely. It holds for the
+point mass, whose state is a position in $\mathbb{R}^3$; it holds for the
+rigid body of Sec.~\ref{sec:se3}, whose state is a pose in $\SE$, which is why
+that domain was built. It fails for a manipulator planning in joint space: the
+query still defines a frame in the workspace, but a rigid motion of the
+workspace induces no clean action on joint coordinates, so there is no
+transformation of the trajectory that the reduction could apply. A
+configuration-space planner for an articulated robot therefore inherits none of
+this, and we do not claim otherwise. The condition is easy to check for a new
+system --- ask whether a rigid motion of the world acts on the state
+representation --- and we would rather give a reader that test than a third
+domain on which the method happens to work. Mobile bases, free-flying bodies and
+end-effector-space planning satisfy it; joint-space planning for arms does not.
 
 \textbf{Scope of the negative result.} The claim that the sixth degree of freedom
 needs no treatment is specific to this setting, and relies on the training

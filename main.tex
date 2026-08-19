@@ -1571,6 +1571,18 @@ should have asked.
 \section{Discussion and limitations}
 \label{sec:limits}
 
+\paragraph{Which robots this transfers to.} The reduction needs the group to act
+on the \emph{state space}, not just on the workspace. That holds for the point
+mass, whose state is a position, and for the rigid body of Sec.~\ref{sec:se3},
+whose state is a pose --- which is the reason I built that domain. It fails for a
+manipulator planning in joint space: the query still defines a frame in the
+workspace, but a rigid motion of the world induces no clean action on joint
+angles, so there is nothing for the reduction to apply. I would rather state that
+condition than quietly imply the method is general. It is easy to check on a new
+system: ask whether a rigid motion of the world acts on the state representation.
+Mobile bases, free-flying bodies and end-effector-space planning pass; joint-space
+planning for arms does not.
+
 \paragraph{What the technique contributes.} Of the six degrees of freedom of
 $\SE$, five can be removed exactly by a frame read off the query, at no
 computational cost and with no architectural constraint. Doing so roughly triples

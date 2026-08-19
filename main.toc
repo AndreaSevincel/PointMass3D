@@ -65,17 +65,18 @@
 \contentsline {paragraph}{4. I reported the residual as falling with scale.}{23}{section*.35}%
 \contentsline {paragraph}{5. I decided not to build the equivariant architecture, and gave two reasons, and both were wrong.}{23}{section*.36}%
 \contentsline {section}{\numberline {9}Discussion and limitations}{23}{section.9}%
-\contentsline {paragraph}{What the technique contributes.}{23}{section*.37}%
-\contentsline {paragraph}{The learned planner loses to the classical ones.}{24}{section*.38}%
-\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{24}{section*.39}%
-\contentsline {paragraph}{What the residual does and does not bound.}{24}{section*.40}%
-\contentsline {paragraph}{One honest asterisk.}{24}{section*.41}%
-\contentsline {paragraph}{Scope of the negative result.}{24}{section*.42}%
-\contentsline {paragraph}{Seeds only at one scale.}{25}{section*.43}%
-\contentsline {paragraph}{Seeds are not yet at every scale.}{25}{section*.44}%
+\contentsline {paragraph}{Which robots this transfers to.}{23}{section*.37}%
+\contentsline {paragraph}{What the technique contributes.}{24}{section*.38}%
+\contentsline {paragraph}{The learned planner loses to the classical ones.}{24}{section*.39}%
+\contentsline {paragraph}{On the underfitting claim, and how it is supported.}{24}{section*.40}%
+\contentsline {paragraph}{What the residual does and does not bound.}{24}{section*.41}%
+\contentsline {paragraph}{One honest asterisk.}{24}{section*.42}%
+\contentsline {paragraph}{Scope of the negative result.}{25}{section*.43}%
+\contentsline {paragraph}{Seeds only at one scale.}{25}{section*.44}%
+\contentsline {paragraph}{Seeds are not yet at every scale.}{25}{section*.45}%
 \contentsline {section}{\numberline {10}What I would do next}{25}{section.10}%
-\contentsline {paragraph}{1. Making $r$ vary deliberately.}{25}{section*.45}%
-\contentsline {paragraph}{2. A third seed on two of the local-geometry arms.}{25}{section*.46}%
-\contentsline {paragraph}{3. The Brownian-bridge prior.}{25}{section*.47}%
-\contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{25}{section*.48}%
+\contentsline {paragraph}{1. Making $r$ vary deliberately.}{25}{section*.46}%
+\contentsline {paragraph}{2. A third seed on two of the local-geometry arms.}{25}{section*.47}%
+\contentsline {paragraph}{3. The Brownian-bridge prior.}{25}{section*.48}%
+\contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{26}{section*.49}%
 \contentsline {section}{\numberline {11}Conclusion}{26}{section.11}%
