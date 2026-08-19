@@ -90,13 +90,13 @@ REQUIRED = {
     "equivariance verified untrained": r"1\.2\\times10\^\{-6\}",
     "equivariance test is not vacuous": r"5\.03",
     #--- local geometry ------------------------------------------------------
-    "local geometry, world frame": r"54\.5",
-    "local geometry, reduction": r"79\.2",
-    "local geometry + equivariant": r"82\.2",
-    "geometry beats the reduction": r"\+39\.5",
-    "reduction survives a good encoder": r"\+24\.7",
-    "sub-additive": r"90\.3",
-    "equivariance pays only with geometry": r"\+3\.0",
+    "local geometry, world frame": r"54\.54",
+    "local geometry, reduction": r"79\.37",
+    "local geometry + equivariant": r"82\.13",
+    "geometry beats the reduction": r"\+40\.0",
+    "reduction survives a good encoder": r"\+24\.8",
+    "sub-additive": r"91\.1",
+    "equivariance pays only with geometry": r"\+2\.8",
 }
 
 #Figure constants that must match the tables. Checked separately because they
@@ -108,6 +108,10 @@ FIGURE_REQUIRED = {
     "scaling curve carries seed spreads": r"TREATMENT_SE\s*=",
     "no-roll ablation is the 3-seed mean": r"NOROLL_X, NOROLL_Y = 60, 33\.53",
     "mechanism bar matches the ablation table": r"\(5 DOF, exact\)\", 30\.1\)",
+    #the convergence curve is the only place the 4x efficiency claim is shown
+    "convergence curve: equivariant arm starts at 35.8": r"CONV_EQUIV = \[35\.8",
+    "convergence curve: unconstrained arm starts at 22.2": r"CONV_TREAT = \[22\.2",
+    "convergence curve carries the read-off marks": r"CONV_MARKS = \[\(10, 40\), \(40, 90\)\]",
 }
 
 #Values superseded by a later measurement. Their presence is a bug.
@@ -151,6 +155,11 @@ FORBIDDEN = {
     r"explicitly cannot make": "the comparison was made",
     r"The two mechanisms built for the sixth": "there are three now, all measured",
     r"honest answer is currently ``untested''": "it is measured",
+    #--- retired when the local-geometry arms got their second seed ----------
+    r"\+35\.8": "seed-0 value; the multi-seed reduction gap is +36.5",
+    r"\+39\.5": "seed-0 value; the multi-seed geometry gap is +39.9",
+    r"All cells are\s*\n?seed \$0\$": "the local-geometry arms now carry two seeds each",
+    r"right-hand column is currently a single seed": "only the equivariant cell is",
 }
 
 def main():

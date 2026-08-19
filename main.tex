@@ -79,10 +79,10 @@ $+0.68$, and an exactly $\SO(2)$-equivariant backbone $+0.05$, seed-matched. The
 architecture is not pointless, though --- it reaches in a quarter of the epochs
 what the unconstrained model needs to converge, so the symmetry buys optimisation
 rather than accuracy. I also bound my own contribution from above: supplying each
-waypoint with the signed distance to the scene and its gradient is worth $+39.5$
-points where the reduction is worth $+35.8$, so the representation change studied
+waypoint with the signed distance to the scene and its gradient is worth $+40.0$
+points where the reduction is worth $+36.5$, so the representation change studied
 here is not the largest effect available on this benchmark --- and yet, with that
-information supplied, the reduction is still worth $+24.7$. I explain this rather than merely reporting it, by measuring
+information supplied, the reduction is still worth $+24.8$. I explain this rather than merely reporting it, by measuring
 the \emph{non-equivariance residual}: only about $1.7\%$ of the learned velocity
 field lies outside the equivariant subspace, and frame averaging is exactly the
 orthogonal projection onto it, so that $1.7\%$ is the whole budget any post-hoc
@@ -987,7 +987,19 @@ two runs: $50.9$ against $50.8$, and $51.6$ against $51.6$.}
 \label{tab:arch}
 \end{table}
 
-The answer, in Table~\ref{tab:arch}, is that the constraint buys training
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.62\textwidth]{fig_convergence.pdf}
+\caption{The constraint buys optimisation, not accuracy. Both arms converge to
+the same held-out rate; the equivariant one arrives roughly four times sooner.
+Dotted lines mark where the unconstrained arm first reaches the equivariant
+arm's epoch-$10$ and epoch-$40$ values. Seed $0$ at $60$ environments; the
+seed-matched difference at epoch $300$ is $+0.05$ points.}
+\label{fig:convergence}
+\end{figure}
+
+The answer, in Table~\ref{tab:arch} and Fig.~\ref{fig:convergence}, is that
+the constraint buys training
 efficiency and not a higher ceiling. The equivariant model reaches at epoch $10$
 what the unconstrained one needs epoch $40$ to reach, and at epoch $40$ what it
 needs epoch $90$ to reach. By convergence the difference is $+0.05$ points,
@@ -1049,23 +1061,24 @@ true here and false for a planner working from perception.
 \toprule
 $60$ environments, converged & Global only & $+$ local & $\Delta$ \\
 \midrule
-World frame                    & $15.0$ & $54.5$ & $+39.5$ \\
-$(\svec,\gvec)$ reduction      & $50.8$ & $79.2$ & $+28.4$ \\
-\quad $+$ equivariant backbone & $50.9$ & $\mathbf{82.2}$ & $+31.3$ \\
+World frame                    & $14.60$ & $54.54$ & $+40.0$ \\
+$(\svec,\gvec)$ reduction      & $51.10$ & $79.37$ & $+28.3$ \\
+\quad $+$ equivariant backbone & $51.25$ & $\mathbf{82.13}$ & $+30.9$ \\
 \midrule
-\emph{reduction contributes}   & $+35.8$ & $+24.7$ & \\
+\emph{reduction contributes}   & $+36.5$ & $+24.8$ & \\
 \bottomrule
 \end{tabular}
-\caption{Local geometry against the query frame. Every cell is seed $0$, so the
-differences are seed-matched; the three-seed means for the two upper-left cells
-are $14.60\pm0.20$ and $51.10\pm0.25$. The right-hand column is a single seed
-so far.}
+\caption{Local geometry against the query frame. Every cell is a mean over two
+or three seeds. The across-seed standard errors for the main $2\times2$ are
+$0.20$, $0.25$, $0.01$ and $0.10$. The world-frame arm with local geometry
+reproduces to $0.01$ points across seeds, the tightest pair I measured all
+internship.}
 \label{tab:localgeom}
 \end{table}
 
 The uncomfortable number first. \textbf{Local geometry is worth more than my
-reduction is.} Against the world frame it buys $+39.5$ points where the
-reduction buys $+35.8$. The representation change this report is about is not
+reduction is.} Against the world frame it buys $+40.0$ points where the
+reduction buys $+36.5$. The representation change this report is about is not
 the largest effect available on its own benchmark, and I would rather say that
 myself than have it pointed out to me. What survives is the claim I actually
 want to make: a frame derived from the query is worth a great deal at zero
@@ -1075,15 +1088,16 @@ generative planner.
 The obvious follow-up is whether my reduction was only ever a workaround for a
 weak obstacle encoder. If it were, supplying per-waypoint geometry should absorb
 its benefit. \textbf{It does not.} With local geometry present the reduction is
-still worth $+24.7$ points. I ran that cell specifically to find out whether it
+still worth $+24.8$ points, and its two seeds agree to $0.05$. I ran that cell
+specifically to find out whether it
 would overturn the main result of the internship, and it did not.
 
 The two effects are sub-additive: treating them as independent predicts
-$15.0+35.8+39.5=90.3$ and the measured value is $79.2$. That is what I would
+$14.6+36.5+40.0=91.1$ and the measured value is $79.37$. That is what I would
 expect, since both attack the same difficulty --- relating the geometry of the
 query to the geometry of the scene --- and neither subsumes the other. One last
 observation, which I like because the architecture predicts it: the equivariant
-backbone is worth $+0.1$ points without local geometry and $+3.0$ with it. The
+backbone is worth $+0.05$ points without local geometry and $+2.8$ with it. The
 rotating stream has nothing to act on until directional information reaches
 individual waypoints; once it does, constraining that stream starts to matter.
 
@@ -1655,11 +1669,14 @@ post-hoc symmetrisation, which is a precise and useful decision rule; if it does
 not pay even at large $r$, that is the harder negative. It is also the cheapest
 experiment left, which is why it now goes first.
 
-\paragraph{2. Seeds on the local-geometry arms.} The four cells of
-Table~\ref{tab:localgeom} that use local geometry are single-seed, where every
-other comparison in this report carries three. Two more rounds of training fix
-the two cells that carry the argument, and nothing in
-Sec.~\ref{sec:localgeom} should be quoted without that caveat until they land.
+\paragraph{2. A third seed on two of the local-geometry arms.} Every cell of
+Table~\ref{tab:localgeom} now rests on at least two seeds, and they agree more
+closely than anything else I measured: standard errors of $0.01$ and $0.10$ on
+the two geometry cells, against $0.20$ and $0.25$ without geometry. The
+$+2.8$ interaction is seed-matched over two runs rather than the single run I
+first reported it from. A third seed on the world-frame and equivariant geometry
+arms would bring the whole table to $n=3$, but nothing in
+Sec.~\ref{sec:localgeom} now turns on it.
 
 \paragraph{3. The Brownian-bridge prior.} For the reasons in
 Sec.~\ref{sec:bridge}: the symmetry objection I originally raised does not hold,

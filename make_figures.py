@@ -51,6 +51,21 @@ RESID_ENVS = [20, 60, 150, 250]
 RESID = [0.0183, 0.0170, 0.0177, 0.0168]
 RESID_NOROLL = (60, 0.0279)
 
+# --- convergence curves for the constrained architecture -------------------
+# Held-out collision-free % every 10 epochs at 60 environments, seed 0. A bar of
+# ceiling gains cannot show what this result actually is: the two arms end in the
+# same place, and the constrained one gets there roughly 4x sooner. That is the
+# whole finding, so it needs a curve rather than a number.
+CONV_EPOCHS = list(range(10, 301, 10))
+CONV_TREAT = [22.2, 31.3, 35.5, 37.9, 40.5, 42.6, 43.8, 44.5, 45.6, 45.8,
+              46.8, 47.4, 47.7, 48.1, 48.2, 48.3, 48.9, 49.2, 49.3, 49.3,
+              49.5, 49.6, 50.0, 50.0, 50.1, 50.4, 50.6, 50.6, 50.5, 50.8]
+CONV_EQUIV = [35.8, 40.1, 42.7, 44.6, 45.8, 46.7, 47.9, 48.1, 48.4, 48.7,
+              48.9, 49.2, 49.4, 49.6, 49.5, 49.8, 49.8, 49.6, 49.7, 50.0,
+              50.3, 50.1, 50.4, 50.6, 50.6, 50.7, 50.8, 50.9, 50.8, 50.9]
+# the epochs each arm first reaches the other's epoch-10 and epoch-40 marks
+CONV_MARKS = [(10, 40), (40, 90)]
+
 # classical reference points, measured by baselines_classical.py on the SAME
 # 500 held-out problems (envs 250-299 x 10 pairs). Times are single-core CPU.
 CLASSICAL = [
@@ -268,8 +283,36 @@ def fig_baselines(out="fig_baselines.pdf"):
     print(f"wrote {out}")
 
 
+def fig_convergence(path="fig_convergence.pdf"):
+    #Two convergence curves, plus the horizontal read-off that makes the
+    #efficiency claim visible: the constrained arm hits at epoch 10 what the
+    #unconstrained one needs epoch 40 to reach.
+    fig, ax = plt.subplots(figsize=(3.4, 2.5))
+    ax.plot(CONV_EPOCHS, CONV_TREAT, color=C_CTRL, lw=1.6,
+            label="unconstrained")
+    ax.plot(CONV_EPOCHS, CONV_EQUIV, color=C_TREAT, lw=1.6,
+            label="$\\mathrm{SO}(2)$-equivariant")
+    for a, b in CONV_MARKS:
+        y = CONV_EQUIV[a // 10 - 1]
+        ax.plot([a, b], [y, y], color="0.55", lw=0.7, ls=":", zorder=0)
+        ax.plot([a], [y], "o", ms=3, color=C_TREAT, zorder=3)
+        ax.plot([b], [y], "o", ms=3, mfc="none", color=C_CTRL, zorder=3)
+    ax.set_xlabel("Training epochs", fontsize=7.5)
+    ax.set_ylabel("Collision-free rate (%)", fontsize=7.5)
+    ax.set_xlim(0, 305)
+    ax.set_ylim(20, 53)
+    ax.tick_params(labelsize=7)
+    ax.legend(frameon=False, loc="lower right", fontsize=7)
+    ax.spines[["top", "right"]].set_visible(False)
+    fig.tight_layout(pad=0.3)
+    fig.savefig(path)
+    plt.close(fig)
+    print(f"wrote {path}")
+
+
 if __name__ == "__main__":
     fig_scaling()                                        # main.tex, 0.82\textwidth
     fig_scaling("fig_scaling_col.pdf", size=(3.35, 2.45), fs=7.0)   # paper.tex, one column
     fig_mechanisms()                                     # paper.tex, figure* (both columns)
     fig_baselines()                                      # paper.tex, one column
+    fig_convergence()                                    # paper.tex, one column

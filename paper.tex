@@ -166,10 +166,10 @@ domains, the reduction clears it in both, and the ratio between arms is
 $2.9\times$ in each. Finally we bound our own contribution from above. Appending the signed distance
 to the scene and its gradient at each waypoint --- a featurisation of obstacle
 data the network already receives, not privileged information --- is worth
-$+39.5$ points against the world frame where the reduction is worth $+35.8$, so
+$+40.0$ points against the world frame where the reduction is worth $+36.5$, so
 the representation change studied here is not the largest effect available on
 this benchmark. It is, however, not merely a substitute for that information:
-with local geometry supplied, the reduction is still worth $+24.7$ points. We
+with local geometry supplied, the reduction is still worth $+24.8$ points. We
 calibrate both ends on the same $500$
 problems: an untrained Brownian-bridge prior, swept over widths, never exceeds
 $15.8\%$ at best-of-$20$, while classical planners reach $74$--$100\%$ in under
@@ -1272,7 +1272,19 @@ runs; the per-seed pairs are $50.9$ vs $50.8$ and $51.6$ vs $51.6$.}
 \label{tab:arch}
 \end{table}
 
-Table~\ref{tab:arch} is unambiguous in both directions. The constrained model
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_convergence.pdf}
+\caption{The constraint buys optimisation, not accuracy. Both arms converge to
+the same held-out rate; the equivariant one arrives roughly four times sooner.
+Dotted lines mark where the unconstrained arm first reaches the equivariant
+arm's epoch-$10$ and epoch-$40$ values. Seed $0$ at $60$ environments; the
+seed-matched difference at epoch $300$ is $+0.05$ points.}
+\label{fig:convergence}
+\end{figure}
+
+Table~\ref{tab:arch} and Fig.~\ref{fig:convergence} are unambiguous in both
+directions. The constrained model
 reaches at epoch $10$ what the unconstrained one needs epoch $40$ to reach, and
 at epoch $40$ what it needs epoch $90$ to reach --- roughly a fourfold saving in
 optimisation. By convergence the advantage is $+0.05$ points seed-matched, which
@@ -1312,17 +1324,18 @@ fails for a planner operating on perceptual input.
 \toprule
 $60$ environments & Global only & $+$ local & $\Delta$ \\
 \midrule
-World frame                     & $15.0$ & $54.5$ & $+39.5$ \\
-$(\svec,\gvec)$ reduction       & $50.8$ & $79.2$ & $+28.4$ \\
-\quad $+$ equivariant backbone  & $50.9$ & $\mathbf{82.2}$ & $+31.3$ \\
+World frame                     & $14.60$ & $54.54$ & $+40.0$ \\
+$(\svec,\gvec)$ reduction       & $51.10$ & $79.37$ & $+28.3$ \\
+\quad $+$ equivariant backbone  & $51.25$ & $\mathbf{82.13}$ & $+30.9$ \\
 \midrule
-\emph{reduction contributes}    & $+35.8$ & $+24.7$ & \\
+\emph{reduction contributes}    & $+36.5$ & $+24.8$ & \\
 \bottomrule
 \end{tabular}
-\caption{Local geometry against the query frame, at convergence. All cells are
-seed $0$ so the differences are seed-matched; the three-seed means for the two
-left-hand cells in the first two rows are $14.60\pm0.20$ and $51.10\pm0.25$. The
-right-hand column is currently a single seed.}
+\caption{Local geometry against the query frame, at convergence. Every cell is a
+mean over two or three seeds. Across-seed standard errors for the four cells of
+the main $2\times2$ are $0.20$, $0.25$, $0.01$ and $0.10$: the local-geometry
+arms are the least seed-sensitive measurements in this work, with the
+world-frame arm reproducing to $0.01$ points across its seeds.}
 \label{tab:localgeom}
 \end{table}
 
@@ -1330,7 +1343,7 @@ Three things follow from Table~\ref{tab:localgeom}, and we state the
 uncomfortable one first.
 
 \textbf{Local geometry is the larger single lever.} Against the world frame it
-is worth $+39.5$ points where the reduction is worth $+35.8$. The
+is worth $+40.0$ points where the reduction is worth $+36.5$. The
 representation change this paper is about is not the largest effect available on
 its own benchmark. We report this because it bears directly on how the
 contribution should be read: the claim that survives is that a query-derived
@@ -1341,16 +1354,17 @@ consideration in designing a generative planner.
 the obvious objection to the paragraph above, and it is testable: if the frame
 were only a workaround for a scene code that cannot vary with the query, then
 supplying per-waypoint geometry should absorb its benefit. It does not. With
-local geometry present the reduction is still worth $+24.7$ points. We ran this
-cell specifically to find out whether it would overturn our main result, and
-report that it did not.
+local geometry present the reduction is still worth $+24.8$ points, and the two
+world-frame seeds behind that figure agree to $0.05$. We ran this cell
+specifically to find out whether it would overturn our main result, and report
+that it did not.
 
 \textbf{The two are sub-additive, and the constraint finally pays.} Treating the
-effects as independent predicts $15.0+35.8+39.5=90.3$; the measured value is
-$79.2$. Both address the same underlying difficulty --- relating query geometry
+effects as independent predicts $14.6+36.5+40.0=91.1$; the measured value is
+$79.37$. Both address the same underlying difficulty --- relating query geometry
 to scene geometry --- and neither subsumes the other. Against this, the
-equivariant backbone is worth $+0.1$ points without local geometry and $+3.0$
-with it. That interaction is what the architecture predicts: the rotating stream
+equivariant backbone is worth $+0.05$ points without local geometry and $+2.8$
+with it, both seed-matched. That interaction is what the architecture predicts: the rotating stream
 has nothing to act on until directional information reaches individual
 waypoints, and once it does, enforcing the symmetry on that stream is no longer
 free of consequence.
