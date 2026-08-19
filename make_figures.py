@@ -66,6 +66,7 @@ CONV_EQUIV = [35.8, 40.1, 42.7, 44.6, 45.8, 46.7, 47.9, 48.1, 48.4, 48.7,
 # the epochs each arm first reaches the other's epoch-10 and epoch-40 marks
 CONV_MARKS = [(10, 40), (40, 90)]
 
+
 # classical reference points, measured by baselines_classical.py on the SAME
 # 500 held-out problems (envs 250-299 x 10 pairs). Times are single-core CPU.
 CLASSICAL = [
@@ -84,6 +85,24 @@ LEARNED = [
 
 C_CTRL = "#3E6DA8"
 C_TREAT = "#C2560F"
+
+# --- the cascade: SE(3) taken apart one stage at a time --------------------
+# Four MEASURED arms at 250 environments, not a decomposition drawn as if it
+# were measured. The translation-only arm is a real run (reduce_mode
+# "translation", sg_dim 3), so every level here is a checkpoint that exists.
+# The deltas between them are the DOF split: +12.3 for the three translations,
+# +18.0 for the two rotations. They sum to 30.3 against a measured gap of 30.1;
+# the 0.2 is rounding, and the figure plots the measured levels rather than the
+# running sum so the discrepancy cannot silently accumulate.
+CASCADE = [
+    ("world frame\n$\\mathrm{SE}(3)$ acts on everything",  15.4, C_CTRL),
+    ("recentre on the midpoint\n3 translations removed",   27.7, "#7A93B8"),
+    ("align the first axis\n2 rotations removed",          45.5, C_TREAT),
+    ("all three roll mechanisms\nresidual $\\mathrm{SO}(2)$", 47.0, "#9AA3AE"),
+]
+CASCADE_DELTAS = ["$+12.3$", "$+18.0$", "$+1.5$"]
+CASCADE_FLOOR = 15.6   # straight line from start to goal, same 500 problems
+
 INK = "#333333"
 MUTED = "#777777"
 
@@ -310,9 +329,49 @@ def fig_convergence(path="fig_convergence.pdf"):
     print(f"wrote {path}")
 
 
+
+
+def fig_cascade(path="fig_cascade.pdf"):
+    #The paper's central result in one image: SE(3) taken apart a stage at a
+    #time, with what each stage is worth. The last bar is deliberately the same
+    #width as its predecessors and almost invisible in length -- that IS the
+    #finding about the sixth degree of freedom.
+    fig, ax = plt.subplots(figsize=(6.4, 2.6))
+    ys = range(len(CASCADE))[::-1]
+    for y, (label, val, colour) in zip(ys, CASCADE):
+        ax.barh(y, val, height=0.62, color=colour, zorder=2)
+        ax.text(val + 0.8, y, f"{val:.1f}", va="center", ha="left",
+                fontsize=8.5, fontweight="bold", color="0.15", zorder=3)
+    ax.axvline(CASCADE_FLOOR, color="0.35", lw=0.9, ls="--", zorder=1)
+    ax.text(CASCADE_FLOOR + 0.6, len(CASCADE) - 0.42,
+            "straight line, 15.6", fontsize=7.5, color="0.35", va="bottom")
+    # the increments, drawn between consecutive bars
+    for i, d in enumerate(CASCADE_DELTAS):
+        y0, y1 = len(CASCADE) - 1 - i, len(CASCADE) - 2 - i
+        x0, x1 = CASCADE[i][1], CASCADE[i + 1][1]
+        ax.annotate("", xy=(x1, y1 + 0.34), xytext=(x0, y0 - 0.34),
+                    arrowprops=dict(arrowstyle="-|>", color="0.45", lw=0.8,
+                                    shrinkA=0, shrinkB=0))
+        ax.text((x0 + x1) / 2, (y0 + y1) / 2, d, fontsize=8.5, color="0.25",
+                ha="center", va="center",
+                bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none"))
+    ax.set_yticks(list(ys))
+    ax.set_yticklabels([c[0] for c in CASCADE], fontsize=7.5)
+    ax.set_xlabel("Collision-free rate (%), held-out environments", fontsize=8)
+    ax.set_xlim(0, 56)
+    ax.tick_params(axis="x", labelsize=7.5)
+    ax.spines[["top", "right", "left"]].set_visible(False)
+    ax.tick_params(axis="y", length=0)
+    fig.tight_layout(pad=0.3)
+    fig.savefig(path)
+    plt.close(fig)
+    print(f"wrote {path}")
+
+
 if __name__ == "__main__":
     fig_scaling()                                        # main.tex, 0.82\textwidth
     fig_scaling("fig_scaling_col.pdf", size=(3.35, 2.45), fs=7.0)   # paper.tex, one column
     fig_mechanisms()                                     # paper.tex, figure* (both columns)
     fig_baselines()                                      # paper.tex, one column
     fig_convergence()                                    # paper.tex, one column
+    fig_cascade()                                        # paper.tex, figure* (both columns)

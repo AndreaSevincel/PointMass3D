@@ -138,8 +138,8 @@ The internship ran in three stages, and this report follows them.
   measuring what a straight line and an untrained stochastic prior achieve on
   the identical problems (Sec.~\ref{sec:planner}, Sec.~\ref{sec:calibration}).
   \item[Stage 3 --- the symmetry study.] The $(\svec,\gvec)$ reduction, the two
-  obstructions that show the sixth degree of freedom is not removable, the two
-  mechanisms built for it, and the residual diagnostic that explains why they are
+  obstructions that rule out any continuous gauge for the sixth degree of
+  freedom, the three mechanisms built for it, and the residual diagnostic that explains why they are
   worth little at the budget of the main grid, and why that qualifier matters
   (Sec.~\ref{sec:method} onward).
 \end{description}
@@ -154,7 +154,8 @@ architectural constraint. The resulting representation is invariant under any
 rigid motion of the problem \emph{up to a single roll about the start--goal
 axis}.
 
-\textbf{(ii) The sixth is provably not removable, for two unrelated reasons.}
+\textbf{(ii) No continuous rule fixes the sixth, and the natural scene-derived
+alternative carries no signal.}
 A continuous rule fixing the roll would be a nowhere-vanishing tangent field on
 $S^2$, which the hairy ball theorem forbids. Deriving the roll from the scene
 instead fails because the obstacle law is symmetric under central inversion, so
@@ -364,7 +365,7 @@ training examples that were ``the same problem in a different pose'' now coincid
 up to a roll, raising the effective density of the training set without
 generating a single new trajectory.
 
-\subsection{Why the sixth degree of freedom is not removable}
+\subsection{Why no continuous rule fixes the sixth degree of freedom}
 \label{sec:obstructions}
 
 One might hope to fix the roll by some rule. It cannot be done, and the

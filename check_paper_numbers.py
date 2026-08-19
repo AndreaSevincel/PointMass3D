@@ -160,6 +160,11 @@ FORBIDDEN = {
     r"\+39\.5": "seed-0 value; the multi-seed geometry gap is +39.9",
     r"All cells are\s*\n?seed \$0\$": "the local-geometry arms now carry two seeds each",
     r"right-hand column is currently a single seed": "only the equivariant cell is",
+    #--- claims broader than the propositions actually establish -------------
+    r"provably not removable": "Prop. 2 rules out CONTINUOUS gauges and Prop. 3 is "
+                              "an expectation under a symmetric obstacle law; "
+                              "neither forbids a discontinuous rule",
+    r"sixth degree of freedom is not removable": "same overreach",
 }
 
 def main():

@@ -233,7 +233,8 @@ $\mathrm{SO}(2)$; the remaining roll is what the rest of the paper is about. As
 a side effect the six numbers previously used to condition the network on the
 query collapse to a single invariant scalar.
 
-\textbf{(ii) The sixth is provably not removable, for two unrelated reasons.} No
+\textbf{(ii) No continuous rule fixes the sixth, and the natural scene-derived
+alternative carries no signal.} No
 continuous rule can fix the roll about the start--goal axis: such a rule is a
 nowhere-vanishing tangent field on $S^2$, which the hairy ball theorem forbids
 (Proposition~\ref{prop:hairy}). Deriving the roll from the scene instead also
@@ -478,7 +479,7 @@ single invariant scalar $d$, and every pair of training examples that were ``the
 same problem in a different pose'' now coincide up to a roll, raising the
 effective density of the training set without generating a single new trajectory.
 
-\subsection{Why the sixth degree of freedom is not removable}
+\subsection{Why no continuous rule fixes the sixth degree of freedom}
 \label{sec:moments}
 
 \begin{proposition}[Topological obstruction]
@@ -940,6 +941,21 @@ change is worth $30$ points while the mechanisms built for the residual symmetry
 are worth at most a few --- one indistinguishable from zero, the other unresolved.
 That contribution does not require the planner to win, and we do not claim it
 does.
+
+\begin{figure*}[t]
+\centering
+\includegraphics[width=\textwidth]{fig_cascade.pdf}
+\caption{$\SE$ taken apart one stage at a time, at $250$ training environments.
+Every bar is a measured arm rather than a term in a decomposition: the second is
+a translation-only reduction, trained and evaluated like the others. The
+increments between them are what each group of degrees of freedom is worth. The
+bottom bar adds all three mechanisms built for the residual $\mathrm{SO}(2)$ ---
+roll augmentation, frame averaging and an equivariant backbone --- and is
+deliberately drawn on the same scale: its near-coincidence with the bar above is
+the paper's second finding. The dashed line is a straight segment from start to
+goal on the identical problems, which the world-frame arm does not reach.}
+\label{fig:cascade}
+\end{figure*}
 
 \subsection{The reduction scales; the baseline does not}
 
