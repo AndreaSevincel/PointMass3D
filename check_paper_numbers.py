@@ -99,6 +99,11 @@ REQUIRED = {
     "reduction survives a good encoder": r"\+24\.8",
     "sub-additive": r"91\.1",
     "equivariance pays only with geometry": r"\+2\.8",
+    #--- the query-conditioned encoder control, measured 2026-08-21 ---------
+    "query-encoder control": r"16\.15",
+    "query-dependence alone": r"under two points",
+    "reduction with geometry decays with scale": r"\+17\.1",
+    "matched-budget value at 60 envs": r"\+22\.3",
 }
 
 #Figure constants that must match the tables. Checked separately because they

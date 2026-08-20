@@ -1112,6 +1112,17 @@ still worth $+24.8$ points, and its two seeds agree to $0.05$. I ran that cell
 specifically to find out whether it
 would overturn the main result of the internship, and it did not.
 
+It does decay with data, though, and I would rather say so than let a reader find
+it. Comparing at a matched $80$-epoch budget so that scale is the only thing
+varying, the reduction is worth $+22.3$ points alongside local geometry at $60$
+environments and $+17.1$ at $250$, the larger scale being a single seed. Local
+geometry is what scales: it gains about $9$ points across that range while the
+reduction beside it loses $5$. The reduced arm with local geometry is close to
+saturating near $80\%$, so the world-frame arm has room to close on it that the
+reduced arm no longer has. The reduction is still worth a lot at both scales and
+still costs nothing, but anyone extrapolating to a much larger dataset should
+expect this margin to narrow rather than hold.
+
 The two effects are sub-additive: treating them as independent predicts
 $14.6+36.5+40.0=91.1$ and the measured value is $79.37$. That is what I would
 expect, since both attack the same difficulty --- relating the geometry of the
@@ -1341,6 +1352,25 @@ intervention, and the two arms are different networks, so part of the $R^2$ gap
 could reflect learned decodability rather than architecture. The
 $0.000000$ row is immune to that objection, and it is the row the rest depends
 on.
+
+\paragraph{Is it simply letting the encoder see the query?} That $0.000000$
+invites a deflationary reading of the whole result, and it is the sharpest
+objection I know of: the world-frame scene code cannot vary with the query
+\emph{by construction}, so perhaps the reduction buys query-dependence rather
+than canonicalisation, and a one-line change to the encoder would buy the same
+thing. So I built the arm that separates them. It is the world frame throughout,
+with no change of frame anywhere, but the raw query is concatenated to every
+obstacle before the pool, so its scene code does vary with the query --- within-%
+environment standard deviation $0.022$ against $0.000000$ --- at $0.07\%$ more
+parameters.
+
+It reaches $16.15\%$ against the world frame's $14.60 \pm 0.20$, on a single seed
+against three. Query-dependence alone is worth under two points of the $36.5$;
+canonicalisation supplies the other $35.0$. The deflationary reading does not
+survive: a query-dependent scene code is necessary for the mechanism above and
+nowhere near sufficient for the effect. It is also the first world-frame arm I
+have measured that is not below the straight-line floor, which fits
+query-dependence being a real ingredient and a small one.
 
 It also bounds what this encoder can do. A single global code can say \emph{that}
 a path is blocked; it cannot say \emph{which} waypoint should move and in which
