@@ -82,8 +82,8 @@ REQUIRED = {
     "DDPM converged gap": r"\+37\.0",
     "cone decoupling failed": r"attempted decoupling that\s*\n?\\emph\{failed\}",
     #--- the constrained architecture, measured 2026-08-18 -------------------
-    "equivariant backbone at convergence": r"\+0\.05",
-    "equivariant backbone, epoch 10": r"\+13\.3",
+    "equivariant backbone at convergence": r"\+0\.15",
+    "equivariant backbone, epoch 10": r"\+13\.14",
     "equivariant parameter count": r"2\{,\}582\{,\}233",
     "unconstrained parameter count": r"2\{,\}161\{,\}283",
     "equivariant capacity is LARGER": r"19\.5\\%",
@@ -166,6 +166,8 @@ FORBIDDEN = {
                               "neither forbids a discontinuous rule",
     r"sixth degree of freedom is not removable": "same overreach",
     r"does not benchmark a constrained backbone": "Sec. arch benchmarks one",
+    r"fourfold": "the saving is 2.2x-3.2x on multi-seed means, not 4x; the 4x came from seed 0 alone",
+    r"quarter of the epochs": "same overstatement in words",
 }
 
 def main():

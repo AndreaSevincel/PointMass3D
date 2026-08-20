@@ -117,11 +117,11 @@ canonical rule; we give two independent obstructions, one topological and one
 distributional. It can therefore be handled only by symmetry, and there are
 exactly three places to put a symmetry: in the data, in the inference operator,
 or in the weights. Roll augmentation is worth $+0.8$ points, frame averaging
-$+0.68$, and an exactly $\mathrm{SO}(2)$-equivariant backbone $+0.05$. Three
+$+0.68$, and an exactly $\mathrm{SO}(2)$-equivariant backbone $+0.15$. Three
 unrelated mechanisms recovering almost nothing is a considerably stronger
 statement than any one of them makes alone. The constrained architecture is not
-idle: it reaches in a quarter of the epochs what the unconstrained one needs to
-converge, so the symmetry buys optimisation rather than accuracy.
+idle: it reaches any given level two to three times sooner than the
+unconstrained one, so the symmetry buys optimisation rather than accuracy.
 
 We explain that null result rather than merely reporting it. The
 non-equivariance residual, the disagreement among rotated copies of the learned
@@ -167,7 +167,7 @@ benefit is available without it, and we answer it by building the constrained
 route as well and comparing the two directly. We are deliberate about what that
 comparison does and does not license. It shows that on this problem a
 constrained backbone reaches the same ceiling as an unconstrained one given a
-frame, and reaches it in a quarter of the epochs; it does not show that
+frame, and reaches it two to three times sooner; it does not show that
 constrained layers cost expressiveness or generalise worse, and we make no such
 claim.
 
@@ -211,13 +211,13 @@ by symmetry rather than canonicalisation.
 A symmetry can be imposed in exactly three places: in the data, in the inference
 operator, or in the weights. We build all three on the same benchmark. Roll
 augmentation is worth $+0.8$ points, frame averaging $+0.68$, and an exactly
-$\mathrm{SO}(2)$-equivariant backbone $+0.05$, all seed-matched at convergence.
+$\mathrm{SO}(2)$-equivariant backbone $+0.15$, all seed-matched at convergence.
 The backbone is verified equivariant to $1.2\times10^{-6}$ on an \emph{untrained}
 network and carries $19.5\%$ \emph{more} parameters than the unconstrained one,
 so the comparison is not confounded by capacity, and a negative control confirms
 it is not equivariant off-axis, so the verification cannot pass vacuously. The
 constrained architecture does buy something the other two do not: roughly a
-fourfold saving in optimisation, reaching by epoch $10$ what the unconstrained
+two- to threefold saving in optimisation, reaching by epoch $10$ what the unconstrained
 arm reaches by epoch $40$. Three unrelated mechanisms agreeing that the residual
 roll is nearly exhausted is a considerably stronger statement than any one of
 them makes alone.
@@ -233,7 +233,7 @@ while the model is failing on most of its samples: the model's error is
 overwhelmingly equivariant error. We are equally explicit about what the residual
 does not do. It does not forecast what a mechanism is worth --- two arms with
 indistinguishable residuals differ by $28$ points --- and it did not, and could
-not, predict the fourfold optimisation saving in (iii).
+not, predict the optimisation saving in (iii).
 
 \textbf{(v) Calibration against floors and ceilings, including an upper bound on
 our own contribution.} A collision-free rate is
@@ -1242,10 +1242,10 @@ than weakens its conclusion.
 \toprule
 Epoch & Equivariant & Unconstrained & $\Delta$ \\
 \midrule
-$10$  & $35.4$ & $22.1$ & $+13.3$ \\
-$40$  & $44.6$ & $37.9$ & $+6.7$ \\
-$100$ & $48.7$ & $45.8$ & $+2.9$ \\
-$300$ & $51.3$ & $51.1$ & $+0.05$ \\
+$10$  & $35.39$ & $22.25$ & $+13.14$ \\
+$40$  & $44.91$ & $38.17$ & $+6.74$ \\
+$100$ & $48.82$ & $45.98$ & $+2.84$ \\
+$300$ & $51.27$ & $51.12$ & $+0.15$ \\
 \bottomrule
 \end{tabular}
 \caption{An $\mathrm{SO}(2)$-equivariant backbone against the unconstrained one,
@@ -1262,20 +1262,20 @@ runs; the per-seed pairs are $50.9$ vs $50.8$ and $51.6$ vs $51.6$.}
 the same held-out rate; the equivariant one arrives roughly four times sooner.
 Dotted lines mark where the unconstrained arm first reaches the equivariant
 arm's epoch-$10$ and epoch-$40$ values. Seed $0$ at $60$ environments; the
-seed-matched difference at epoch $300$ is $+0.05$ points.}
+seed-matched difference at epoch $300$ is $+0.15$ points.}
 \label{fig:convergence}
 \end{figure}
 
 Table~\ref{tab:arch} and Fig.~\ref{fig:convergence} are unambiguous in both
 directions. The constrained model
-reaches at epoch $10$ what the unconstrained one needs epoch $40$ to reach, and
-at epoch $40$ what it needs epoch $90$ to reach --- roughly a fourfold saving in
-optimisation. By convergence the advantage is $+0.05$ points seed-matched, which
+reaches by epoch $10$ a level the unconstrained arm needs about $32$ epochs
+for, and by epoch $40$ one it needs about $87$ --- a saving of $2.2$ to $3.2$
+times in optimisation, largest early and shrinking as both converge. By convergence the advantage is $+0.15$ points seed-matched, which
 is zero. The same pattern holds at $250$ environments, where the constrained arm
 reaches $54.8$ by epoch $80$ against the unconstrained arm's $51.6$.
 
 This completes the taxonomy, and the three mechanisms agree. Roll augmentation
-is worth $+0.8$, frame averaging $+0.68$, and an equivariant architecture $+0.05$
+is worth $+0.8$, frame averaging $+0.68$, and an equivariant architecture $+0.15$
 at convergence. Three mechanisms that impose the same symmetry by three
 unrelated means all recover almost nothing, which is a considerably stronger
 statement than any one of them alone. It also sharpens the correct reading of
@@ -1346,7 +1346,7 @@ that it did not.
 effects as independent predicts $14.6+36.5+40.0=91.1$; the measured value is
 $79.37$. Both address the same underlying difficulty --- relating query geometry
 to scene geometry --- and neither subsumes the other. Against this, the
-equivariant backbone is worth $+0.05$ points without local geometry and $+2.8$
+equivariant backbone is worth $+0.15$ points without local geometry and $+2.8$
 with it, both seed-matched. That interaction is what the architecture predicts: the rotating stream
 has nothing to act on until directional information reaches individual
 waypoints, and once it does, enforcing the symmetry on that stream is no longer
@@ -1841,8 +1841,8 @@ searches a different hypothesis class and is not covered by it. Earlier versions
 of this work were careful not to borrow the bound for that purpose and recorded
 the experiment as untested rather than unpromising. Sec.~\ref{sec:arch} now
 reports it, and both halves of that caution were justified. The constrained
-backbone is worth $+0.05$ points at convergence, so the conclusion the bound
-would have suggested happens to hold --- but it is worth roughly a fourfold
+backbone is worth $+0.15$ points at convergence, so the conclusion the bound
+would have suggested happens to hold --- but it is worth a two- to threefold
 saving in optimisation, which no reading of $r$ anticipated or could have. A
 residual measured on a converged model says nothing about the path taken to
 reach it.

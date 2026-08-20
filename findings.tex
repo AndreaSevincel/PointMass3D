@@ -340,12 +340,15 @@ Epoch & Equivariant & Unconstrained & $\Delta$ \\
 10  & 35.4 & 22.1 & $+13.3$ \\
 40  & 44.6 & 37.9 & $+6.7$ \\
 100 & 48.7 & 45.8 & $+2.9$ \\
-300 & 50.9 / 51.6 & 50.8 / 51.6 & $+0.05$ \\
+300 & 51.27 & 51.10 & $+0.17$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-\ev{seed-matched at 300 epochs, n=2; reaches at epoch 10 what the unconstrained
-arm needs epoch 40 for, and at epoch 40 what it needs epoch 90 for}
+\ev{final row seed-matched over THREE seeds: 50.9/51.6/51.3 against
+50.8/51.6/50.9, i.e. +0.1, 0.0, +0.4. Reaches at epoch 10 what the unconstrained
+arm needs epoch 40 for, and at epoch 40 what it needs epoch 90 for.}
+\nt{The +0.05 quoted before the third seed landed was two seeds. The conclusion
+is unchanged and the number is not: quote \emph{+0.17}.}
 \nt{All three mechanisms now agree the residual roll is nearly exhausted. That
 \emph{supports} the central claim rather than leaving a hole in it.}
 
@@ -382,17 +385,20 @@ images. State that limit yourself.}
 \finding{H2}{\HEAD} The $2\times2$.
 
 \begin{center}\small
-\begin{tabular}{lrrr}
+\begin{tabular}{lrrrr}
 \toprule
-60 envs, 300 epochs & No local geom. & $+$ local geom. & Geometry adds \\
+60 envs, 300 epochs & No local geom. & $+$ local geom. & Geometry adds & $n$ \\
 \midrule
-World frame               & 14.6 & 54.5 & $+39.9$ \\
-$(s,g)$ reduction         & 50.8 & 79.2 & $+28.4$ \\
-$+$ equivariant backbone  & 50.9 & 82.2 & $+31.3$ \\
+World frame               & $14.60 \pm 0.22$ & $54.54 \pm 0.01$ & $+40.0$ & 3 / 2 \\
+$(s,g)$ reduction         & $51.10 \pm 0.27$ & $79.37 \pm 0.10$ & $+28.3$ & 3 / 3 \\
+$+$ equivariant backbone  & $51.27 \pm 0.22$ & $82.13 \pm 0.02$ & $+30.9$ & 3 / 2 \\
+\midrule
+\emph{reduction adds}     & $+36.5$ & $+24.8$ & & \\
 \bottomrule
 \end{tabular}
 \end{center}
-\ev{geometry cells are currently n=1 -- see N1}
+\ev{every cell now n>=2; the local-geometry arms are the least seed-sensitive
+measurements in the project, SE 0.01 and 0.10 against 0.22 and 0.27 without}
 
 \finding{H3}{\HEAD} The reduction survives a good encoder: still worth $+24.7$
 with local geometry present.
@@ -407,6 +413,28 @@ reduction alone ($+36.2$).
 still large, still free, and still composes --- but ``symmetry is the main
 lever'' is \emph{no longer supportable}. A paper that reports this itself reads
 as careful; a reviewer who finds it reads as catching you.}
+
+\finding{H7}{\HEAD} Local geometry scales better in data than the query frame
+does, and the gap between them widens.
+
+\begin{center}\small
+\begin{tabular}{lrrr}
+\toprule
+Budget-matched & world frame & $+$ reduction & $+$ local geom. \\
+\midrule
+60 envs, epoch 300  & 14.60 & $51.10$ ($+36.5$) & $54.54$ ($+40.0$) \\
+250 envs, epoch 80  & 14.5  & $51.6$ ($+37.1$)  & $63.4$ ($+48.9$) \\
+\bottomrule
+\end{tabular}
+\end{center}
+\ev{250-env cells are n=1 and matched at 80 epochs across arms}
+\nt{The reduction is flat across a 4x increase in environments at matched
+budget; local geometry gains 9 points. Its lead grows from 3.4 to 11.8. Sharpest
+form: the world-frame arm with local geometry reaches \emph{57.3 at epoch 20},
+beating the canonicalised arm without it at epoch 300 (55.8). The mechanism is
+consistent with [[E2]]: the global encoder pools 40 obstacles into one vector
+applied identically to every waypoint, so more environments means more scenes
+through the same bottleneck, while local geometry bypasses it.}
 
 \finding{H5}{\SUPP} The two effects are sub-additive.
 \ev{additive prediction 14.6 + 36.2 + 39.9 = 90.7; measured 79.2 -- short by 11.5}
@@ -469,15 +497,15 @@ standard errors.
 
 \finding{J1}{\HEAD} Canonicalising the sixth degree of freedom is impossible, by
 the hairy ball theorem.
-\ev{a gauge y(x) perpendicular to x is exactly a unit tangent field on S^2;
-x covers all of S^2 here, so there is no contractible-domain escape; every
-deterministic gauge jumps somewhere -- for the smallest-component cross-product
-construction the jump is 60--120 degrees}
+\ev{a gauge y(x) perpendicular to x is exactly a unit tangent field on the
+2-sphere; x covers the whole sphere here, so there is no contractible-domain
+escape; every deterministic gauge jumps somewhere -- for the smallest-component
+cross-product construction the jump is 60--120 degrees}
 
 \finding{J2}{\HEAD} A scene-derived gauge fails too, by central inversion.
 \ev{obstacle centres uniform on a cube are symmetric under p -> -p, which
-preserves every radius and sends phi -> phi + pi, so E[c_m] = 0 for every ODD m
-and every axis direction}
+preserves every radius and sends phi -> phi + pi, so the expected m-th angular
+moment vanishes for every ODD m and every axis direction}
 \nt{The gauge anyone would actually build --- ``point $\hat{y}$ at the obstacle
 mass'' --- \emph{is} the $m=1$ moment, so this kills it. Even moments survive
 this but not \texttt{J1}: an $m=2$ moment defines a director, and a continuous
@@ -615,6 +643,16 @@ about 25 that must \emph{not} (superseded ones), and a set that must match the
 figure-generation constants --- which drift independently of the prose. That
 last category caught a scaling figure plotting single-seed values beside a
 three-seed table.}
+
+\finding{M6b}{\DET} Two globbing traps that silently corrupted a results table.
+\nt{First: \texttt{*.ep0*.json} matches \texttt{ep0300-kfa3.json} as well as
+\texttt{ep0300.json}, so a summary that takes the last match per seed silently
+reports frame-averaged scores for whichever arm had a K sweep run on it --- the
+treatment arm read 51.64 instead of 51.12, inflated by exactly the frame
+averaging gain. Second: a filter written as
+\texttt{if (envs=='250' and ep!=80) and ep!=300} reduces to \texttt{False} for
+every 60-environment file, so no filtering happens at all. Both produce a table
+that looks entirely plausible. Always print the epoch a row came from.}
 
 \finding{M6}{\DET} Seed-matched comparisons are only valid within a device.
 \ev{torch.Generator draws differ between CPU and CUDA for the same seed --- local
