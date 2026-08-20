@@ -109,8 +109,11 @@ removes five of the six degrees of freedom of $\SE$ exactly, at initialisation,
 at no computational cost. On a cluttered 3D point-mass benchmark, trained to
 convergence, this raises the held-out per-sample collision-free rate from
 $14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three seeds. The world-frame arm
-converges \emph{below} the $15.6\%$ obtained by joining start to goal with a
-straight line on the identical problems.
+converges to \emph{at or below} the $15.6\%$ obtained by joining start to goal
+with a straight line on the identical problems: the point estimate is lower, and
+the two are within the clustered bootstrap's $2.2$-point standard error on that
+rate, so the defensible claim is that training on world coordinates does not beat
+the trivial baseline rather than that it loses to it.
 
 The sixth degree of freedom, a roll about that axis, admits no continuous
 canonical rule; we give two independent obstructions, one topological and one
@@ -267,17 +270,19 @@ perceptual cost fields, contact-rich dynamics, multi-modal solution sets. None o
 those admit an analytic SDF, and a result of this kind can only be isolated where
 the confounds are removable.
 
-We regard (iii) as the transferable contribution. The residual is a few lines of
-code, costs one forward pass, requires no retraining, and can be computed on any
-model with a group action on its inputs. It converts ``we tried equivariance and
-it did not help'' --- an anecdote --- into a quantitative statement about how much
-headroom \emph{post-hoc symmetrisation} has on a given problem, with an exact
-bound attached. We recommend it as a diagnostic to run before reaching for
-symmetrisation, and we are explicit about its limit: measured across three arms
-of this benchmark, $r$ does not predict what a symmetry mechanism is worth. Two
-models with indistinguishable residuals differ by $28$ points
-(Table~\ref{tab:twosigns}), because one of them fixed the representation and the
-other only learned the symmetry.
+We regard (iii) as the transferable contribution, and we are deliberately narrow
+about what the residual adds to it. Two things survive scrutiny. One is
+Corollary~\ref{cor:budget}, which follows from the projection property already
+established in~\cite{elesedy2021strict,puny2022fa} and bounds exactly what
+post-hoc symmetrisation of a given field can remove. The other is a measured
+negative: across three arms of this benchmark $r$ does \emph{not} predict what a
+symmetry mechanism is worth, and two models with indistinguishable residuals
+differ by $28$ points (Table~\ref{tab:twosigns}), because one of them fixed the
+representation and the other only learned the symmetry. We do not claim more.
+An earlier draft recommended $r$ as a general pre-flight diagnostic; the cone
+sweep that would have established it as predictive failed and is confounded
+(Sec.~\ref{sec:inert}), so the honest position is a bound plus a counterexample to
+the obvious decision rule, not a tool we are advertising.
 
 \section{Related Work}
 
@@ -1537,10 +1542,17 @@ Two things follow, and only the second is obvious in advance.
 Table~\ref{tab:probe} shows that the max-pool does \emph{not} destroy the
 query-relevant geometry: in the reduced frame a linear probe recovers how blocked
 the direct path is at $R^2=0.78$, on held-out environments, from that single
-global vector. And the world-frame arm's \emph{full conditioning} --- which does
-contain $(\svec,\gvec)$ --- cannot express the same quantity linearly across
-environments, topping out at $0.07$ over four orders of magnitude of
-regularisation. The treatment's score is not the separation $d$ in disguise:
+global vector. The comparison row that carries information is the
+\emph{full conditioning}, which does contain $(\svec,\gvec)$ and still tops out
+at $0.07$ over four orders of magnitude of regularisation. We are deliberate
+about what that does and does not establish. The $0.015$ for the world-frame
+scene code alone is arithmetic rather than measurement --- a constant vector has
+no variance to regress with, as the row above it states --- and even the $0.07$
+is a \emph{linear} probe on features the trunk then processes nonlinearly, so it
+does not establish that the trunk cannot recover clearance. What it establishes
+is that the quantity is linearly available in one representation and not the
+other, which is a claim about the representations rather than about what the
+network can compute. The treatment's score is not the separation $d$ in disguise:
 $d$ alone scores $0.000$.
 
 The reduction therefore moves the query--scene interaction out of the network's
