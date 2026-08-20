@@ -109,7 +109,7 @@ FIGURE_REQUIRED = {
     "scaling curve: treatment is 3-seed means": r"19\.23, 34\.43, 40\.60, 45\.45",
     "scaling curve carries seed spreads": r"TREATMENT_SE\s*=",
     "no-roll ablation is the 3-seed mean": r"NOROLL_X, NOROLL_Y = 60, 33\.53",
-    "mechanism bar matches the ablation table": r"\(5 DOF, exact\)\", 30\.1\)",
+    "mechanism bar matches the ablation table": r"\(5 DOF, exact\)\", 36\.5\)",
     #the convergence curve is the only place the 4x efficiency claim is shown
     "convergence curve: equivariant arm starts at 35.8": r"CONV_EQUIV = \[35\.8",
     "convergence curve: unconstrained arm starts at 22.2": r"CONV_TREAT = \[22\.2",

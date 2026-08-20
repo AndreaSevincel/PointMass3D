@@ -835,7 +835,7 @@ $55.8$. Classical
 timings are one CPU core and one query; the learned rows are one GPU and $20$
 samples per query, so the time column is not a like-for-like comparison.
 Classical clearance is averaged over solved problems; the learned rows are
-per-sample rates at $250$ training environments}
+per-sample rates}
 \label{tab:baselines}
 \end{table}
 
@@ -843,7 +843,7 @@ per-sample rates at $250$ training environments}
 \centering
 \includegraphics[width=\columnwidth]{fig_baselines.pdf}
 \caption{Where the learned planner actually sits. The world-frame arm lies on the
-straight-line floor; the reduction lifts it by $30.1$ points; the classical
+straight-line floor; the reduction lifts it by $36.5$ points; the classical
 planners remain far above. We show this rather than omit it: the contribution
 here is the representation result, not a competitive planner}
 \label{fig:baselines}
@@ -859,8 +859,9 @@ Two facts frame everything that follows.
 
 \textbf{The floor.} A straight line from start to goal is collision-free on
 $15.6\%$ of these problems --- the clutter is dense, but not so dense that the
-direct path is usually blocked. The world-frame model reaches $15.4\%$ per sample.
-The two are within $0.2$ points, an order of magnitude inside the standard error.
+direct path is usually blocked. The world-frame model converges to $14.60\%$ per
+sample. A paired bootstrap over environments puts the difference at $-1.02$
+points with a $95\%$ interval of $[-3.06, +0.90]$, so the two are not separable.
 On a per-sample basis, whatever the world-frame arm has learned is worth nothing
 over connecting the endpoints with a line. This is the sharpest available
 statement of the problem the reduction solves, and it is invisible without the
@@ -923,7 +924,7 @@ sampler is competing against}
 
 \textbf{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline $100\%$,
 in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
-initialisation solves $88.8\%$. The learned sampler at $45.5\%$ is not competitive
+initialisation solves $88.8\%$. The learned sampler at $51.1\%$ is not competitive
 with any of them. We report this plainly because the alternative --- comparing a
 learned planner only against other learned planners --- is how a benchmark stops
 measuring anything. The contribution of this paper is that the representation
@@ -1395,7 +1396,7 @@ Two consequences follow, and the second is a correction.
 First, this is the direct evidence that the absolute level is a budget artefact
 rather than a ceiling of the method, and it is the evidence we rely on rather
 than the train--validation comparison discussed in Sec.~\ref{sec:limits}. The
-model at $20$ epochs is substantially underfit, so the $45.5\%$ headline
+model at $20$ epochs is substantially underfit, so the $45.5\%$ grid value
 understates what this architecture reaches at convergence.
 
 Second --- and this is the part we did not anticipate --- the same tripling is

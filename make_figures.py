@@ -25,18 +25,22 @@ TREATMENT_SE = [0.185, 1.557, 0.314, 0.111]
 NOROLL_X, NOROLL_Y = 60, 33.53          # reduction without roll augmentation, 3 seeds
 
 # mechanism decomposition, percentage points on the held-out collision-free rate
+# Converged values, matching the headline setting, EXCEPT the two DOF sub-bars
+# and the SE(3) augmentation arm, which were only ever measured on the 20-epoch
+# grid and are labelled as such. Mixing budgets silently is how the +0.05 for the
+# equivariant backbone once sat beside a 20-epoch +0.1 for frame averaging.
 MECHANISMS = [
-    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 30.1),
-    (r"  of which: 3 translations", 12.3),
-    (r"  of which: 2 rotations", 18.0),
-    ("SE(3) augmentation\n(world frame)", 2.1),
+    (r"$(s,g)$ reduction" "\n" "(5 DOF, exact)", 36.5),
+    (r"  of which: 3 translations (20 ep.)", 12.3),
+    (r"  of which: 2 rotations (20 ep.)", 18.0),
+    ("SE(3) augmentation\n(world frame, 20 ep.)", 2.1),
     ("roll augmentation\n(training)", 0.8),
-    ("frame averaging\n($K{=}1\\to3$)", 0.1),
+    ("frame averaging\n($K{=}1\\to3$)", 0.68),
     # the third mechanism, measured 2026-08-18: seed-matched at convergence the
     # constrained architecture is worth +0.05 at the CEILING. Its real value is
     # a ~4x saving in optimisation, which this bar chart cannot show -- the
     # caption has to say so, or the figure understates the result.
-    ("$\\mathrm{SO}(2)$-equivariant\nbackbone (weights)", 0.05),
+    ("$\\mathrm{SO}(2)$-equivariant\nbackbone (weights)", 0.15),
 ]
 # across-SEED standard error at 60 envs, treatment arm (n=3). This is the right
 # floor for a claim about a method; the old 2.0 came from the spread over
@@ -278,10 +282,10 @@ def fig_baselines(out="fig_baselines.pdf"):
                     fontsize=6.5, color=INK, ha=ha, va=va)
 
     #the gap the paper closes, and the gap it does not
-    ax.annotate("", xy=(0.067, 45.63), xytext=(0.067, 15.38),
+    ax.annotate("", xy=(0.063, 51.12), xytext=(0.053, 14.58),
                 arrowprops=dict(arrowstyle="<->", color=C_TREAT, linewidth=1.1,
                                 shrinkA=3, shrinkB=3))
-    ax.annotate("+30.2", xy=(0.067, 30), xytext=(-4, 0),
+    ax.annotate("+36.5", xy=(0.058, 33), xytext=(-4, 0),
                 textcoords="offset points", fontsize=7, color=C_TREAT,
                 ha="right", va="center", fontweight="bold")
 
