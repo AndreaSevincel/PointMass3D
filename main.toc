@@ -50,7 +50,7 @@
 \contentsline {subsection}{\numberline {7.7}Two bottlenecks, not one}{17}{subsection.7.7}%
 \contentsline {paragraph}{Two points in this domain, but eight-fold in the other.}{18}{section*.27}%
 \contentsline {paragraph}{At full data the control gains nothing at all.}{18}{section*.28}%
-\contentsline {paragraph}{Frame averaging, and what actually drives it.}{18}{section*.29}%
+\contentsline {paragraph}{Frame averaging, and what actually drives it.}{19}{section*.29}%
 \contentsline {paragraph}{Frame averaging pays more as the model improves.}{19}{section*.30}%
 \contentsline {subsection}{\numberline {7.8}Where the benefit comes from}{19}{subsection.7.8}%
 \contentsline {subsection}{\numberline {7.9}The world-frame arm is the straight line at every density}{20}{subsection.7.9}%

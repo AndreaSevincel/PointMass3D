@@ -47,6 +47,8 @@ REQUIRED = {
     "rotational DOF": r"\+18\.0",
     "best-of-20": r"90\.4",
     "straight-line floor": r"15\.6",
+    "paired floor test, CI": r"\[-3\.06, \+0\.90\]",
+    "paired floor test, SE": r"1\.01",
     "untrained prior best-of-20": r"15\.8",
     "r under SE(3), world frame": r"0\.0881",
     "r under SE(3), augmented": r"0\.0181",
@@ -177,6 +179,12 @@ FORBIDDEN = {
     r"we advocate measuring": "Sec. I no longer offers r as a tool",
     r"believe it applies beyond\s*\n?this benchmark": "the scope condition says otherwise",
     r"mechanisms built for the sixth are worth \$\+0\.1\$ and": "there are three now",
+    #--- the floor claim: paired bootstrap CI [-3.06,+0.90] includes zero ----
+    r"five across-seed standard errors": "wrong denominator for a comparison "
+                                         "against a fixed baseline; the paired "
+                                         "SE is 1.01 and the CI spans zero",
+    r"worse than joining the\s*\n?endpoints with a line": "not supported; use "
+                                                          "'does not beat'",
 }
 
 def main():

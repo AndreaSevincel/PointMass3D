@@ -925,7 +925,7 @@ bottom bar adds all three mechanisms built for the residual $\mathrm{SO}(2)$ ---
 roll augmentation, frame averaging and an equivariant backbone --- and is
 deliberately drawn on the same scale: its near-coincidence with the bar above is
 the paper's second finding. The dashed line is a straight segment from start to
-goal on the identical problems, which the world-frame arm does not reach.}
+goal on the identical problems, which the world-frame arm does not beat.}
 \label{fig:cascade}
 \end{figure*}
 
@@ -1429,7 +1429,7 @@ $8\times$ budget range in a different state space, with no seed-matched
 comparison involved. Two domains, two budget ranges, one direction. The $+7.1$
 per-sample interaction is separate and does not depend on either.
 
-\textbf{Trained to a plateau, the world-frame arm does not clear the straight
+\textbf{Trained to a plateau, the world-frame arm does not beat the straight
 line.} The $3\times$ comparison above answers the convergence-rate objection with
 a trend rather than a limit, so we ran both arms at $60$ environments to $300$
 epochs --- a $15\times$ budget --- snapshotting every $10$ epochs and scoring
@@ -1453,15 +1453,21 @@ control gains $0.1$ points over the final ten epochs and the reduction $0.2$ ---
 so this is a converged comparison rather than a comparison of convergence rates.
 Three things follow.
 
-\textbf{The world-frame arm does not reach the straight line.} It converges to
+\textbf{The world-frame arm does not beat the straight line.} It converges to
 $14.60\pm0.20\%$ against the $15.6\%$ of Sec.~\ref{sec:baselines}, measured on
-the identical problems --- roughly five across-seed standard errors \emph{below}
-it. At $20$ epochs the two were indistinguishable ($15.37\pm0.36$); trained to a
-plateau with fifteen times the budget the learned arm is worse than joining the
-endpoints with a line, and the extra optimisation is what makes the deficit
-resolvable rather than what causes it. This is the strongest form of the paper's
-central negative claim, and at $20$ epochs it was not available: a reader could
-always answer ``it is undertrained''.
+the identical problems. Quoting the across-seed spread here would overstate the
+result: it describes variation between training runs, not the uncertainty of a
+comparison against a fixed baseline. The appropriate test is paired, since both
+arms are evaluated on the same $500$ problems and both track per-environment
+clutter, so we resample environments and recompute the difference within each
+replicate. That gives $-1.02$ points with a $95\%$ interval of
+$[-3.06, +0.90]$ and a standard error of $1.01$ --- less than half the $2.2$ of
+either rate resampled alone, and still spanning zero. The defensible claim is
+therefore that training on world coordinates does not beat joining the endpoints
+with a line, not that it loses to it. At $20$ epochs even that was unavailable
+($15.37\pm0.36$): the extra optimisation is what makes the comparison resolvable,
+not what causes the deficit, and a reader could previously always answer ``it is
+undertrained''.
 
 The gap \emph{widens} monotonically with budget, from $18.2$ to $36.5$ points.
 Undertraining was not manufacturing it; if it had been, the flat arm would be the

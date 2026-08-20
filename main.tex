@@ -1193,13 +1193,19 @@ rates.}
 Both arms are flat by the end, and three things follow.
 
 The world-frame arm converges to $14.60 \pm 0.20\%$ against the $15.6\%$
-straight line, measured on the identical problems --- about five across-seed
-standard errors \emph{below} it. At $20$ epochs the two were indistinguishable
-($15.37 \pm 0.36$); trained to a plateau with fifteen times the budget the
-learned arm is worse than joining the endpoints with a line. The extra
-optimisation is what makes the deficit resolvable, not what causes it. At $20$
-epochs this claim was not available --- a reader could always answer ``it is
-undertrained''.
+straight line, measured on the identical problems. I originally quoted the
+across-seed spread here and called it five standard errors below the line. That
+was the wrong denominator: the across-seed spread describes variation between
+training runs, not the uncertainty of a comparison against a fixed baseline
+measured on the same problems. The right test is paired. Resampling environments
+and recomputing the difference within each replicate gives $-1.02$ points, a
+$95\%$ interval of $[-3.06, +0.90]$, and a standard error of $1.01$ --- less than
+half the $2.2$ that either rate carries on its own, which is the benefit of
+pairing, and still wide enough to include zero. So the claim I can defend is that
+training on world coordinates does not \emph{beat} a straight line, not that it
+loses to one. At $20$ epochs even that was unavailable ($15.37 \pm 0.36$): the
+extra optimisation is what makes the comparison resolvable, not what causes the
+deficit.
 
 The gap \emph{widens} monotonically, $18.2 \to 36.5$ points. Undertraining was
 not manufacturing it; had it been, the flat arm is the one that would have had
