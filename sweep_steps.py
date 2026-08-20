@@ -62,6 +62,13 @@ def main():
                     help="translation half-width for --residual-se3; 0 keeps it "
                          "rotations-only so the measurement is not confounded "
                          "with out-of-distribution translation")
+    ap.add_argument("--dump-per-problem", action="store_true",
+                    help="record n_free/n_samples for every query in the "
+                         "output JSON. Needed for PAIRED tests against a "
+                         "baseline measured on the same problems: comparing "
+                         "two independently-resampled rates ignores that both "
+                         "arms track the same per-environment difficulty, and "
+                         "overstates the standard error of their difference")
     ap.add_argument("--out-json", type=str, default=None,
                     help="write the rows to JSON for aggregate_runs.py")
     ap.add_argument("--eta", type=float, default=0.0,
@@ -133,7 +140,11 @@ def main():
         idx = distinct_pairs(starts, goals, args.n_pairs)
         problems.append((
             env, sp_t.to(device), bx_t.to(device),
-            [(starts[i], goals[i]) for i in idx],
+            #(env index, pair index) travel with each query so --dump-per-problem
+            #can be joined against baselines_classical.json, which keys on those
+            #two fields. Matching on coordinates instead would work but would be
+            #a silent failure if either side ever reorders.
+            [(starts[i], goals[i], ei, int(i)) for i in idx],
         ))
 
     header = (f"{'steps':>6} {'free%':>7} {'any%':>6} {'clearance':>10} {'ep_err':>8} "
@@ -149,6 +160,7 @@ def main():
     rows = []
     for n_steps in args.steps:
         free, clear, ep, length, acc = [], [], [], [], []
+        per_problem = []
         #per-sample free% is what the ablations compare, but a sampler is
         #deployed as best-of-N behind a collision check, so also track whether
         #ANY of the N samples for a query is free
@@ -160,7 +172,7 @@ def main():
         t0 = time.time()
         n_queries = 0
         for env, sp_t, bx_t, pairs in problems:
-            for start, goal in pairs:
+            for start, goal, env_i, pair_i in pairs:
                 B = args.n_samples
                 def _norm_state(v):
                     #rotation columns are unit vectors: scaling or shifting them
@@ -258,6 +270,15 @@ def main():
                 paths_all.append(paths)
                 free.extend(free_q)
                 solved_any.append(any(free_q))
+                if args.dump_per_problem:
+                    #per-QUERY, not per-sample: the paired comparison against a
+                    #one-shot baseline is at the query level, and the model's
+                    #per-sample rate for a query is n_free/n_samples
+                    per_problem.append({
+                        "env": int(env_i), "pair": int(pair_i),
+                        "n_free": int(sum(bool(f) for f in free_q)),
+                        "n_samples": int(len(free_q)),
+                    })
                 length.extend(path_length(p) for p in paths)
                 acc.extend(mean_sq_accel(p) for p in paths)
                 if args.residual_se3 > 0:
@@ -286,6 +307,8 @@ def main():
             length=float(np.mean(length)), sq_accel=float(np.mean(acc)),
             disp_ref=disp, s_per_query=secs,
         )
+        if args.dump_per_problem:
+            row["per_problem"] = per_problem
         if want_residual:
             #Hilbert norm, the quantity the projection bound is stated in
             row["residual"] = float(np.mean(residuals))

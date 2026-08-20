@@ -173,6 +173,10 @@ FORBIDDEN = {
                                                        "n=2 or 3 in every cell",
     r"single-seed\s*\n?where every other comparison here carries three":
         "contradicts the table caption; two cells are n=2, none are n=1",
+    #--- the residual was de-advertised in Sec. I; these three said otherwise -
+    r"we advocate measuring": "Sec. I no longer offers r as a tool",
+    r"believe it applies beyond\s*\n?this benchmark": "the scope condition says otherwise",
+    r"mechanisms built for the sixth are worth \$\+0\.1\$ and": "there are three now",
 }
 
 def main():

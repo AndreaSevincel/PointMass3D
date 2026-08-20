@@ -46,6 +46,11 @@
         {\normalsize Supervisors: Xinzhe Zhou, Xiaoming Duan}}
 \date{August 2026}
 
+% Absorbs the last few points on paragraphs TeX cannot break well -- here,
+% lines carrying PointMass3D and RRT-Connect, which resist hyphenation. Only
+% applies where a line would otherwise overflow, so it does not loosen the rest.
+\setlength{\emergencystretch}{1em}
+
 \begin{document}
 \maketitle
 
@@ -60,14 +65,14 @@ that symmetry through the problem representation rather than through the network
 architecture; it is not a proposal for a competitive planner, and I report the
 classical baselines that make that clear.
 
-I built the benchmark (PointMass3D, with an expert pipeline over RRT-Connect,
-CHOMP and TrajOpt), then a conditional flow-matching planner over whole
-trajectories, then the symmetry study. The central observation is that the start
+I built the benchmark, PointMass3D, with an expert pipeline over RRT-Connect,
+CHOMP and TrajOpt; then a conditional flow-matching planner over whole
+trajectories; then the symmetry study. The central observation is that the start
 and goal of a query themselves determine a frame, and that this frame removes
-five of the six degrees of freedom of $\SE$ exactly and at zero cost. The sixth
---- a roll about the start--goal axis --- cannot be removed by any continuous
-rule, for two independent reasons, so I handled it by symmetry: roll
-augmentation during training and frame averaging at inference.
+five of the six degrees of freedom of $\SE$ exactly and at zero cost. The sixth,
+a roll about the start--goal axis, cannot be fixed by any continuous rule, for
+two independent reasons, so I handled it by symmetry in all three of the places
+a symmetry can go: in the data, in the inference operator, and in the weights.
 
 Holding architecture, data and budget fixed and varying only the representation
 raises the held-out per-sample collision-free rate from $15.4\%$ to $45.5\%$, a
@@ -1713,21 +1718,26 @@ both are binding and neither has been pushed to saturation.
 The model presented here is exactly $\SE$-equivariant by construction for five of
 the six degrees of freedom, and measured to be about $98\%$ equivariant for the
 sixth without any mechanism enforcing it. The benefit is concentrated in the
-five: the mechanisms built for the sixth are worth $+0.1$ and $+0.8 \pm 0.3$
-points against $+30.2$, and neither is distinguishable from zero at three seeds.
-Within the five, recentring and axis alignment split the benefit $41/59$.
+five: all three mechanisms built for the sixth --- roll augmentation, frame
+averaging and an $\SO(2)$-equivariant architecture --- are worth $+0.8 \pm 0.3$,
+$+0.68$ and $+0.15$ points against $+36.5$, and none is distinguishable from zero
+at three seeds. Within the five, recentring and axis alignment split the benefit
+$41/59$.
 
-The recommendation is correspondingly simple: canonicalise the degrees of freedom
-that admit a continuous canonical form --- the query usually supplies more of
-them than one expects --- and then \emph{measure} the residual non-equivariance
-rather than assuming it. The measurement costs one forward pass.
+The recommendation for this benchmark is correspondingly simple: canonicalise the
+degrees of freedom that admit a continuous canonical form, since the query
+usually supplies more of them than one expects. I stop there on purpose. I do not
+know that it transfers, Sec.~\ref{sec:limits} states which systems it cannot
+reach at all, and Sec.~\ref{sec:localgeom} shows that on this benchmark a better
+obstacle encoder is worth more than the frame is.
 
-What that measurement licenses is worth stating exactly, since it is narrower
-than it is tempting to write. It says that \emph{symmetrising this model} is worth
-almost nothing here, because almost none of this model's error is a symmetry
-violation. It does not say that a network built equivariant from the start would
-fail, since such a network searches a different hypothesis class and could
-converge somewhere better. The claim is about where the error lives, not about
+What the residual measurement licenses is worth stating exactly, since it is
+narrower than it is tempting to write. It says that \emph{symmetrising this
+model} is worth almost nothing here, because almost none of this model's error is
+a symmetry violation. It does not say that a network built equivariant from the
+start would fail --- and I know that directly now, having built one
+(Sec.~\ref{sec:arch}): it matches the ceiling and reaches it two to three times
+sooner, which no reading of $r$ predicted. The claim is about where the error lives, not about
 what a different architecture could achieve.
 
 The result is a canonicalisation result rather than an equivariance one, and it

@@ -1008,16 +1008,17 @@ ablation is unresolved}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrrl}
+\begin{tabular}{@{}l r r >{\raggedright\arraybackslash}p{1.75cm}@{}}
 \toprule
-Mechanism & $20$ ep. & converged & Assessment \\
+Mechanism & $20$ ep. & conv. & Assessment \\
 \midrule
-$(\svec,\gvec)$ reduction (5 DOF) & $+30.1$ & $+36.5$ & $\pm0.4$ / $\pm0.3$, $n{=}3$ \\
-\quad of which: 3 translations    & $+12.3$ & --- & recentring alone \\
-\quad of which: 2 rotations       & $+18.0$ & --- & aligning the axis \\
-$\SE$ augmentation (world frame)  & $+2.1$  & --- & real, but $7\%$ of the above \\
-Roll augmentation                 & $+0.8$  & --- & $\pm0.3$ paired, $n{=}3$; n.s. \\
-Frame averaging ($K{:}1\!\to\!3$) & $+0.1$  & $+0.68$ & $\pm0.13$ converged, $n{=}3$ \\
+$(\svec,\gvec)$ reduction         & $+30.1$ & $+36.5$ & $n{=}3$ \\
+\quad 3 translations              & $+12.3$ & ---     & recentring \\
+\quad 2 rotations                 & $+18.0$ & ---     & axis alignment \\
+$\SE$ augmentation                & $+2.1$  & ---     & $7\%$ of the above \\
+Roll augmentation                 & $+0.8$  & ---     & n.s., $n{=}3$ \\
+Frame averaging ($K{:}1\!\to\!3$) & $+0.1$  & $+0.68$ & $\pm0.13$, $n{=}3$ \\
+Equivariant backbone              & ---     & $+0.15$ & $n{=}3$; $2$--$3\times$ faster \\
 \bottomrule
 \end{tabular}
 \caption{Decomposition by mechanism on the same held-out set, in percentage
@@ -1172,13 +1173,13 @@ inverse rotation. Table~\ref{tab:twosigns} is the result.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lrr}
+\begin{tabular}{@{}l r r@{}}
 \toprule
-Arm (250 environments) & $r$ under $\SE$ & Free (\%) \\
+Arm ($250$ envs) & $r$ under $\SE$ & Free (\%) \\
 \midrule
-World frame                     & $0.0881$ & $15.4$ \\
-World frame $+\ \SE$ augmentation & $0.0181$ & $17.5$ \\
-$(\svec,\gvec)$ reduction         & $0.0174$ & $\mathbf{45.6}$ \\
+World frame                  & $0.0881$ & $15.4$ \\
+\quad $+\ \SE$ augmentation  & $0.0181$ & $17.5$ \\
+$(\svec,\gvec)$ reduction    & $0.0174$ & $\mathbf{45.6}$ \\
 \bottomrule
 \end{tabular}
 \caption{The residual does not predict what a mechanism is worth. Augmentation
@@ -1308,9 +1309,9 @@ fails for a planner operating on perceptual input.
 \begin{table}[t]
 \centering
 \small
-\begin{tabular}{lrrr}
+\begin{tabular}{@{}l r r r@{}}
 \toprule
-$60$ environments & Global only & $+$ local & $\Delta$ \\
+$60$ envs & Global & $+$ local & $\Delta$ \\
 \midrule
 World frame                     & $14.60$ & $54.54$ & $+40.0$ \\
 $(\svec,\gvec)$ reduction       & $51.10$ & $79.37$ & $+28.3$ \\
@@ -1435,14 +1436,14 @@ epochs --- a $15\times$ budget --- snapshotting every $10$ epochs and scoring
 every snapshot on the same held-out problems.
 
 \begin{center}\small
-\begin{tabular}{lrrrrr}
+\begin{tabular}{@{}l r r r r r@{}}
 \toprule
-Epochs & $20$ & $60$ & $150$ & $300$ & last $10$ \\
+Epochs & $20$ & $60$ & $150$ & $300$ & last\,$10$ \\
 \midrule
-World frame               & $13.2$ & $14.4$ & $14.2$ & $14.60\pm0.20$ & $+0.1$ \\
-$(\svec,\gvec)$ reduction & $31.4$ & $42.3$ & $48.3$ & $\mathbf{51.10\pm0.25}$ & $+0.2$ \\
+World frame               & $13.2$ & $14.4$ & $14.2$ & $14.60$ & $+0.1$ \\
+$(\svec,\gvec)$ reduction & $31.4$ & $42.3$ & $48.3$ & $\mathbf{51.10}$ & $+0.2$ \\
 \midrule
-Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5\pm0.32}$ & \\
+Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5}$ & \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1582,9 +1583,9 @@ than a finding.
 \centering
 \footnotesize
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{lrrrrr}
+\begin{tabular}{@{}l r r r r r@{}}
 \toprule
-Obstacles & line & World & Reduction & Gap & Red.\ best-of-20 \\
+Obst. & line & World & Reduct. & Gap & best-of-$20$ \\
 \midrule
 $8$            & $61.3$ & $61.4$ & $90.8$ & $+29.4$ & $100.0$ \\
 $16$           & $41.3$ & $44.5$ & $79.8$ & $+35.3$ & $100.0$ \\
@@ -1842,10 +1843,11 @@ needs no treatment is specific to this setting, and relies on the training
 distribution supplying implicit roll diversity through many start--goal directions.
 A dataset with few directions per environment, or a task whose angular structure is
 genuinely richer --- manipulation with a gripper, or non-holonomic dynamics --- could
-plausibly reverse it. That is precisely why we advocate measuring $r$ rather than
-generalising our answer: the measurement is cheap and well defined wherever a
-group acts, even where our conclusion does not carry over. We do not claim it is
-predictive --- Sec.~\ref{sec:twosigns} shows it is not.
+plausibly reverse it. That is why our answer should not be generalised from this benchmark. It is also
+why we do not offer $r$ as the thing to generalise instead: it is cheap and well
+defined wherever a group acts, but Sec.~\ref{sec:twosigns} shows it does not
+predict what a mechanism is worth, so measuring it elsewhere would not settle the
+question our result leaves open.
 
 \textbf{The comparison we previously could not make.} Corollary~\ref{cor:budget}
 bounds post-hoc symmetrisation of a given field; a constrained architecture
@@ -1971,16 +1973,18 @@ floor.
 
 The model presented here is exactly $\SE$-equivariant by construction for five of
 six degrees of freedom, and measured to be $98\%$ equivariant for the sixth
-without any mechanism enforcing it. The benefit is concentrated in the five: the
-mechanisms built for the sixth are worth $+0.1$ and $+0.8$ points against
-$+30.1$, and neither is distinguishable from zero at three seeds. Within the
-five, recentring and axis alignment split the benefit $41/59$.
+without any mechanism enforcing it. The benefit is concentrated in the five: all three
+mechanisms built for the sixth --- augmentation, frame averaging and an
+equivariant architecture --- are worth $+0.8$, $+0.68$ and $+0.15$ points against
+$+36.5$, and none is distinguishable from zero at three seeds. Within the five,
+recentring and axis alignment split the benefit $41/59$.
 
-The recommendation is correspondingly simple, and we believe it applies beyond
-this benchmark: canonicalise the degrees of freedom that admit a continuous
-canonical form --- the query usually supplies more of them than one expects ---
-and then \emph{measure} the residual non-equivariance rather than assuming it.
-The measurement costs one forward pass.
+The recommendation for this benchmark is correspondingly simple: canonicalise the
+degrees of freedom that admit a continuous canonical form, since the query
+usually supplies more of them than one expects. We stop there deliberately. We do
+not know that it transfers, the scope condition in Sec.~\ref{sec:limits} says
+which systems it cannot reach, and Sec.~\ref{sec:localgeom} shows that on this
+benchmark a better obstacle encoder is worth more than the frame is.
 
 What that measurement licenses is worth stating exactly, since it is narrower
 than it is tempting to write. It says that \emph{symmetrising this model} is
