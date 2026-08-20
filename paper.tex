@@ -109,11 +109,11 @@ removes five of the six degrees of freedom of $\SE$ exactly, at initialisation,
 at no computational cost. On a cluttered 3D point-mass benchmark, trained to
 convergence, this raises the held-out per-sample collision-free rate from
 $14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three seeds. The world-frame arm
-converges to \emph{at or below} the $15.6\%$ obtained by joining start to goal
-with a straight line on the identical problems: the point estimate is lower, and
-the two are within the clustered bootstrap's $2.2$-point standard error on that
-rate, so the defensible claim is that training on world coordinates does not beat
-the trivial baseline rather than that it loses to it.
+does not beat the $15.6\%$ obtained by joining start to goal with a straight line
+on the identical problems. A paired bootstrap over environments puts the
+difference at $-1.02$ points, $95\%$ CI $[-3.06, +0.90]$, so training on world
+coordinates buys nothing over connecting the endpoints, and we do not claim it
+loses to them.
 
 The sixth degree of freedom, a roll about that axis, admits no continuous
 canonical rule; we give two independent obstructions, one topological and one
@@ -243,9 +243,9 @@ our own contribution.} A collision-free rate is
 uninterpretable on a new benchmark, so we measure, on the identical $500$ held-out
 problems, both a trivial lower bound and four classical planners. The trivial
 bound is the finding: a straight line from start to goal is collision-free on
-$15.6\%$ of problems, and the world-frame model scores $15.4\%$ per sample. The
+$15.6\%$ of problems, which the world-frame model does not beat. The
 classical planners ($74$--$100\%$, all under $0.4$\,s on a single CPU core) bound
-the other side and show that the learned sampler, at $45.5\%$, is not competitive
+the other side and show that the learned sampler, at $51.1\%$, is not competitive
 with them here. Because a generative planner is deployed as best-of-$N$ behind a
 collision check, we also report that per-query metric against the honest control
 for it --- the model's own untrained prior, sampled $N$ times, at its best width.
@@ -253,6 +253,19 @@ That comparison separates two things the per-sample number conflates: the
 world-frame arm is at the straight-line floor per sample, but well above the
 untrained prior per query, so it has learned sample \emph{diversity} without
 learning sample \emph{quality}.
+
+\textbf{Which number is the headline.} Three appear in this paper and they are
+not interchangeable, so we fix the hierarchy here. The headline is
+$\mathbf{51.10\pm0.25}$ against $14.60\pm0.20$: sixty environments, trained to a
+plateau, three seeds, and the setting in which every mechanism comparison in
+Sec.~\ref{sec:arch} and Sec.~\ref{sec:localgeom} is made. Two others are
+subordinate to it and are labelled as such wherever they appear.
+$45.5\%$ is the $2\times4$ scaling grid of Sec.~\ref{sec:scaling}, run at a
+fixed $20$-epoch budget so that four data scales are compared at equal
+optimisation; it answers how the gap moves with data, not how well the method
+does. $55.8\%$ is the best number we measured, at $250$ environments trained to
+convergence, and it is a single seed, which is why it is not the headline
+despite being the largest.
 
 A reader may reasonably ask why a generative planner is worth studying on a
 problem with an exact SDF, where RRT-Connect solves essentially everything in a
@@ -930,6 +943,7 @@ goal on the identical problems, which the world-frame arm does not beat.}
 \end{figure*}
 
 \subsection{The reduction scales; the baseline does not}
+\label{sec:scaling}
 
 \begin{table}[t]
 \centering
@@ -1435,22 +1449,25 @@ a trend rather than a limit, so we ran both arms at $60$ environments to $300$
 epochs --- a $15\times$ budget --- snapshotting every $10$ epochs and scoring
 every snapshot on the same held-out problems.
 
-\begin{center}\small
-\begin{tabular}{@{}l r r r r r@{}}
+\begin{center}\footnotesize\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}l r r r r@{}}
 \toprule
-Epochs & $20$ & $60$ & $150$ & $300$ & last\,$10$ \\
+Epochs & $20$ & $60$ & $150$ & $300$ \\
 \midrule
-World frame               & $13.2$ & $14.4$ & $14.2$ & $14.60$ & $+0.1$ \\
-$(\svec,\gvec)$ reduction & $31.4$ & $42.3$ & $48.3$ & $\mathbf{51.10}$ & $+0.2$ \\
+World frame               & $13.2$ & $14.4$ & $14.2$ & $14.60\pm0.20$ \\
+$(\svec,\gvec)$ reduction & $31.4$ & $42.3$ & $48.3$ & $\mathbf{51.10\pm0.25}$ \\
 \midrule
-Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5}$ & \\
+Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5\pm0.32}$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-Every cell is a mean over three seeds. Both arms are flat by the end --- the
-control gains $0.1$ points over the final ten epochs and the reduction $0.2$ ---
-so this is a converged comparison rather than a comparison of convergence rates.
+Every cell is a mean over three seeds, and the $\pm$ on the converged column is
+the across-seed standard error --- the right noise model here, since both arms
+are trained, run at the same three seeds, and differenced within seed. Both arms
+are flat by the end: the control gains $0.1$ points over the final ten epochs and
+the reduction $0.2$, so this is a converged comparison rather than a comparison
+of convergence rates.
 Three things follow.
 
 \textbf{The world-frame arm does not beat the straight line.} It converges to
