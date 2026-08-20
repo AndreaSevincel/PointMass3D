@@ -26,14 +26,26 @@ class ObstacleEncoder(nn.Module):
     #box_dim=12 is center + three half-edge vectors (an OBB); 6 is the legacy
     #axis-aligned center + half-extents form.
 
-    def __init__(self, hidden=128, out_dim=128, box_dim=12):
+    def __init__(self, hidden=128, out_dim=128, box_dim=12, sg_dim=0):
         super().__init__()
         self.box_dim = box_dim
+        #REVIEWER CONTROL. With sg_dim>0 the raw query is concatenated to every
+        #obstacle BEFORE the pool, so the scene code can vary with the query
+        #without any change of frame.
+        #
+        #Why it exists: the world-frame arm's scene code has within-environment
+        #standard deviation 0.000000 (Sec. "Where the benefit comes from") --
+        #the encoder sees only obstacles, so its output is constant across
+        #queries in an environment BY CONSTRUCTION. That makes the headline gap
+        #open to the reading "canonicalisation is just letting the encoder see
+        #the query". This arm separates the two: it is the world frame, with a
+        #query-dependent scene code, and no frame change anywhere.
+        self.sg_dim = sg_dim
         self.sphere_mlp = nn.Sequential(
-            nn.Linear(4, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
+            nn.Linear(4 + sg_dim, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
         )
         self.box_mlp = nn.Sequential(
-            nn.Linear(box_dim, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
+            nn.Linear(box_dim + sg_dim, hidden), nn.SiLU(), nn.Linear(hidden, hidden)
         )
         self.out = nn.Sequential(
             nn.Linear(2 * hidden, out_dim), nn.SiLU(), nn.Linear(out_dim, out_dim)
@@ -47,8 +59,16 @@ class ObstacleEncoder(nn.Module):
         m = feat.amax(dim=1)
         return torch.nan_to_num(m, neginf=0.0)  # guard fully-empty sets
 
-    def forward(self, spheres, boxes, sphere_mask=None, box_mask=None):
+    def forward(self, spheres, boxes, sphere_mask=None, box_mask=None, sg=None):
         # spheres (B,S,4), boxes (B,B_,6); masks (B,S)/(B,B_) or None
+        if self.sg_dim:
+            if sg is None:
+                raise ValueError("this encoder was built with sg_dim>0 and needs "
+                                 "the query at forward()")
+            spheres = torch.cat(
+                [spheres, sg[:, None, :].expand(-1, spheres.shape[1], -1)], dim=-1)
+            boxes = torch.cat(
+                [boxes, sg[:, None, :].expand(-1, boxes.shape[1], -1)], dim=-1)
         s = self._masked_max(self.sphere_mlp(spheres), sphere_mask)  # (B, hidden)
         b = self._masked_max(self.box_mlp(boxes), box_mask)          # (B, hidden)
         return self.out(torch.cat([s, b], dim=-1))
@@ -127,6 +147,10 @@ class FlowVelocityField(nn.Module):
         #perception-based system would have, so any number it produces is an
         #upper bound, not a result to report as performance.
         local_geom=False,
+        #see ObstacleEncoder: concatenate the query to every obstacle
+        #before pooling, so the scene code is query-dependent without a
+        #change of frame
+        query_cond=False,
     ):
         super().__init__()
         self.state_dim = state_dim
@@ -135,11 +159,13 @@ class FlowVelocityField(nn.Module):
         #names its conditioning encoder differently
         self.sg_dim = sg_dim
         self.local_geom = local_geom
+        self.query_cond = query_cond
         self.time_dim = time_dim
         self.time_mlp = nn.Sequential(
             nn.Linear(time_dim, time_dim), nn.SiLU(), nn.Linear(time_dim, time_dim)
         )
-        self.obstacle_enc = ObstacleEncoder(env_hidden, env_dim, box_dim)
+        self.obstacle_enc = ObstacleEncoder(env_hidden, env_dim, box_dim,
+                                            sg_dim if query_cond else 0)
         self.cond_enc = ConditionEncoder(env_dim, cond_dim, sg_dim)
 
         global_dim = time_dim + cond_dim
@@ -162,7 +188,8 @@ class FlowVelocityField(nn.Module):
     def encode_cond(self, spheres, boxes, sg, sphere_mask=None, box_mask=None):
         #Time-independent conditioning: compute once per query, reuse across
         #every ODE step (and every frame-averaging rotation of the state).
-        env_emb = self.obstacle_enc(spheres, boxes, sphere_mask, box_mask)
+        env_emb = self.obstacle_enc(spheres, boxes, sphere_mask, box_mask,
+                                    sg if self.query_cond else None)
         return self.cond_enc(env_emb, sg)  # (B, cond_dim)
 
     def decode(self, x, t, c, spheres=None, boxes=None, sphere_mask=None,
@@ -207,11 +234,15 @@ def build_model(cfg):
     cfg.setdefault("sg_dim", 6)    # legacy: raw (start, goal)
     cfg.setdefault("state_dim", 3)  # legacy: point-mass trajectories
     cfg.setdefault("local_geom", False)  # legacy: no oracle channels
+    cfg.setdefault("query_cond", False)  # legacy: query-blind obstacle encoder
     #Dispatch on the architecture recorded in the checkpoint. Without this a
     #constrained model would be rebuilt as an unconstrained one; load_state_dict
     #would raise, but only after the caller had already decided which arm it was
     #scoring, so the failure would be confusing rather than informative.
     if cfg.pop("equivariant", False):
         from .equivariant import EquivVelocityField
+        if cfg.pop("query_cond", False):
+            raise ValueError("query_cond is a world-frame control; the "
+                             "equivariant backbone is a reduced-arm model")
         return EquivVelocityField(**cfg)
     return FlowVelocityField(**cfg)

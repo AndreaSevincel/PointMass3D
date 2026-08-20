@@ -72,6 +72,11 @@ def parse_args():
     ap.add_argument("--split-by", choices=["traj", "pair", "env"], default="pair",
                     help="what val holds out. traj is LEAKY on this dataset "
                          "(30 near-duplicate paths per pair); pair is the default")
+    ap.add_argument("--query-encoder", action="store_true",
+                    help="concatenate the raw query to every obstacle before the "
+                         "pool, so the scene code varies with the query WITHOUT a "
+                         "change of frame. The control that separates 'let the "
+                         "encoder see the query' from 'canonicalise'")
     ap.add_argument("--vec-channels", type=int, default=34,
                     help="width of the m=1 (rotating) stream in the equivariant "
                          "backbone; the scalar stream uses --channels")
@@ -184,6 +189,7 @@ def make_model_config(args):
         ) if args.domain == "pointmass" else (13 if args.reduced else 18),
         state_dim=3 if args.domain == "pointmass" else 9,
         local_geom=args.local_geom,
+        query_cond=args.query_encoder,
     )
 
 
@@ -317,7 +323,12 @@ def main():
         )
 
     cfg = make_model_config(args)
+    if args.equivariant and args.query_encoder:
+        raise SystemExit("--query-encoder is a world-frame control; it makes no "
+                         "sense with the equivariant backbone, whose query "
+                         "conditioning is the single invariant scalar d")
     if args.equivariant:
+        cfg.pop("query_cond", None)
         if not args.reduced:
             raise SystemExit("--equivariant requires --reduced: the SO(2) constraint "
                              "is about the roll the (s,g) reduction leaves behind")
