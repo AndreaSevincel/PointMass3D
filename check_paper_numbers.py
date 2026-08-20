@@ -168,6 +168,11 @@ FORBIDDEN = {
     r"does not benchmark a constrained backbone": "Sec. arch benchmarks one",
     r"fourfold": "the saving is 2.2x-3.2x on multi-seed means, not 4x; the 4x came from seed 0 alone",
     r"quarter of the epochs": "same overstatement in words",
+    #--- the local-geometry seed count, which contradicted its own caption --
+    r"local-geometry arms\}?, which are single-seed": "Table localgeom carries "
+                                                       "n=2 or 3 in every cell",
+    r"single-seed\s*\n?where every other comparison here carries three":
+        "contradicts the table caption; two cells are n=2, none are n=1",
 }
 
 def main():

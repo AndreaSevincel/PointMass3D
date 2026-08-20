@@ -1873,8 +1873,11 @@ $1.6$ points, five times the paired spread of the ablation, so any ablation
 compared unpaired at this scale is measuring seed noise. Even paired, $n{=}3$
 gives two degrees of freedom and a critical $t$ of $4.3$: we can bound these
 mechanisms as small but cannot resolve whether they are zero. All four cells of
-the main grid now carry three seeds; several ablations, and the converged DDPM
-cells, remain single seed and are reported as point estimates.
+the main grid now carry three seeds. The local-geometry arms of
+Table~\ref{tab:localgeom} carry three seeds for the reduction and two for the
+world-frame and equivariant arms; every $250$-environment cell, several
+ablations, and the converged DDPM cells remain single seed and are reported as
+point estimates.
 
 \textbf{Extending beyond two points in $\mathbb{R}^3$.} The reduction needs a
 frame derivable from the query in closed form, which is what a start and a goal
@@ -1926,8 +1929,11 @@ count turns one measurement into a curve, and would establish either that $r$
 predicts the benefit of post-hoc symmetrisation (which
 Corollary~\ref{cor:budget} suggests and Sec.~\ref{sec:budget} now weakly
 supports) or that it does not even then, which is the harder negative.
-\emph{(2) Additional seeds on the local-geometry arms}, which are single-seed
-where every other comparison here carries three. \emph{(3) Convergence at $250$ environments}, so the
+\emph{(2) A third seed on two of the local-geometry cells}: the world-frame and
+equivariant arms with local geometry carry two seeds against three elsewhere,
+though they are also the least seed-sensitive arms measured here, with
+across-seed standard errors of $0.01$ and $0.02$.
+\emph{(3) Convergence at $250$ environments}, so the
 headline is converged as well as full-data; Sec.~\ref{sec:budget} establishes the
 plateau at $60$.
 
