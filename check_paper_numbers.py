@@ -185,6 +185,11 @@ FORBIDDEN = {
                                          "SE is 1.01 and the CI spans zero",
     r"worse than joining the\s*\n?endpoints with a line": "not supported; use "
                                                           "'does not beat'",
+    #--- pre-backbone framings that survived in earlier sections -----------
+    r"one indistinguishable from zero, the other unresolved": "there are three "
+                                                              "mechanisms now",
+    r"flow, \$\(\\svec,\\gvec\)\$ reduction & \\textbf\{45\.5\}": "Table 1 "
+        "calibrates with the converged 60-env arms; 45.5 is the scaling grid",
 }
 
 def main():

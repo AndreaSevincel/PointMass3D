@@ -75,10 +75,11 @@ two independent reasons, so I handled it by symmetry in all three of the places
 a symmetry can go: in the data, in the inference operator, and in the weights.
 
 Holding architecture, data and budget fixed and varying only the representation
-raises the held-out per-sample collision-free rate from $15.4\%$ to $45.5\%$, a
-gap of $+30.08 \pm 0.38$ points across three seeds, and the gap \emph{widens}
-with training data rather than
-shrinking. All three mechanisms built for the sixth degree of freedom are worth
+raises the held-out per-sample collision-free rate from $14.60 \pm 0.20\%$ to
+$51.10 \pm 0.25\%$ at convergence over three seeds, a gap of
+$+36.5 \pm 0.32$ points, and the gap \emph{widens} with training data rather than
+shrinking: across a $12.5\times$ range of environments at a fixed budget it goes
+from $+6.4$ to $+30.1$. All three mechanisms built for the sixth degree of freedom are worth
 almost nothing at convergence: roll augmentation $+0.8 \pm 0.3$, frame averaging
 $+0.68$, and an exactly $\SO(2)$-equivariant backbone $+0.15$, seed-matched. The
 architecture is not pointless, though --- it reaches any given level two to
@@ -662,15 +663,18 @@ CHOMP                           & 88.8 & 0.019 & 0.394 \\
 RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
 expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
 \midrule
-flow, world frame               & 15.4 & $-0.070$ & 0.067 \\
-flow, $(\svec,\gvec)$ reduction & \textbf{45.5} & $-0.010$ & 0.067 \\
+flow, world frame               & 14.6 & $-0.071$ & 0.053 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{51.1} & $-0.002$ & 0.063 \\
 \bottomrule
 \end{tabular}
-\caption{The same $500$ held-out problems, solved five other ways. Classical
+\caption{The same $500$ held-out problems, solved five other ways. The learned
+rows are the converged $60$-environment arms, three-seed means, which is this
+report's headline setting; the scaling grid at a fixed $20$-epoch budget reaches
+$45.5$ and a single-seed $250$-environment run trained to convergence reaches
+$55.8$. Classical
 timings are one CPU core and one query; the learned rows are one GPU and $20$
 samples per query, so the time column is not a like-for-like comparison.
-Classical clearance is averaged over solved problems; the learned rows are
-per-sample rates at $250$ training environments.}
+Classical clearance is averaged over solved problems.}
 \label{tab:baselines}
 \end{table}
 
@@ -728,9 +732,19 @@ real --- its samples are diverse in an informative way rather than a random one
 --- but it has not learned to make any \emph{individual} sample better than a
 straight line. The reduction is what closes that second gap.
 
+\paragraph{Which number is the headline.} Three levels appear in this report and
+they are not interchangeable. The headline is $51.10 \pm 0.25$ against
+$14.60 \pm 0.20$: sixty environments, trained to a plateau, three seeds, and the
+setting in which every mechanism comparison here is made. The $45.5$ that appears
+throughout Sec.~\ref{sec:scaling} is the $2\times4$ grid at a fixed $20$-epoch
+budget, which exists to compare four data scales at equal optimisation rather
+than to report how well the method does. The $55.8$ of Sec.~\ref{sec:budget} is
+the best number I measured and rests on a single seed, which is why it is not the
+headline despite being the largest.
+
 \paragraph{The ceiling.} RRT-Connect solves $99.6\%$ and the expert pipeline
 $100\%$, in under $0.4$\,s of single-core CPU time; CHOMP from a straight-line
-initialisation solves $88.8\%$. The learned sampler at $45.5\%$ is not
+initialisation solves $88.8\%$. The learned sampler at $51.1\%$ is not
 competitive with any of them. I report this plainly because the alternative ---
 comparing a learned planner only against other configurations of itself --- is
 how a benchmark stops measuring anything. The contribution of this work is that

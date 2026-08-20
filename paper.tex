@@ -822,11 +822,16 @@ CHOMP                           & 88.8 & 0.019 & 0.394 \\
 RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
 expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
 \midrule
-flow, world frame               & 15.4 & $-0.070$ & 0.067 \\
-flow, $(\svec,\gvec)$ reduction & \textbf{45.5} & $-0.010$ & 0.067 \\
+flow, world frame               & 14.6 & $-0.071$ & 0.053 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{51.1} & $-0.002$ & 0.063 \\
 \bottomrule
 \end{tabular}
-\caption{The same $500$ held-out problems, solved five other ways. Classical
+\caption{The same $500$ held-out problems, solved five other ways. The learned
+rows are the converged $60$-environment arms of Sec.~\ref{sec:budget}, three-seed
+means, which is the headline setting of this paper; the $2\times4$ scaling grid
+of Sec.~\ref{sec:scaling} runs at a fixed $20$-epoch budget and reaches $45.5$,
+and a single-seed run at $250$ environments trained to convergence reaches
+$55.8$. Classical
 timings are one CPU core and one query; the learned rows are one GPU and $20$
 samples per query, so the time column is not a like-for-like comparison.
 Classical clearance is averaged over solved problems; the learned rows are
@@ -922,10 +927,10 @@ initialisation solves $88.8\%$. The learned sampler at $45.5\%$ is not competiti
 with any of them. We report this plainly because the alternative --- comparing a
 learned planner only against other learned planners --- is how a benchmark stops
 measuring anything. The contribution of this paper is that the representation
-change is worth $30$ points while the mechanisms built for the residual symmetry
-are worth at most a few --- one indistinguishable from zero, the other unresolved.
-That contribution does not require the planner to win, and we do not claim it
-does.
+change is worth $36.5$ points while all three mechanisms built for the residual
+symmetry are worth under a point each, none of them distinguishable from zero at
+three seeds. That contribution does not require the planner to win, and we do not
+claim it does.
 
 \begin{figure*}[t]
 \centering

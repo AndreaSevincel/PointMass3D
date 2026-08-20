@@ -77,10 +77,14 @@ CLASSICAL = [
 ]
 STRAIGHT_LINE = 15.6           # trivial baseline: the segment start -> goal
 # learned arms at 250 training envs, 8 Euler steps, 20 samples/query on one GPU
+# The learned bars must match Table 1, which calibrates against the classical
+# planners using the CONVERGED 60-environment arms (the paper's headline
+# setting), not the 20-epoch scaling grid. The intro used to quote one and point
+# at the other.
 LEARNED = [
-    (r"world frame", 15.38, 0.067),
+    (r"world frame", 14.58, 0.053),
     (r"world frame + aug.", 17.50, 0.067),
-    (r"$(s,g)$ reduction", 45.63, 0.067),
+    (r"$(s,g)$ reduction", 51.12, 0.063),
 ]
 
 C_CTRL = "#3E6DA8"
