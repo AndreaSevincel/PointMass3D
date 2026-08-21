@@ -1369,15 +1369,18 @@ specifically to find out whether it would overturn our main result, and report
 that it did not.
 
 Its value does decay with data, which we state rather than leave for a reader to
-find. Comparing at a matched $80$-epoch budget so that scale is the only variable,
-the reduction is worth $+22.3$ points alongside local geometry at $60$
-environments and $+17.1$ at $250$ (single seed at the larger scale). Local
-geometry is what scales here --- it gains $+9$ points across that range while the
-reduction alongside it loses $5$ --- and the reduced arm with local geometry is
-close to saturating at roughly $80\%$, so the world-frame arm has room to close
-on it that the reduced arm no longer has. The reduction remains worth a great
-deal at both scales and costs nothing; but a reader extrapolating to much larger
-datasets should expect this particular margin to narrow, not hold.
+find. Comparing at a matched $80$-epoch budget so that scale is the only
+variable, and differencing within seed, the reduction is worth
+$\mathbf{+22.37\pm0.46}$ points alongside local geometry at $60$ environments and
+$\mathbf{+17.24\pm0.17}$ at $250$, two seeds at each scale. The $5.1$-point decay
+is an order of magnitude larger than either standard error, so it is measured
+rather than suggested. Local geometry is what scales here --- it gains $+11$
+points across that range while the reduction alongside it loses $5$ --- and the
+reduced arm with local geometry is close to saturating at roughly $80\%$, so the
+world-frame arm has room to close on it that the reduced arm no longer has. The
+reduction remains worth a great deal at both scales and costs nothing; but a
+reader extrapolating to much larger datasets should expect this margin to narrow,
+not hold.
 
 \textbf{The two are sub-additive, and the constraint finally pays.} Treating the
 effects as independent predicts $14.6+36.5+40.0=91.1$; the measured value is
@@ -1952,11 +1955,13 @@ $1.6$ points, five times the paired spread of the ablation, so any ablation
 compared unpaired at this scale is measuring seed noise. Even paired, $n{=}3$
 gives two degrees of freedom and a critical $t$ of $4.3$: we can bound these
 mechanisms as small but cannot resolve whether they are zero. All four cells of
-the main grid now carry three seeds. The local-geometry arms of
+the main grid now carry three seeds, as does the query-conditioned control of
+Sec.~\ref{sec:mechanism}. The local-geometry arms of
 Table~\ref{tab:localgeom} carry three seeds for the reduction and two for the
-world-frame and equivariant arms; every $250$-environment cell, several
-ablations, and the converged DDPM cells remain single seed and are reported as
-point estimates.
+world-frame and equivariant arms, and the two $250$-environment
+local-geometry arms carry two each. The remaining $250$-environment cells,
+several ablations, and the converged DDPM cells are single seed and are reported
+as point estimates.
 
 \textbf{Extending beyond two points in $\mathbb{R}^3$.} The reduction needs a
 frame derivable from the query in closed form, which is what a start and a goal

@@ -102,8 +102,8 @@ REQUIRED = {
     #--- the query-conditioned encoder control, measured 2026-08-21 ---------
     "query-encoder control": r"15\.59",
     "query-dependence alone, seed-matched": r"\+1\.01",
-    "reduction with geometry decays with scale": r"\+17\.1",
-    "matched-budget value at 60 envs": r"\+22\.3",
+    "reduction with geometry decays with scale": r"\+17\.24",
+    "matched-budget value at 60 envs": r"\+22\.37",
 }
 
 #Figure constants that must match the tables. Checked separately because they
@@ -176,6 +176,8 @@ FORBIDDEN = {
     r"16\.15": "seed-0 draw; the three-seed mean is 15.59 +- 0.38",
     r"first world-frame arm[^.]*not below": "at 15.59 it sits ON the 15.6 line, "
                                             "not above it",
+    r"single seed at the larger scale": "both 250-env local-geometry arms now "
+                                        "carry two seeds",
     r"fourfold": "the saving is 2.2x-3.2x on multi-seed means, not 4x; the 4x came from seed 0 alone",
     r"quarter of the epochs": "same overstatement in words",
     #--- the local-geometry seed count, which contradicted its own caption --

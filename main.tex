@@ -1114,9 +1114,11 @@ would overturn the main result of the internship, and it did not.
 
 It does decay with data, though, and I would rather say so than let a reader find
 it. Comparing at a matched $80$-epoch budget so that scale is the only thing
-varying, the reduction is worth $+22.3$ points alongside local geometry at $60$
-environments and $+17.1$ at $250$, the larger scale being a single seed. Local
-geometry is what scales: it gains about $9$ points across that range while the
+varying, and differencing within seed, the reduction is worth
+$+22.37 \pm 0.46$ points alongside local geometry at $60$ environments and
+$+17.24 \pm 0.17$ at $250$, on two seeds at each scale. The $5.1$-point decay is
+about ten times either standard error, so this is measured and not a hunch. Local
+geometry is what scales: it gains about $11$ points across that range while the
 reduction beside it loses $5$. The reduced arm with local geometry is close to
 saturating near $80\%$, so the world-frame arm has room to close on it that the
 reduced arm no longer has. The reduction is still worth a lot at both scales and
@@ -1717,11 +1719,14 @@ $4.3$: I can bound the sixth-degree-of-freedom mechanisms as small but cannot
 resolve whether they are zero.
 
 \paragraph{Seeds are not yet at every scale.} The $20$- and $60$-environment
-cells of both main arms are three-seed means, as are the equivariant arm and the
-reduction with local geometry. The world-frame and equivariant arms with local
-geometry carry two seeds; $150$ and $250$ environments, several ablations, and
-the converged DDPM cells remain single seed. That is why any inferential claim
-in this report is quoted from the seed-matched $60$-environment cell.
+cells of both main arms are three-seed means, as are the equivariant arm, the
+reduction with local geometry, and the query-conditioned control. The
+world-frame and equivariant arms with local geometry carry two seeds, as do both
+$250$-environment local-geometry arms. What remains single seed is $150$
+environments, the plain $250$-environment cells, several ablations, and the
+converged DDPM cells. That is why any inferential claim in this report is quoted
+either from the seed-matched $60$-environment cell or, for the scaling
+comparison, from differences taken within seed at both scales.
 
 The generative-objective concern that stood here in an earlier draft --- that the
 effect might be specific to straight-line interpolants --- is now measured rather
