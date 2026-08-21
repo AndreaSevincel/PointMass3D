@@ -139,7 +139,15 @@ $(s,g)$ reduction & 19.23 & 34.43 & 40.60 & 45.45 \\
 \end{tabular}
 \end{center}
 \nt{Useful as the scaling curve; superseded by \texttt{B1}/\texttt{B2} as a
-statement of what the method achieves.}
+statement of what the method achieves. \textbf{Three headline levels exist and
+they are not interchangeable.} $51.10\pm0.25$ against $14.60\pm0.20$ is the
+headline: 60 environments, converged, three seeds, and the setting every
+mechanism comparison uses. $45.5$ (this grid, at 250 environments) runs at a
+fixed 20-epoch budget and answers how the gap moves with data, not how well the
+method does. $55.8$ is the largest number measured, 250 environments converged,
+and rests on one seed, which is why it is not the headline despite being the
+largest. Label every one of them wherever it appears --- four review rounds were
+spent on exactly this.}
 
 \finding{B4}{\SUPP} Seed-matched gaps, which is the correct paired test.
 \ev{20 envs +6.37; 60 envs +20.9 +- 1.6; 150 envs +25.85; 250 envs +30.08 +- 0.38}
@@ -185,11 +193,19 @@ against flow matching's +36.5}
 \nt{The two objectives disagree early and agree at convergence --- itself a
 small finding about how much early-training comparisons are worth.}
 
-\finding{D3}{\HEAD} At convergence the world-frame arm is \emph{below} the
+\finding{D3}{\HEAD} At convergence the world-frame arm does not \emph{beat} the
 straight-line baseline.
-\ev{world frame 14.6 vs straight line 15.6, per sample}
-\nt{Sharper than the earlier ``indistinguishable from joining the endpoints''.
-Do not soften it back --- see \texttt{L7}.}
+\ev{world frame 14.58 +- 0.22 (n=3) vs straight line 15.6, per sample. PAIRED
+bootstrap over environments, differencing within each replicate: -1.02 points,
+95\% CI [-3.06, +0.90], SE 1.01}
+\nt{The right test is paired: both arms run the identical 500 problems and both
+track per-environment clutter, so their outcomes are correlated and the
+difference is far better determined than either rate. Pairing halves the standard
+error, 1.01 against 2.2 for either rate alone --- and the interval still spans
+zero, because the effect is only 1.02. So the defensible claim is ``does not
+beat'', not ``is below''. \emph{Do not quote the across-seed spread here}: it
+describes variation between training runs, not uncertainty against a fixed
+baseline. See \texttt{L10}. Run it with \texttt{paired\_floor\_test.py}.}
 
 \finding{D4}{\SUPP} Obstacle-density sweep: the gap is not a property of one
 clutter level.
@@ -225,6 +241,36 @@ Reduced frame & 0.182    & 0.778 \\
 \nt{The world-frame scene code is \emph{exactly constant} within an environment
 --- it cannot vary with the query, so it cannot encode anything about this
 particular trip. The single most explanatory measurement in the project.}
+
+\finding{E5}{\HEAD} The benefit is \emph{not} simply letting the encoder see the
+query. A world-frame arm with a query-dependent scene code gains one point of the
+thirty-six.
+
+\begin{center}\small
+\begin{tabular}{lrr}
+\toprule
+60 envs, converged, $n=3$ & free \% & vs.\ world frame \\
+\midrule
+world frame                    & $14.58 \pm 0.22$ & \\
+$+$ query-conditioned encoder  & $15.59 \pm 0.38$ & $+1.01$ \\
+$(s,g)$ reduction              & $51.12 \pm 0.27$ & $+36.54$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+\ev{the arm is the world frame throughout, no change of frame anywhere, with the
+raw query concatenated to every obstacle BEFORE the pool. Scene code
+within-environment std 0.022 against the baseline's 0.000000; 0.07\% more
+parameters. Seed-matched difference +1.01, positive on all three seeds (+1.14,
++0.50, +1.40). Built as \texttt{--query-encoder}.}
+\nt{This is the answer to the strongest objection the work faces. \texttt{E2}
+shows the world-frame scene code cannot vary with the query \emph{by
+construction}, which invites the deflationary reading that the reduction buys
+query-dependence rather than canonicalisation. It buys about one point of the
+36.5; canonicalisation supplies 35.5. \emph{Second observation, and the better
+one}: at 15.59 the arm lands ON the straight line's 15.6, not above it. Query
+dependence is exactly enough to reach the trivial baseline and not enough to beat
+it. What takes the model past the floor is the change of frame. Related:
+[[E2]], [[D3]].}
 
 \finding{E3}{\SUPP} The five removed degrees of freedom decompose, and they
 interact.
@@ -340,15 +386,17 @@ Epoch & Equivariant & Unconstrained & $\Delta$ \\
 10  & 35.4 & 22.1 & $+13.3$ \\
 40  & 44.6 & 37.9 & $+6.7$ \\
 100 & 48.7 & 45.8 & $+2.9$ \\
-300 & 51.27 & 51.10 & $+0.17$ \\
+300 & 51.27 & 51.12 & $+0.15$ \\
 \bottomrule
 \end{tabular}
 \end{center}
-\ev{final row seed-matched over THREE seeds: 50.9/51.6/51.3 against
-50.8/51.6/50.9, i.e. +0.1, 0.0, +0.4. Reaches at epoch 10 what the unconstrained
-arm needs epoch 40 for, and at epoch 40 what it needs epoch 90 for.}
-\nt{The +0.05 quoted before the third seed landed was two seeds. The conclusion
-is unchanged and the number is not: quote \emph{+0.17}.}
+\ev{Seed-matched over THREE seeds. The optimisation saving, computed by
+interpolating when the unconstrained arm reaches each constrained level: 3.2x at
+epoch 10, 2.4x at 20, 2.2x at 40 and 60.}
+\nt{Quote \emph{+0.15} at the ceiling and \emph{two to three times sooner} for
+the saving. Two earlier numbers are wrong and both came from seed 0 alone: +0.05
+for the ceiling, and ``fourfold'' for the saving, which is 2.2--3.2x on
+multi-seed means. See \texttt{L11}.}
 \nt{All three mechanisms now agree the residual roll is nearly exhausted. That
 \emph{supports} the central claim rather than leaving a hole in it.}
 
@@ -427,14 +475,19 @@ Budget-matched & world frame & $+$ reduction & $+$ local geom. \\
 \bottomrule
 \end{tabular}
 \end{center}
-\ev{250-env cells are n=1 and matched at 80 epochs across arms}
-\nt{The reduction is flat across a 4x increase in environments at matched
-budget; local geometry gains 9 points. Its lead grows from 3.4 to 11.8. Sharpest
-form: the world-frame arm with local geometry reaches \emph{57.3 at epoch 20},
-beating the canonicalised arm without it at epoch 300 (55.8). The mechanism is
-consistent with [[E2]]: the global encoder pools 40 obstacles into one vector
-applied identically to every waypoint, so more environments means more scenes
-through the same bottleneck, while local geometry bypasses it.}
+\ev{The decay, seed-matched and budget-matched at 80 epochs, two seeds at each
+scale: the reduction alongside local geometry is worth +22.37 +- 0.46 at 60
+environments and +17.24 +- 0.17 at 250. A 5.1-point decay against SEs of 0.46 and
+0.17, so it is measured, not suggested.}
+\nt{The reduction is flat across a 4x increase in environments at matched budget;
+local geometry gains 11 points. Sharpest form: the world-frame arm with local
+geometry reaches \emph{57.3 at epoch 20}, beating the canonicalised arm without
+it at epoch 300 (55.8). The mechanism is consistent with [[E2]]: the global
+encoder pools 40 obstacles into one vector applied identically to every waypoint,
+so more environments means more scenes through the same bottleneck, while local
+geometry bypasses it. \emph{The first version of this comparison was confounded}
+--- it read 60 envs at epoch 300 against 250 envs at epoch 80, and about a third
+of the apparent decay was budget rather than data.}
 
 \finding{H5}{\SUPP} The two effects are sub-additive.
 \ev{additive prediction 14.6 + 36.2 + 39.9 = 90.7; measured 79.2 -- short by 11.5}
@@ -511,6 +564,18 @@ mass'' --- \emph{is} the $m=1$ moment, so this kills it. Even moments survive
 this but not \texttt{J1}: an $m=2$ moment defines a director, and a continuous
 director field on $S^2$ is obstructed for the same Euler-characteristic reason.
 See \texttt{L2} for the argument this replaced.}
+
+\finding{J4}{\HEAD} A precise scope condition: the group must act on the STATE
+space, not merely on the workspace.
+\ev{holds for a point mass (state is a position) and for the SE(3) rigid body
+(state is a pose); fails for a manipulator planning in joint space}
+\nt{The query still defines a frame in an arm's workspace, but a rigid motion of
+the world induces no clean action on joint coordinates, so there is nothing for
+the reduction to apply to. Mobile bases, free-flying bodies and
+end-effector-space planning pass the test; joint-space planning for arms does
+not. \emph{This is why a manipulator benchmark would likely demonstrate that the
+method does not apply rather than that it does.} Give a reader the test rather
+than a third domain on which it happens to work.}
 
 \finding{J3}{\SUPP} A second domain exists: SE(3) rigid bodies, with the same
 qualitative result.
@@ -602,6 +667,26 @@ endpoints.''
 \finding{L8}{\RETR} ``Roll augmentation is worth $+4.4$.''
 \nt{An unpaired artefact. Seed-matched it is $+0.8$.}
 
+\finding{L10}{\RETR} ``The world-frame arm is roughly five across-seed standard
+errors below the straight line.''
+\nt{Wrong denominator. The across-seed spread describes variation between
+training runs, not the uncertainty of a comparison against a fixed deterministic
+baseline measured on the same problems. The right test is paired
+(\texttt{D3}): SE 1.01, interval [-3.06, +0.90], which includes zero. Note the
+correction cuts both ways --- pairing HALVED the standard error, so the original
+error bars were too wide as well as attached to the wrong quantity, and the
+effect is simply too small either way.}
+
+\finding{L11}{\RETR} ``The equivariant backbone gives a fourfold saving in
+optimisation, and $+0.05$ at the ceiling.''
+\nt{Both came from seed 0 alone. On multi-seed means the saving is 2.2--3.2x
+depending where it is measured, and the ceiling difference is +0.15. Third
+instance of the same failure: a seed-0 figure that became an overstatement once
+seeds landed. The first was roll augmentation at +4.4, which is +0.8 paired
+(\texttt{L8}); the second was the query-encoder control at 16.15, which is 15.59
+over three seeds. \emph{Rule, now applied: never quote a single-seed difference
+against a multi-seed mean.}}
+
 \finding{L9}{\RETR} ``The equivariant model's capacity is matched to the
 baseline within 0.8\%.''
 \nt{It is 19.5\% \emph{larger} --- 2,582,233 against 2,161,283. The module
@@ -636,6 +721,29 @@ equivariant to \emph{rolls only}.}
 simulator.
 \ev{agrees with the collision checker to 8e-8; rigid-motion equivariant to 2e-7}
 
+\finding{M7}{\SUPP} Three tools now guard the numbers, and each exists because
+something got past the previous one.
+\nt{\texttt{check\_paper\_numbers.py} asks ``does this value appear, and has a
+retired one come back''. It cannot catch a \emph{claim about} a number: a caption
+saying $n{=}2$ while a paragraph six pages away says single-seed contains no
+value it knows. \texttt{seed\_inventory.py} generates the seed count per arm from
+\texttt{results/conv/}, takes the last epoch PER SEED, and refuses to average
+across mixed budgets --- a killed run once contributed an epoch-20 score as if it
+were a seed. \texttt{audit\_numbers.py} prints every occurrence of every headline
+value with context, because the recurring failure was never a wrong number but a
+right number changed in one place and not the three others it lives in. Run the
+third after every change; it is the loop that was being skipped.}
+
+\finding{M8}{\SUPP} Two ways a results table looked plausible and was wrong.
+\nt{First, \texttt{*.ep0*.json} also matches \texttt{ep0300-kfa3.json}, so a
+summary taking the last match per seed silently reported frame-averaged scores
+for whichever arm had a K sweep --- the treatment read 51.64 instead of 51.12,
+inflated by exactly the frame-averaging gain. Second, a filter written
+\texttt{if (envs=='250' and ep!=80) and ep!=300} reduces to \texttt{False} for
+every 60-environment path, so no filtering happened at all and each cell showed
+whatever epoch came last in glob order. \emph{Always print the epoch a row came
+from.}}
+
 \finding{M5}{\DET} The manuscripts' numbers are checked mechanically, not by
 reading.
 \nt{\texttt{check\_paper\_numbers.py} holds about 50 values that must appear,
@@ -661,11 +769,22 @@ eval gave 13.6\% against 12.8\% reported from the GPU run}
 % ===================================================================
 \section{Open, and honestly unfinished}
 
-\finding{N1}{\OPEN} The four local-geometry cells are single-seed.
-\ev{everything else carries three seeds; two more rounds of about 4 h fixes the
-two cells that carry the argument}
+\finding{N1}{\OPEN} Seed inventory as it stands.
+\ev{n=3: ctrl, treat, equiv2, treatgeo (60 envs), ctrlqc. n=2: ctrlgeo, equivgeo
+(60 envs), ctrlgeo, treatgeo (250 envs). n=1: ctrl, treat, equiv2 (250 envs).}
+\nt{Every claim the paper leans on has at least two seeds. The three single-seed
+cells are the plain 250-environment arms, which support the scaling narrative and
+are labelled as point estimates. Regenerate with \texttt{seed\_inventory.py}
+rather than quoting this from memory.}
 
-\finding{N2}{\OPEN} The equivariant arm has two seeds, not three.
+\finding{N2}{\OPEN} One architecture, one clutter generator, one workspace
+family.
+\nt{The cheapest of the three to attack is capacity: doubling the trunk
+(\texttt{--channels 256}) on both arms at 60 environments, three seeds, is six
+runs of about four hours. If the gap survives at 4x capacity then ``the model is
+small'' stops being a limitation and becomes a controlled variable. The other two
+need a different benchmark, and \texttt{J4} explains why the obvious candidate
+does not qualify.}
 
 \finding{N3}{\OPEN} The reduction has not plateaued at 250 environments, which
 is the dataset cap.
