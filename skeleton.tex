@@ -76,6 +76,14 @@ beatae vitae dicta sunt explicabo.}
 \small Lorem Ipsum University}
 \date{}
 
+% IEEE PDF eXpress rejects Type 3 fonts. Two sources on this TeX Live install:
+% matplotlib's PDF backend (fixed in make_figures.py with pdf.fonttype 42) and
+% LaTeX's default itemize bullet, which arrives as an unnamed Type 3 with a
+% single glyph. Forcing the math bullet takes it from CMSY, which is Type 1.
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand{\labelitemii}{$\circ$}
+\renewcommand{\labelitemiii}{$\ast$}
+
 \begin{document}
 \maketitle
 

@@ -51,6 +51,15 @@
 % applies where a line would otherwise overflow, so it does not loosen the rest.
 \setlength{\emergencystretch}{1em}
 
+% IEEE PDF eXpress rejects Type 3 fonts. LaTeX's default itemize bullet is
+% rasterised on this TeX Live install (it arrives as an unnamed Type 3 font with
+% a single glyph, char 136), which flagged every page carrying a list. Forcing
+% the math bullet takes it from CMSY, which is Type 1, and looks identical.
+% The same applies to the nested levels even if they are unused today.
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand{\labelitemii}{$\circ$}
+\renewcommand{\labelitemiii}{$\ast$}
+
 \begin{document}
 \maketitle
 

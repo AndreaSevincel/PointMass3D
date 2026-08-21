@@ -9,6 +9,12 @@
 
 import matplotlib
 matplotlib.use("Agg")
+#IEEE PDF eXpress REJECTS Type 3 fonts, and matplotlib's PDF backend emits them
+#by default: every figure came back flagged on pages 4, 8 and 9. fonttype 42 is
+#TrueType, which is accepted and is also selectable text rather than rasterised
+#outlines. Set before pyplot draws anything.
+matplotlib.rcParams["pdf.fonttype"] = 42
+matplotlib.rcParams["ps.fonttype"] = 42
 import matplotlib.pyplot as plt
 
 ENVS = [20, 60, 150, 250]
