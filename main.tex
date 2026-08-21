@@ -1364,13 +1364,20 @@ obstacle before the pool, so its scene code does vary with the query --- within-
 environment standard deviation $0.022$ against $0.000000$ --- at $0.07\%$ more
 parameters.
 
-It reaches $16.15\%$ against the world frame's $14.60 \pm 0.20$, on a single seed
-against three. Query-dependence alone is worth under two points of the $36.5$;
-canonicalisation supplies the other $35.0$. The deflationary reading does not
+It converges to $15.59 \pm 0.38\%$ against the world frame's $14.60 \pm 0.20$,
+both over three seeds. Seed-matched the difference is $+1.01$ points and positive
+on every seed ($+1.14$, $+0.50$, $+1.40$), so it is a real effect and a small
+one. Query-dependence alone is worth about one point of the $36.5$;
+canonicalisation supplies the other $35.5$. The deflationary reading does not
 survive: a query-dependent scene code is necessary for the mechanism above and
-nowhere near sufficient for the effect. It is also the first world-frame arm I
-have measured that is not below the straight-line floor, which fits
-query-dependence being a real ingredient and a small one.
+nowhere near sufficient for the effect.
+
+Where it lands is the part I find most useful. At $15.59\%$ it sits on the
+straight line's $15.6\%$ rather than above it. Giving the encoder the query is
+exactly enough to reach the trivial baseline and not enough to beat it; what
+takes the model past the floor at all is the change of frame. I had written the
+opposite from a single seed, which read $16.15\%$ and looked like the first
+world-frame arm to clear the line. It was a favourable draw.
 
 It also bounds what this encoder can do. A single global code can say \emph{that}
 a path is blocked; it cannot say \emph{which} waypoint should move and in which

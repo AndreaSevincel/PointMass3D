@@ -100,8 +100,8 @@ REQUIRED = {
     "sub-additive": r"91\.1",
     "equivariance pays only with geometry": r"\+2\.8",
     #--- the query-conditioned encoder control, measured 2026-08-21 ---------
-    "query-encoder control": r"16\.15",
-    "query-dependence alone": r"under two points",
+    "query-encoder control": r"15\.59",
+    "query-dependence alone, seed-matched": r"\+1\.01",
     "reduction with geometry decays with scale": r"\+17\.1",
     "matched-budget value at 60 envs": r"\+22\.3",
 }
@@ -173,6 +173,9 @@ FORBIDDEN = {
                               "neither forbids a discontinuous rule",
     r"sixth degree of freedom is not removable": "same overreach",
     r"does not benchmark a constrained backbone": "Sec. arch benchmarks one",
+    r"16\.15": "seed-0 draw; the three-seed mean is 15.59 +- 0.38",
+    r"first world-frame arm[^.]*not below": "at 15.59 it sits ON the 15.6 line, "
+                                            "not above it",
     r"fourfold": "the saving is 2.2x-3.2x on multi-seed means, not 4x; the 4x came from seed 0 alone",
     r"quarter of the epochs": "same overstatement in words",
     #--- the local-geometry seed count, which contradicted its own caption --
@@ -212,8 +215,13 @@ def main():
                 line = text[:m.start()].count("\n") + 1
                 #a deliberate contrast, flagged in prose, is allowed
                 ctx = text[max(0, m.start() - 220):m.start() + 60]
+                #A retired value may be quoted deliberately when the text is
+                #ABOUT having been wrong -- the corrections sections do this, and
+                #they are among the most useful passages in both documents.
                 if any(k in ctx for k in ("would have reported", "would read",
-                                          "would put", "reported roll augmentation as")):
+                                          "would put", "reported roll augmentation as",
+                                          "I had written", "which read",
+                                          "originally reported", "an earlier draft")):
                     continue
                 bad.append(f"STALE    {fname}:{line}: {m.group()}  -- {why}")
     for b in bad:

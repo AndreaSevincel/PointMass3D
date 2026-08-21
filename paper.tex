@@ -1617,14 +1617,19 @@ concatenated to every obstacle before the pool. Its scene code varies with the
 query (within-environment standard deviation $0.022$ against the baseline's
 $0.000000$), and it carries $0.07\%$ more parameters.
 
-It reaches $16.15\%$ against the world frame's $14.60\pm0.20$, a single seed
-against three. \emph{Query-dependence alone is worth under two points of the
-$36.5$}, and canonicalisation supplies the remaining $35.0$. The deflationary
-reading is not supported: a query-dependent scene code is necessary for the
-mechanism described above, and nowhere near sufficient for the effect. It is
-also, at $16.15\%$, the first world-frame arm we have measured that is not below
-the straight-line floor, which is consistent with query-dependence being a real
-but small ingredient.
+It converges to $15.59\pm0.38\%$ against the world frame's $14.60\pm0.20$, both
+over three seeds. Seed-matched the difference is $+1.01$ points and positive on
+every seed ($+1.14$, $+0.50$, $+1.40$), so the effect is real and small.
+\emph{Query-dependence alone is worth about one point of the $36.5$}, and
+canonicalisation supplies the remaining $35.5$. The deflationary reading is not
+supported: a query-dependent scene code is necessary for the mechanism described
+above and nowhere near sufficient for the effect.
+
+The level it reaches is worth stating exactly, because it is a cleaner statement
+of the paper's floor result than the world-frame arm alone provides. At
+$15.59\%$ it lands on the straight line's $15.6\%$, not above it: giving the
+encoder the query is enough to reach the trivial baseline and not enough to beat
+it. What takes the model past the floor at all is the change of frame.
 
 It also bounds what the encoder can do at all. A single global code can say
 \emph{that} a path is blocked; it cannot say \emph{which waypoint} should move
