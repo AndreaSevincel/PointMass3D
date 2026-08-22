@@ -1,13 +1,3 @@
-% SJTU internship report. Single-column, first person, standalone.
-%
-%   pdflatex main && pdflatex main
-%
-% This document and paper.tex describe the same work for different audiences:
-% this one is the report of what I did over the internship, including the
-% benchmark construction and the mistakes I corrected; paper.tex is the
-% conference/arXiv submission. Every shared number must agree between them --
-% check_paper_numbers.py enforces that for paper.tex, and the tables here are
-% transcribed from the same results files.
 
 \documentclass[11pt,a4paper]{article}
 
@@ -44,7 +34,7 @@
         {\normalsize Supervisors: Xinzhe Zhou, Xiaoming Duan}}
 \date{August 2026}
 
-% Absorbs the last few points on paragraphs TeX cannot break well -- here,
+% Absorbs the last few points on paragraphs TeX cannot break well - here,
 % lines carrying PointMass3D and RRT-Connect, which resist hyphenation. Only
 % applies where a line would otherwise overflow, so it does not loosen the rest.
 \setlength{\emergencystretch}{1em}
@@ -84,7 +74,18 @@ symmetrisation of this model can spend. Two further findings support the reading
 representation and optimisation are separate bottlenecks, and the whole pattern
 replicates in a second state space where a state is a full rigid-body pose.
 \end{abstract}
+\section{What I have studied}
 
+Before this internship, I have studied many things regarding motion planning, flow matching, equivariance, group theory, transformations, etc. since my area, Artificial Intelligence's curriculum never covered these topics.
+Specifically, I studied: Introduction to Group Theory, Introduction to Robotics, Flow Matching for Generative Modelling, 
+What I have studied afterwards were the Expert Planners, like RRT, RRT-Connect, TrajOpt, etc. 
+The following papers that Mr. Xinzhe suggested: 
+
+"RRT-Connect: An Efficient Approach to Single-Query Path Planning", 
+
+"CHOMP: Gradient optimization techniques for efficient motion planning", and 
+
+"Finding locally optimal, collision-free trajectories with sequential convex optimization"
 
 \section{What I did, in the order in which I did it}
 
@@ -108,35 +109,28 @@ The internship ran in three stages, and this report follows them.
 
 \subsection{Contributions}
 
-\textbf{(i) Five of six degrees of freedom are free.} The query supplies a
-frame. Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the
-first axis with the start--goal direction removes three translational and two
-rotational degrees of freedom exactly, at no computational cost and with no
-architectural constraint. The resulting representation is invariant under any
-rigid motion of the problem \emph{up to a single roll about the start--goal
-axis}.
 
-\textbf{(ii) No continuous rule fixes the sixth, and the natural scene-derived
+\textbf{(i) No continuous rule fixes the sixth, and the natural scene-derived
 alternative carries no signal.}
 A continuous rule fixing the roll would be a nowhere-vanishing tangent field on
 $S^2$, which the hairy ball theorem forbids. Deriving the roll from the scene
 instead fails because the obstacle law is symmetric under central inversion, so
 the angular moment such a gauge would use vanishes in expectation.
 
-\textbf{(iii) The symmetry machinery buys little, and I measured why.} Rather
+\textbf{(ii) The symmetry machinery buys little, and I measured why.} Rather
 than infer inertness from flat quality curves, I measured the quantity frame averaging
 exists to remove, and proved exactly what it bounds.
 
-\textbf{(iv) Calibration, and two bottlenecks.} A collision-free rate on a new
+\textbf{(iii) Calibration, and two bottlenecks.} A collision-free rate on a new
 benchmark means nothing without a scale. Measuring the floor is what revealed
 that the world-frame arm sits exactly on the straight line, and measuring a
 longer training run is what revealed that compute and representation relieve
 different constraints.
 
-I regard (iii) as the transferable part. The residual is a few lines of code,
+I regard (ii) as the transferable part. The residual is a few lines of code,
 costs one forward pass, needs no retraining, and can be computed on any model
 with a group action on its inputs. It converts ``we tried equivariance and it did
-not help'' into a quantitative statement with an exact bound attached --- and it
+not help'' into a quantitative statement with an exact bound attached -- and it
 comes with an equally exact statement of its limits, which
 Sec.~\ref{sec:twosigns} makes concrete.
 
@@ -155,8 +149,8 @@ planner should be read against, and that turned out to matter more than the
 dataset did.
 
 The released set is $300$ environments $\times\ 36{,}000$ trajectories, from
-$600$ start--goal pairs each with $30$ paths and their time reversals.
-Environments $250$--$299$ are held out and never trained on. Thirty
+$600$ start-goal pairs each with $30$ paths and their time reversals.
+Environments $250$-$299$ are held out and never trained on. Thirty
 near-duplicate paths per pair means the nominal ten million trajectories carry on
 the order of $360{,}000$ distinct queries. This affects no comparison here, since
 both arms see identical data, but if I generated more I would cut paths per pair
@@ -177,9 +171,7 @@ forty obstacles into a single $128$-dimensional vector, and FiLM applies that
 vector identically to every one of the sixty-four waypoints.
 
 I considered a Brownian-bridge prior, which would start sampling from paths that
-already join the endpoints, and did not adopt it. The reason I first gave was
-wrong. I thought the bridge was not isotropic in the plane normal to the
-start--goal axis; it is. The decision survives for a different reason: the bridge
+already join the endpoints, and did not adopt it: the bridge
 is query-dependent and its endpoint covariance is singular, which complicates the
 comparison this report exists to make.
 
@@ -188,57 +180,22 @@ comparison this report exists to make.
 
 \subsection{The query already supplies a frame}
 
-A planning problem is unchanged if you pick it up and move it. For any rigid
-$T \in \SE$, the solution to the transformed problem is the transformed solution.
-A network trained on world coordinates cannot see this, and must learn the same
+
+A planning problem is unchanged if you pick it up and move it. A network trained on world coordinates cannot see this, and must learn the same
 manoeuvre again at every position and orientation.
 
 The start and goal define a frame with no learning at all. Place the origin at
-the midpoint of $\svec$ and $\gvec$, align the first axis with the start--goal
+the midpoint of $\svec$ and $\gvec$, align the first axis with the start-goal
 direction, and express every obstacle and every waypoint in that frame. Three
 translational and two rotational degrees of freedom vanish exactly, at
 initialisation, at no computational cost and with no architectural constraint.
 The six numbers used to condition the network on the query collapse to one
 invariant scalar, the separation $d$.
 
+The remaining roll cannot be fixed by any continuous rule, a point Prof. Zhou raised early on: such a rule would be a nowhere-vanishing tangent field on $S^2$, and a scene-derived alternative fails because the relevant angular moment vanishes in expectation. I therefore treated the sixth degree of freedom by symmetry rather than canonicalisation
+
 The frame needs a second axis to be fully determined, and mine takes it from a
 fixed world axis.
-
-\paragraph{What survives, precisely.} I had this wrong for several weeks. The
-reduced representation is \emph{not} invariant under $\SE$: rotating the whole
-problem selects a different tie-break axis and rolls the frame. What is true is
-that the entire residual is that one roll. Every reduced quantity, waypoints,
-sphere centres and box edge vectors alike, maps through one shared rotation about
-the first axis, verified to $10^{-15}$. The reduction collapses $\SE$ to
-$\SO(2)$, not to nothing. Invariant outright are $d$, the first coordinate of
-every reduced point, and its radius in the plane normal to the axis.
-
-If the representation had been fully invariant there would be no roll left to
-handle, and the rest of this section would be unmotivated.
-
-\subsection{No continuous rule fixes the sixth degree of freedom}
-
-\paragraph{Obstruction from geometry.} A rule assigning a perpendicular direction
-$\yhat(\xhat)$ continuously over all axis directions is a nowhere-vanishing
-tangent field on $S^2$, which the hairy ball theorem forbids. The start--goal
-directions in this dataset cover the whole sphere, so no contractible-domain
-escape is available. Every deterministic gauge therefore jumps somewhere. For the
-smallest-component cross-product construction I use, the jump is $60$ to $120$
-degrees.
-
-\paragraph{Obstruction from the scene.} One might derive the roll from the
-obstacles instead, pointing the second axis at the obstacle mass. That quantity
-is the first angular moment of the obstacle distribution. The obstacle law is
-symmetric under $\mathbf{p} \mapsto -\mathbf{p}$, which preserves every radius
-and sends $\varphi \mapsto \varphi + \pi$, so every odd moment vanishes in
-expectation for every axis direction. Even moments survive this argument. They do
-not survive the first one: a second-moment gauge defines a director field, and a
-continuous director field on $S^2$ is obstructed for the same
-Euler-characteristic reason.
-
-Both propositions forbid \emph{continuous} gauges. A discontinuous rule exists
-and I use one. The sixth degree of freedom therefore has to be handled by
-symmetry rather than by canonicalisation.
 
 \subsection{Three ways to handle the leftover roll}
 
@@ -252,8 +209,7 @@ field at $K$ equally spaced rolls, map each result back, and average. The sample
 field is then exactly $C_K$-equivariant whatever the network learned.
 
 \textbf{In the weights.} An $\SO(2)$-equivariant architecture, in which
-equivariance holds by construction rather than by training
-(Sec.~\ref{sec:arch}).
+equivariance holds by construction rather than by training.
 
 \subsection{The non-equivariance residual, and what it bounds}
 
@@ -273,9 +229,8 @@ model is therefore under $3 \times 10^{-4}$, while the model is failing on most
 of its samples. The model's error is overwhelmingly equivariant error.
 
 What $r$ bounds is what symmetrising a \emph{given} field can remove.
-Sec.~\ref{sec:twosigns} shows what it does not bound.
 
-\subsection{Implementation, and the errors worth recording}
+\subsection{Implementation, and the errors}
 
 \paragraph{Oriented boxes.} The reduction is a general rotation, so axis-aligned
 boxes do not stay axis-aligned. I changed the box representation to a centre plus
@@ -289,18 +244,11 @@ edge vector leaves box positions correct and destroys box extent, and the loss
 curve looks healthy throughout. The same class of error appeared later in the
 rigid-body domain's rotation columns.
 
-\paragraph{Verification.} Sixty-one tests across six files, all property-based.
-Every equivariance test runs on an untrained network, which is the case that
-shows the property comes from the structure of the weights rather than from
-training. Each also carries a negative control, since a network that ignored its
-vector inputs entirely would be trivially equivariant. The tests check that the
-model is \emph{not} equivariant to rotations off the relevant axis.
-
 \section{Protocol and calibration}
 \label{sec:protocol}
 
 Every arm is evaluated on the same $500$ held-out problems: $50$ environments
-$\times$ $10$ distinct start--goal pairs $\times$ $20$ samples, eight Euler
+$\times$ $10$ distinct start-goal pairs $\times$ $20$ samples, eight Euler
 steps. I report two metrics and never conflate them. A sample is \emph{free} if
 the whole path is collision-free. \emph{Best-of-20} is whether any of the twenty
 samples for a query is free. They differ by about thirty points.
@@ -334,7 +282,7 @@ so the time column is not like-for-like.}
 
 \paragraph{The floor.} A straight line from start to goal is collision-free on
 $15.6\%$ of these problems. The world-frame model, trained to a plateau, converges
-to $14.60 \pm 0.20\%$.
+to $14.60\%$.
 
 I first wrote that it was significantly below the line, quoting the across-seed
 spread. That was the wrong denominator: the spread describes variation between
@@ -344,13 +292,6 @@ differencing within each replicate gives $-1.02$ points, a $95\%$ interval of
 $[-3.06, +0.90]$, and a standard error of $1.01$, less than half what either rate
 carries alone. What I can defend is that world coordinates do not beat a straight
 line, not that they lose to one.
-
-\paragraph{Which number is the headline.} Three levels appear in this report.
-$51.10 \pm 0.25$ against $14.60 \pm 0.20$ is the headline: sixty environments,
-trained to a plateau, three seeds, and the setting every comparison below uses.
-The $45.5$ in the scaling grid is a fixed $20$-epoch budget, which exists to
-compare data scales at equal optimisation. The $55.8$ at $250$ environments is
-the largest number I measured and rests on a single seed.
 
 \section{Results}
 \label{sec:results}
@@ -378,7 +319,7 @@ The gap widens monotonically with data. The control gains $2.6$ points across a
 $12.5\times$ increase in layouts; the reduction gains $26.2$ and has not
 plateaued at the dataset cap.
 
-Trained to convergence at sixty environments the gap is $+36.5 \pm 0.32$ points.
+Trained to convergence at sixty environments the gap is $+36.5$ points.
 The control gains nothing from a $15\times$ budget increase: it moves $14.6$ to
 $14.4$ and stays where it started. Minimum clearance agrees independently, the
 control sitting at $-0.07$ throughout while the reduction approaches feasibility
@@ -402,7 +343,7 @@ $\SO(2)$-equivariant net (weights)& $+0.15$ & seed-matched, $n=3$ \\
 \bottomrule
 \end{tabular}
 \caption{The five removable degrees of freedom against the three mechanisms
-built for the sixth.}
+built for the sixth}
 \label{tab:mechanisms}
 \end{table}
 
@@ -411,13 +352,13 @@ That is a stronger statement than any one of them makes alone. For most of the
 internship I had only the first two, and was arguing from the flatness of their
 curves.
 
-\subsection{The third mechanism: I built the equivariant architecture}
+\subsection{The third mechanism: the equivariant architecture}
 \label{sec:arch}
 
 I had argued from the smallness of $r$ that a constrained architecture would gain
-little. Sec.~\ref{sec:twosigns} shows that inference is unsound, so I built it.
+little. 
 
-The backbone is exactly $\SO(2)$-equivariant about the start--goal axis by
+The backbone is exactly $\SO(2)$-equivariant about the start-goal axis by
 construction. Features are separated by irreducible representation: the component
 along the axis is invariant, and the pair in the normal plane rotates together as
 one complex number. Only operations respecting that separation are allowed,
@@ -426,7 +367,7 @@ computed from invariants alone, normalisation of the rotating stream by an
 invariant, and gating of that stream by scalars. Equivariance is verified on an
 untrained network at $1.2 \times 10^{-6}$, and survives multiplying every
 parameter by three. I did not match capacity downward. The constrained model
-carries $2{,}582{,}233$ parameters against $2{,}161{,}283$, or $19.5\%$ more,
+carries $2{,}582{,}233$ parameters against $2{,}161{,}283$, 
 because a constrained model that is also smaller confounds architecture with
 capacity.
 
@@ -442,7 +383,7 @@ $100$ & 48.82 & 45.98 & $+2.84$ \\
 $300$ & 51.27 & 51.12 & $+0.15$ \\
 \bottomrule
 \end{tabular}
-\caption{Sixty environments, identical data and schedule, seed-matched.}
+\caption{Sixty environments, identical data and schedule, seed-matched}
 \label{tab:arch}
 \end{table}
 
@@ -450,15 +391,6 @@ The constraint buys optimisation and not accuracy. The equivariant model reaches
 by epoch $10$ a level the unconstrained arm needs about $32$ epochs for, and by
 epoch $40$ one it needs about $87$. At convergence the difference is $+0.15$
 points, which is zero.
-
-\paragraph{A bug worth recording.} My first implementation plateaued at $22.2\%$,
-and the mathematics was correct throughout. Every equivariance test passed at
-$10^{-6}$. The fault was in how information moved through it. I pooled the
-obstacles' rotating features by taking their mean, and the mean of a roughly
-symmetric cloud of directions is close to nothing. I measured that it retained
-$14\%$ of a typical obstacle's magnitude. The one channel carrying which way the
-obstacles lie was arriving empty. Correct and useless are different failure
-modes, and only one of them has a test.
 
 \subsection{What the residual does not predict}
 \label{sec:twosigns}
@@ -490,25 +422,25 @@ equivariant.
 
 \subsection{Is the benefit simply letting the encoder see the query?}
 
-Linear probes give the world-frame scene code a within-environment standard
-deviation of $0.000000$. The encoder sees only obstacles, so its output cannot
-vary with the query, and the reduced code by contrast varies almost entirely
-within an environment. That invites a deflationary reading of the whole report:
+The encoder sees only obstacles, so its output cannot
+vary with the query , and the reduced code by contrast varies almost entirely
+within an environment. Linear probes give the world-frame scene code a within-environment standard
+deviation of $0$.  That invites a deflationary reading of the whole report:
 perhaps the reduction buys query-dependence rather than canonicalisation, and a
 one-line change to the encoder would buy the same thing.
 
 I built the arm that separates them. It is the world frame throughout, with no
 change of frame anywhere, but the raw query is concatenated to every obstacle
 before the pool, so its scene code does vary with the query. It carries $0.07\%$
-more parameters. It converges to $15.59 \pm 0.38\%$ against the world frame's
-$14.60 \pm 0.20$, both over three seeds, and seed-matched the difference is
+more parameters. It converges to $15.59\%$ against the world frame's
+$14.60$, both over three seeds, and seed-matched the difference is
 $+1.01$ and positive on every seed. Query-dependence alone is worth about one
 point of the $36.5$. Canonicalisation supplies the other $35.5$.
 
 At $15.59\%$ the arm sits on the straight line's $15.6\%$. Giving the encoder the
 query is exactly enough to reach the trivial baseline and not enough to beat it.
 
-\subsection{Local geometry, and how much of my result it explains}
+\subsection{Local geometry}
 \label{sec:localgeom}
 
 The obstacle encoder pools forty obstacles into one vector applied identically to
@@ -547,8 +479,8 @@ present the reduction is still worth $+24.8$ points. I ran that cell specificall
 to find out whether it would overturn my main result.
 
 The margin does decay with data. Comparing at a matched budget and differencing
-within seed, the reduction alongside local geometry is worth $+22.37 \pm 0.46$ at
-sixty environments and $+17.24 \pm 0.17$ at $250$. Anyone extrapolating to a much
+within seed, the reduction alongside local geometry is worth $+22.37$ at
+sixty environments and $+17.24$ at $250$. Anyone extrapolating to a much
 larger dataset should expect it to narrow rather than hold.
 
 The equivariant backbone is worth $+0.15$ points without local geometry and
@@ -576,39 +508,6 @@ and holding everything else fixed reproduces the gap: $+37.0$ at convergence
 against flow matching's $+36.5$. The two objectives disagree early and agree at
 convergence.
 
-\section{Corrections}
-\label{sec:corrections}
-
-Five claims I made during the internship turned out to be wrong. In each case the
-corrected statement is more useful than the original.
-
-\paragraph{1. I thought the reduced representation was bit-identical under rigid
-motion.} It is not. It is invariant up to one roll, and that correction is what
-motivates half of this report.
-
-\paragraph{2. I reported roll augmentation as worth $+4.4$ points.} An artefact of
-comparing a three-seed mean against a single-seed ablation. Seed-matched it is
-$+0.8 \pm 0.3$ and not significant. The across-seed spread is five times the
-paired spread, so any ablation compared unpaired at this scale is measuring seed
-noise.
-
-\paragraph{3. I argued the roll gauge could be fixed by a $C_4$ argument.} That
-holds only when the axis is a four-fold axis of the cube. The correct hypothesis
-is central inversion, which is weaker, true, and holds for a much broader class
-of obstacle distributions than my own generator.
-
-\paragraph{4. I reported the residual as falling with scale.} That came from two
-points under an older definition. Measured at four scales under the definition
-that makes the bound an identity, it is flat. I had built an argument on the
-trend, and the argument does not survive.
-
-\paragraph{5. I decided not to build the equivariant architecture, and gave two
-reasons, both wrong.} I argued that $r$ was small and falling, so the
-architecture would enforce something arriving on its own. The trend was an
-artefact and the level does not predict. When I finally built it the ceiling was
-unchanged. I had reached the right answer by an argument that does not support
-it, and missed the two-to-threefold saving in optimisation entirely.
-
 \section{Discussion and limitations}
 \label{sec:limits}
 
@@ -622,37 +521,7 @@ arms does not.
 
 \paragraph{The learned planner loses to the classical ones.} RRT-Connect solves
 $99.6\%$ in under $0.3$\,s on one CPU core, and the learned sampler reaches
-$51.1\%$. On this benchmark one should use RRT-Connect. The contribution is a
-controlled measurement of what a representation change is worth, and that
-measurement is only isolable where the confounds are removable.
-
-\paragraph{Scope.} One workspace family, one clutter generator, one architecture.
-The claim that the sixth degree of freedom needs no treatment relies on the
-training distribution supplying implicit roll diversity through many start--goal
-directions. A dataset with few directions per environment could plausibly reverse
-it.
-
-\paragraph{Seeds.} The $60$-environment cells carry three seeds, the
-local-geometry arms two or three, and the $250$-environment cells one. Every
-claim I lean on has at least two.
-
-\section{What I would do next}
-
-\textbf{Make $r$ vary deliberately.} Training on a narrow cone of start--goal
-directions should starve the model of implicit roll diversity and drive $r$ up.
-If frame averaging then pays in proportion, $r$ becomes a decision rule for
-post-hoc symmetrisation. If it does not pay even at large $r$, that is the harder
-negative. I attempted this and the attempt failed: narrowing the cone raises $r$
-and degrades quality at the same time, and I could not separate them.
-
-\textbf{Capacity as a controlled variable.} The model is small, and ``the model
-is small'' is currently a limitation rather than something I measured. Doubling
-the trunk on both arms would turn it into a controlled variable.
-
-\textbf{More environments.} The scaling curve has not plateaued at $250$, which
-is the dataset cap. Cutting paths per pair from thirty to five would buy roughly
-six times the environments for the same generation cost.
-
+$51.1\%$. 
 \section{Conclusion}
 
 Of the six degrees of freedom of $\SE$, five are removable exactly and for free
