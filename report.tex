@@ -110,12 +110,12 @@ The internship ran in three stages, and this report follows them.
 \subsection{Contributions}
 
 
-\textbf{(i) No continuous rule fixes the sixth, and the natural scene-derived
-alternative carries no signal.}
-A continuous rule fixing the roll would be a nowhere-vanishing tangent field on
-$S^2$, which the hairy ball theorem forbids. Deriving the roll from the scene
-instead fails because the obstacle law is symmetric under central inversion, so
-the angular moment such a gauge would use vanishes in expectation.
+\textbf{(i) Five of six degrees of freedom are free.} The query supplies a frame.
+Placing the origin at the midpoint of $\svec$ and $\gvec$ and aligning the first
+axis with the start-goal direction removes three translational and two rotational
+degrees of freedom exactly, at no computational cost and with no architectural
+constraint. The resulting representation is invariant under any rigid motion of
+the problem \emph{up to a single roll about the start-goal axis}.
 
 \textbf{(ii) The symmetry machinery buys little, and I measured why.} Rather
 than infer inertness from flat quality curves, I measured the quantity frame averaging
@@ -130,7 +130,7 @@ different constraints.
 I regard (ii) as the transferable part. The residual is a few lines of code,
 costs one forward pass, needs no retraining, and can be computed on any model
 with a group action on its inputs. It converts ``we tried equivariance and it did
-not help'' into a quantitative statement with an exact bound attached -- and it
+not help'' into a quantitative statement with an exact bound attached. It also
 comes with an equally exact statement of its limits, which
 Sec.~\ref{sec:twosigns} makes concrete.
 
@@ -196,6 +196,14 @@ The remaining roll cannot be fixed by any continuous rule, a point Prof. Zhou ra
 
 The frame needs a second axis to be fully determined, and mine takes it from a
 fixed world axis.
+
+The remaining roll cannot be fixed by any continuous rule, a point my supervisors
+raised early on. Such a rule would be a nowhere-vanishing tangent field on $S^2$,
+which the hairy ball theorem forbids, and the obvious scene-derived alternative
+fails because the obstacle law is symmetric under central inversion, so the
+angular moment such a gauge would use vanishes in expectation. I therefore
+treated the sixth degree of freedom by symmetry rather than by canonicalisation,
+and the rest of this section is what that cost.
 
 \subsection{Three ways to handle the leftover roll}
 

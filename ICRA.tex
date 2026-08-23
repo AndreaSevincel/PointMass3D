@@ -1,0 +1,498 @@
+
+
+\documentclass[10pt,twocolumn,letterpaper]{article}
+
+\usepackage[margin=0.75in,columnsep=0.25in]{geometry}
+\IfFileExists{ptmr7t.tfm}{\usepackage{times}}{}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{graphicx}
+\usepackage{array}
+\usepackage{url}
+\usepackage[hidelinks]{hyperref}
+\IfFileExists{booktabs.sty}{\usepackage{booktabs}}{%
+  \newcommand{\toprule}{\hline}
+  \newcommand{\midrule}{\hline}
+  \newcommand{\bottomrule}{\hline}}
+\setlength{\emergencystretch}{1em}
+
+\newcommand{\SE}{\mathrm{SE}(3)}
+\newtheorem{proposition}{Proposition}
+\newtheorem{corollary}{Corollary}
+
+% ---- placeholder text -------------------------------------------------
+% Two paragraphs, alternated, so a \filler{n} block has the visual texture
+% of real prose without any of it being real.
+\newcommand{\lipA}{The task of motion planning is equivariant to rigid-body transformations, but the field the flow matching network learns is not. There are currently three techniques to restore equivariance: in the data, in the operator, or in the weights.}
+
+\newcommand{\lipB}{We ask what the task gives us before any of them. The task itself already supplies us with a frame in the workspace, by placing the origin at the midpoint of the start and goal and aligning the first axis with the direction between the two points, which removes five of the six degrees of freedom of SE(3) exactly, at initialisation and at no cost. On 3D workspaces holding 40 obstacles, this raises the held-out collision-free rate from 14.6\% to 51.1\%. A straight line scores 15.6\% on the identical problems, and the world-frame model does not beat it. A control that shows the obstacle encoder the start and goal without changing frame also reaches 15.6\%, so it is the frame and not the conditioning that moves the model off the floor. One degree of freedom survives, a roll about that axis, and no continuous rule can fix it. Augmentation, frame averaging and an SO(2)-equivariant architecture are worth +0.8, +0.68 and +0.15 points, and the constrained backbone reaches any level two to three times sooner, so the symmetry buys optimisation rather than accuracy. The frame is also not the largest effect available: a per-waypoint signed distance and gradient is worth +40.0 against the frame's +36.5, and the frame still adds +24.8 alongside it.}
+\newcounter{fillc}
+\newcommand{\filler}[1]{%
+  \setcounter{fillc}{0}%
+  \loop\ifnum\value{fillc}<#1\relax
+    \stepcounter{fillc}%
+    \ifodd\value{fillc}\lipA\else\lipB\fi\par
+  \repeat}
+
+\title{\vspace{-1.2cm}Lorem Ipsum Dolor Sit Amet}
+\author{Lorem Ipsum \and Dolor Sit \and Amet Consectetur\\
+\small Lorem Ipsum University}
+\date{}
+
+\begin{document}
+\maketitle
+
+% ============================== PAGE 1 (1.0) =========================
+% ABSTRACT: ~200 words. Exactly three numbers, no more. Candidates are the
+% headline pair, the mechanism total, and the one that bounds your own
+% contribution from above.
+\begin{abstract}
+\noindent
+\lipA{} 
+
+\lipB{}
+\end{abstract}
+
+\section{Introduction}
+% EXAMPLE ONLY. Five paragraphs on the plan that was here before: the question,
+% what the frame removes, the three mechanisms, calibration, the hierarchy.
+% Rewrite in your own voice; the structure is the part worth keeping.
+
+Motion planning is a fundamental problem in robotics, requiring the generation of
+collision-free, kinematically feasible trajectories from a start to a goal
+configuration in complex environments. Equivariance to rigid-body transformations
+is a cornerstone of generalization in this setting. It ensures that a planner
+solves structurally identical tasks identically, regardless of where in the world
+they are posed. Sampling-based and
+optimization-based algorithms are
+equivariant by construction, since they act on the geometry directly, and they
+offer completeness or convergence guarantees. Their per-query computational cost
+limits real-time applicability. Learning-based
+planners
+amortize that cost across queries and have emerged as a promising alternative.
+They do not inherit the symmetry. A network trained on world coordinates relearns
+the same manoeuvre at every position and orientation, and restoring equivariance
+in these models remains an open problem.
+
+Current approaches place the symmetry in one of three parts of the pipeline. In
+the data, through augmentation. In the inference operator, through frame
+averaging or canonicalization. Or in the weights,
+through architectures equivariant by
+construction, as
+adopted in recent robot learning
+systems. All
+three modify the model. None asks how much of the symmetry the problem statement
+already supplies before any model is built. We build all three mechanisms on one
+benchmark, hold architecture, data and training budget fixed, and measure each
+against what the problem supplies on its own.
+
+A planning query names a start and a goal, and those two points determine a
+frame. Place the origin at their midpoint, align the first axis with the
+direction between them, and express every waypoint and every obstacle in that
+frame. Three translational and two rotational degrees of freedom vanish exactly,
+at initialisation, at no computational cost and with no constraint on the
+architecture. The six numbers that conditioned the network on the query collapse
+to one invariant scalar. The frame needs a second axis to be determined, and ours
+takes it from a fixed world axis, so rotating the whole problem rolls the frame
+rather than leaving it fixed. What survives is exactly that roll. $\SE$ collapses
+to $\mathrm{SO}(2)$, not to nothing. Fig.~\ref{fig:teaser} takes the group apart
+one stage at a time.
+
+No continuous rule can fix the remaining roll, so it has to be handled by one of
+the three mechanisms above. Roll augmentation is worth $+0.8$ points, frame averaging $+0.68$, and
+an exactly $\mathrm{SO}(2)$-equivariant backbone $+0.15$, all seed-matched at
+convergence. Three unrelated ways of imposing the same symmetry recovering under
+a point each is a stronger statement than any one of them makes alone. The
+constrained architecture is not idle. It reaches any given level two to three
+times sooner than the unconstrained one, and it carries $19.5\%$ more parameters,
+so that comparison is not confounded by capacity. The symmetry buys optimisation
+and not accuracy.
+
+A collision-free rate on a new benchmark means nothing without a scale, so we
+measure both ends on the identical $500$ held-out problems. A straight line from
+start to goal is collision-free on $15.6\%$ of them. The world-frame model,
+trained to a plateau, reaches $14.60\%$. Classical planners reach $74\%$ to
+$100\%$ in under $0.4$\,s on one CPU core. We also bound our own contribution
+from above. Supplying each waypoint with the signed distance to the scene and its
+gradient, a featurisation of data the network already receives, is worth $+40.0$
+points where the frame is worth $+36.5$. The representation change studied here
+is not the largest effect available on this benchmark. It is not a substitute for
+that information either: with local geometry present the frame still adds
+$+24.8$.
+
+Three levels appear in this paper and they are not interchangeable. The headline
+is $51.10\pm0.25$ against $14.60\pm0.20$: sixty environments, trained to a
+plateau, three seeds, and the setting in which every mechanism comparison below
+is made. The $45.5$ of the scaling grid runs at a fixed $20$-epoch budget and
+answers how the gap moves with data rather than how well the method does. The
+$55.8$ at $250$ environments is the largest number we measured and rests on a
+single seed.
+
+% TEASER: the stage decomposition, top of column 1 on page 1.
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_cascade.pdf}
+\caption{Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do
+eiusmod tempor incididunt ut labore}
+\label{fig:teaser}
+\end{figure}
+
+% ============================== PAGE 2 (1.0) =========================
+\section{Related Work}
+% ~250 words. Three clusters, roughly 80 words each: equivariant
+% architectures; canonicalisation and frame averaging; generative planners.
+\filler{9}
+
+\section{Method}
+\subsection{Decomposing the group}
+% ~200 words plus the two propositions.
+\filler{7}
+
+\begin{proposition}[Lorem ipsum]
+\label{prop:one}
+Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua $X' = R_{\hat{x}}(\theta)\,X$.
+\end{proposition}
+
+\begin{proposition}[Dolor sit amet]
+\label{prop:two}
+Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
+incididunt ut labore.
+\end{proposition}
+% Two-line proof only. Anything longer goes in an appendix or is cut.
+\begin{proof}
+Lorem ipsum dolor sit amet consectetur adipiscing elit, sed do eiusmod tempor
+incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
+\end{proof}
+
+% ============================== PAGES 3--4 (1.2) =====================
+\section{Setup and Calibration}
+\subsection{Benchmark and protocol}
+% ~180 words. Workspace, obstacle counts, trajectory length, held-out split,
+% sample count, integrator budget. Dense and factual; no argument here.
+\filler{5}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Lorem & Ipsum (\%) & Dolor & s/query \\
+\midrule
+lorem ipsum          & 00.0 & 0.000 & $<$0.001 \\
+dolor sit            & 00.0 & 0.000 & 0.000 \\
+amet consectetur     & 00.0 & 0.000 & 0.000 \\
+adipiscing elit      & 00.0 & 0.000 & 0.000 \\
+sed do eiusmod       & 00.0 & 0.000 & 0.000 \\
+\midrule
+tempor incididunt    & 00.0 & $-$0.000 & 0.000 \\
+ut labore et dolore  & \textbf{00.0} & $-$0.000 & 0.000 \\
+\bottomrule
+\end{tabular}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod
+tempor incididunt ut labore et dolore magna aliqua}
+\label{tab:floors}
+\end{table}
+
+\subsection{The floor, and a paired test against it}
+% ~200 words. The trivial baseline, the arm that does not beat it, and WHY the
+% test is paired rather than a comparison of two independently resampled rates.
+\filler{7}
+
+% ============================== PAGES 4--5 (1.3) =====================
+\section{Results}
+\subsection{Scaling}
+% ~220 words.
+\filler{7}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_scaling_col.pdf}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit}
+\label{fig:scaling}
+\end{figure}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+% MERGED mechanism table: one row per mechanism, one column per budget.
+\begin{tabular}{@{}l r r >{\raggedright\arraybackslash}p{1.7cm}@{}}
+\toprule
+Lorem ipsum & A & B & Dolor \\
+\midrule
+lorem ipsum dolor      & $+00.0$ & $+00.0$ & sit amet \\
+\quad consectetur      & $+00.0$ & ---     & adipiscing \\
+\quad elit sed         & $+00.0$ & ---     & eiusmod \\
+tempor incididunt      & $+0.0$  & ---     & ut labore \\
+et dolore magna        & $+0.0$  & $+0.00$ & aliqua \\
+ut enim ad minim       & ---     & $+0.00$ & veniam quis \\
+\bottomrule
+\end{tabular}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod}
+\label{tab:mechanisms}
+\end{table}
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\columnwidth]{fig_convergence.pdf}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing}
+\label{fig:conv}
+\end{figure}
+
+% ============================== PAGES 5--6 (1.2) =====================
+\subsection{Control: a query-conditioned encoder}
+% ~250 words. State the deflationary objection in its STRONGEST form first,
+% then the arm built to test it, then the number.
+\filler{9}
+
+\subsection{Control: local geometry, and how it scales}
+% ~300 words. The 2x2, the value that survives, the honest ordering, and the
+% decay at matched budget.
+\filler{9}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Lorem ipsum & Dolor & Sit & $\Delta$ \\
+\midrule
+lorem ipsum       & 00.00 & 00.00 & $+00.0$ \\
+dolor sit amet    & 00.00 & 00.00 & $+00.0$ \\
+\quad consectetur & 00.00 & \textbf{00.00} & $+00.0$ \\
+\midrule
+\emph{adipiscing} & $+00.0$ & $+00.0$ & \\
+\bottomrule
+\end{tabular}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod
+tempor incididunt}
+\label{tab:twobytwo}
+\end{table}
+
+% ============================== PAGE 6--7 (0.8) ======================
+\subsection{Replications}
+% ~180 words covering all three at once. One table, three blocks of rows.
+\filler{5}
+
+\begin{table}[t]
+\centering
+\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Lorem & Ipsum & A & B & $\Delta$ \\
+\midrule
+dolor   & sit amet     & 00.0 & 00.0 & $+00.0$ \\
+        & consectetur  & 00.0 & 00.0 & $+00.0$ \\
+\midrule
+elit    & sed do       & 00.0 & 00.0 & $+00.0$ \\
+        & eiusmod      & 00.0 & 00.0 & $+00.0$ \\
+\midrule
+tempor  & incididunt   & 00.0 & 00.0 & $+00.0$ \\
+        & ut labore    & 00.0 & 00.0 & $+00.0$ \\
+\bottomrule
+\end{tabular}
+\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit}
+\label{tab:replications}
+\end{table}
+
+\subsection{The residual, and what it bounds}
+% A THIRD OF A COLUMN. ~120 words plus the corollary. State the bound, state
+% that it does not predict, cite the prior work for the projection property,
+% and stop.
+\filler{4}
+
+\begin{corollary}[Lorem ipsum]
+\label{cor:budget}
+Lorem ipsum dolor sit amet consectetur adipiscing elit, sed do eiusmod tempor
+incididunt $\|f - \mathcal{A}f\|^2 \le r^2$.
+\end{corollary}
+
+% ============================== PAGE 7 (0.8) =========================
+\section{Limitations}
+% ~200 words. Scope condition first, then seeds, then the single benchmark
+% family. Keep the self-corrections: they cost little and buy credibility.
+\filler{7}
+
+\section{Conclusion}
+% ~120 words. Shorter than feels comfortable.
+\filler{4}
+
+% ============================== (0.7) ================================
+\small
+\begin{thebibliography}{99}
+
+\bibitem{albergo2023interpolants}
+M.~S. Albergo and E.~Vanden-Eijnden.
+\newblock Building normalizing flows with stochastic interpolants.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{bronstein2021gdl}
+M.~M. Bronstein, J.~Bruna, T.~Cohen, and P.~Veli\v{c}kovi\'{c}.
+\newblock Geometric deep learning: Grids, groups, graphs, geodesics, and gauges.
+\newblock {\em arXiv:2104.13478}, 2021.
+
+\bibitem{carvalho2023mpd}
+J.~Carvalho, A.~T. Le, M.~Baierl, D.~Koert, and J.~Peters.
+\newblock Motion planning diffusion: Learning and planning of robot motions with
+  diffusion models.
+\newblock In {\em IROS}, 2023.
+
+\bibitem{chi2023dp}
+C.~Chi, S.~Feng, Y.~Du, Z.~Xu, E.~Cousineau, B.~Burchfiel, and S.~Song.
+\newblock Diffusion policy: Visuomotor policy learning via action diffusion.
+\newblock In {\em RSS}, 2023.
+
+\bibitem{cohen2016gcnn}
+T.~S. Cohen and M.~Welling.
+\newblock Group equivariant convolutional networks.
+\newblock In {\em ICML}, 2016.
+
+\bibitem{deng2021vn}
+C.~Deng, O.~Litany, Y.~Duan, A.~Poulenard, A.~Tagliasacchi, and L.~Guibas.
+\newblock Vector neurons: A general framework for {SO(3)}-equivariant networks.
+\newblock In {\em ICCV}, 2021.
+
+\bibitem{elesedy2021strict}
+B.~Elesedy and S.~Zaidi.
+\newblock Provably strict generalisation benefit for equivariant models.
+\newblock In {\em ICML}, 2021.
+
+\bibitem{fishman2022mpinets}
+A.~Fishman, A.~Murali, C.~Eppner, B.~Peele, B.~Boots, and D.~Fox.
+\newblock Motion policy networks.
+\newblock In {\em CoRL}, 2022.
+
+\bibitem{fuchs2020se3t}
+F.~B. Fuchs, D.~E. Worrall, V.~Fischer, and M.~Welling.
+\newblock {SE(3)}-transformers: 3{D} roto-translation equivariant attention
+  networks.
+\newblock In {\em NeurIPS}, 2020.
+
+\bibitem{geiger2022e3nn}
+M.~Geiger and T.~Smidt.
+\newblock e3nn: Euclidean neural networks.
+\newblock {\em arXiv:2207.09453}, 2022.
+
+\bibitem{gruver2023lie}
+N.~Gruver, M.~Finzi, M.~Goldblum, and A.~G. Wilson.
+\newblock The {L}ie derivative for measuring learned equivariance.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{janner2022diffuser}
+M.~Janner, Y.~Du, J.~B. Tenenbaum, and S.~Levine.
+\newblock Planning with diffusion for flexible behavior synthesis.
+\newblock In {\em ICML}, 2022.
+
+\bibitem{kaba2023canon}
+S.-O. Kaba, A.~K. Mondal, Y.~Zhang, Y.~Bengio, and S.~Ravanbakhsh.
+\newblock Equivariance with learned canonicalization functions.
+\newblock In {\em ICML}, 2023.
+
+\bibitem{kuffner2000rrtconnect}
+J.~J. Kuffner and S.~M. LaValle.
+\newblock {RRT}-connect: An efficient approach to single-query path planning.
+\newblock In {\em ICRA}, 2000.
+
+\bibitem{lipman2023fm}
+Y.~Lipman, R.~T.~Q. Chen, H.~Ben-Hamu, M.~Nickel, and M.~Le.
+\newblock Flow matching for generative modeling.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{liu2023rectified}
+X.~Liu, C.~Gong, and Q.~Liu.
+\newblock Flow straight and fast: Learning to generate and transfer data with
+  rectified flow.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{milnor1978hairy}
+J.~Milnor.
+\newblock Analytic proofs of the ``hairy ball theorem'' and the {B}rouwer fixed
+  point theorem.
+\newblock {\em American Mathematical Monthly}, 85(7):521--524, 1978.
+
+\bibitem{oord2016wavenet}
+A.~van~den Oord, S.~Dieleman, H.~Zen, K.~Simonyan, O.~Vinyals, A.~Graves,
+  N.~Kalchbrenner, A.~Senior, and K.~Kavukcuoglu.
+\newblock {W}ave{N}et: A generative model for raw audio.
+\newblock {\em arXiv:1609.03499}, 2016.
+
+\bibitem{perez2018film}
+E.~Perez, F.~Strub, H.~de~Vries, V.~Dumoulin, and A.~Courville.
+\newblock {FiLM}: Visual reasoning with a general conditioning layer.
+\newblock In {\em AAAI}, 2018.
+
+\bibitem{puny2022fa}
+O.~Puny, M.~Atzmon, H.~Ben-Hamu, I.~Misra, A.~Grover, E.~J. Smith, and
+  Y.~Lipman.
+\newblock Frame averaging for invariant and equivariant network design.
+\newblock In {\em ICLR}, 2022.
+
+\bibitem{qi2017pointnet}
+C.~R. Qi, H.~Su, K.~Mo, and L.~J. Guibas.
+\newblock {P}oint{N}et: Deep learning on point sets for 3{D} classification and
+  segmentation.
+\newblock In {\em CVPR}, 2017.
+
+\bibitem{qureshi2019mpnet}
+A.~H. Qureshi, A.~Simeonov, M.~J. Bency, and M.~C. Yip.
+\newblock Motion planning networks.
+\newblock In {\em ICRA}, 2019.
+
+\bibitem{ryu2023edf}
+H.~Ryu, H.-i. Lee, J.-H. Lee, and J.~Choi.
+\newblock Equivariant descriptor fields: {SE(3)}-equivariant energy-based models
+  for end-to-end visual robotic manipulation learning.
+\newblock In {\em ICLR}, 2023.
+
+\bibitem{schulman2014trajopt}
+J.~Schulman, Y.~Duan, J.~Ho, A.~Lee, I.~Awwal, H.~Bradlow, J.~Pan, S.~Patil,
+  K.~Goldberg, and P.~Abbeel.
+\newblock Motion planning with sequential convex optimization and convex
+  collision checking.
+\newblock {\em IJRR}, 33(9):1251--1270, 2014.
+
+\bibitem{simeonov2022ndf}
+A.~Simeonov, Y.~Du, A.~Tagliasacchi, J.~B. Tenenbaum, A.~Rodriguez, P.~Agrawal,
+  and V.~Sitzmann.
+\newblock Neural descriptor fields: {SE(3)}-equivariant object representations
+  for manipulation.
+\newblock In {\em ICRA}, 2022.
+
+\bibitem{thomas2018tfn}
+N.~Thomas, T.~Smidt, S.~Kearnes, L.~Yang, L.~Li, K.~Kohlhoff, and P.~Riley.
+\newblock Tensor field networks: Rotation- and translation-equivariant neural
+  networks for 3{D} point clouds.
+\newblock {\em arXiv:1802.08219}, 2018.
+
+\bibitem{urain2023se3dif}
+J.~Urain, N.~Funk, J.~Peters, and G.~Chalvatzaki.
+\newblock {SE(3)}-{D}iffusion{F}ields: Learning smooth cost functions for joint
+  grasp and motion optimization through diffusion.
+\newblock In {\em ICRA}, 2023.
+
+\bibitem{wang2024equidp}
+D.~Wang, S.~Hart, D.~Surovik, T.~Kelestemur, H.~Huang, H.~Zhao, M.~Yeatman,
+  J.~Wang, R.~Walters, and R.~Platt.
+\newblock Equivariant diffusion policy.
+\newblock In {\em CoRL}, 2024.
+
+\bibitem{yang2024equibot}
+J.~Yang, Z.~Cao, C.~Deng, R.~Antonova, S.~Song, and J.~Bohg.
+\newblock {E}qui{B}ot: {SIM(3)}-equivariant diffusion policy for generalizable
+  and data efficient learning.
+\newblock In {\em CoRL}, 2024.
+
+\bibitem{zucker2013chomp}
+M.~Zucker, N.~Ratliff, A.~D. Dragan, M.~Pivtoraiko, M.~Klingensmith, C.~M.
+  Dellin, J.~A. Bagnell, and S.~S. Srinivasa.
+\newblock {CHOMP}: Covariant Hamiltonian optimization for motion planning.
+\newblock {\em IJRR}, 32(9-10):1164--1193, 2013.
+
+\end{thebibliography}
+
+\end{document}
