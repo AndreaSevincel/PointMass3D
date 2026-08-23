@@ -55,37 +55,31 @@
 \end{abstract}
 
 \section{Introduction}
-% EXAMPLE ONLY. Five paragraphs on the plan that was here before: the question,
-% what the frame removes, the three mechanisms, calibration, the hierarchy.
-% Rewrite in your own voice; the structure is the part worth keeping.
 
 Motion planning is a fundamental problem in robotics, requiring the generation of
 collision-free, kinematically feasible trajectories from a start to a goal
 configuration in complex environments. Equivariance to rigid-body transformations
 is a cornerstone of generalization in this setting. It ensures that a planner
 solves structurally identical tasks identically, regardless of where in the world
-they are posed. Sampling-based and
-optimization-based algorithms are
+they are posed. Sampling-based~\cite{kuffner2000rrtconnect} and
+optimization-based~\cite{zucker2013chomp,schulman2014trajopt} algorithms are
 equivariant by construction, since they act on the geometry directly, and they
 offer completeness or convergence guarantees. Their per-query computational cost
 limits real-time applicability. Learning-based
-planners
+planners~\cite{qureshi2019mpnet,fishman2022mpinets,janner2022diffuser,carvalho2023mpd}
 amortize that cost across queries and have emerged as a promising alternative.
 They do not inherit the symmetry. A network trained on world coordinates relearns
-the same manoeuvre at every position and orientation, and restoring equivariance
-in these models remains an open problem.
+the same manoeuvre at every position and orientation.
 
-Current approaches place the symmetry in one of three parts of the pipeline. In
-the data, through augmentation. In the inference operator, through frame
-averaging or canonicalization. Or in the weights,
-through architectures equivariant by
-construction, as
+Existing work restores it in one of three parts of the pipeline. In the data,
+through augmentation. In the inference operator, through frame averaging or
+canonicalization~\cite{puny2022fa,kaba2023canon}. Or in the weights, through
+architectures equivariant by
+construction~\cite{cohen2016gcnn,thomas2018tfn,fuchs2020se3t,deng2021vn}, as
 adopted in recent robot learning
-systems. All
-three modify the model. None asks how much of the symmetry the problem statement
-already supplies before any model is built. We build all three mechanisms on one
-benchmark, hold architecture, data and training budget fixed, and measure each
-against what the problem supplies on its own.
+systems~\cite{simeonov2022ndf,ryu2023edf,wang2024equidp,yang2024equibot}. All
+three modify the model. None measures how much of the symmetry the problem
+statement already supplies before any model is built.
 
 A planning query names a start and a goal, and those two points determine a
 frame. Place the origin at their midpoint, align the first axis with the
@@ -95,39 +89,41 @@ at initialisation, at no computational cost and with no constraint on the
 architecture. The six numbers that conditioned the network on the query collapse
 to one invariant scalar. The frame needs a second axis to be determined, and ours
 takes it from a fixed world axis, so rotating the whole problem rolls the frame
-rather than leaving it fixed. What survives is exactly that roll. $\SE$ collapses
-to $\mathrm{SO}(2)$, not to nothing. Fig.~\ref{fig:teaser} takes the group apart
+rather than leaving it unchanged. What survives is exactly that roll: $\SE$
+collapses to $\mathrm{SO}(2)$, not to nothing. No continuous rule can fix the
+remainder~\cite{milnor1978hairy}, so the sixth degree of freedom must be handled
+by one of the three mechanisms above. Fig.~\ref{fig:teaser} takes the group apart
 one stage at a time.
 
-No continuous rule can fix the remaining roll, so it has to be handled by one of
-the three mechanisms above. Roll augmentation is worth $+0.8$ points, frame averaging $+0.68$, and
-an exactly $\mathrm{SO}(2)$-equivariant backbone $+0.15$, all seed-matched at
-convergence. Three unrelated ways of imposing the same symmetry recovering under
-a point each is a stronger statement than any one of them makes alone. The
-constrained architecture is not idle. It reaches any given level two to three
-times sooner than the unconstrained one, and it carries $19.5\%$ more parameters,
-so that comparison is not confounded by capacity. The symmetry buys optimisation
-and not accuracy.
+We build all three on a cluttered 3D benchmark, hold architecture, data and
+training budget fixed, and calibrate against a trivial floor and four classical
+planners on the identical held-out problems. The frame is worth
+$+36.5$ points of held-out collision-free rate. The three mechanisms for the
+sixth are worth $+0.8$, $+0.68$ and $+0.15$. A straight line from start to goal
+scores $15.6\%$, and the world-frame model, trained to a plateau, reaches
+$14.60\%$.
 
-A collision-free rate on a new benchmark means nothing without a scale, so we
-measure both ends on the identical $500$ held-out problems. A straight line from
-start to goal is collision-free on $15.6\%$ of them. The world-frame model,
-trained to a plateau, reaches $14.60\%$. Classical planners reach $74\%$ to
-$100\%$ in under $0.4$\,s on one CPU core. We also bound our own contribution
-from above. Supplying each waypoint with the signed distance to the scene and its
-gradient, a featurisation of data the network already receives, is worth $+40.0$
-points where the frame is worth $+36.5$. The representation change studied here
-is not the largest effect available on this benchmark. It is not a substitute for
-that information either: with local geometry present the frame still adds
-$+24.8$.
+Our contributions are as follows.
 
-Three levels appear in this paper and they are not interchangeable. The headline
-is $51.10\pm0.25$ against $14.60\pm0.20$: sixty environments, trained to a
-plateau, three seeds, and the setting in which every mechanism comparison below
-is made. The $45.5$ of the scaling grid runs at a fixed $20$-epoch budget and
-answers how the gap moves with data rather than how well the method does. The
-$55.8$ at $250$ environments is the largest number we measured and rests on a
-single seed.
+\begin{itemize}\itemsep2pt
+  \item \textbf{Five of six degrees of freedom are free.} A frame derived from
+  the query in closed form removes them exactly, raising the held-out
+  collision-free rate from $14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three
+  seeds, with no change to the architecture, the data or the budget.
+
+  \item \textbf{All three mechanisms for the sixth, measured against each
+  other.} None recovers a point. We explain that rather than inferring it from
+  flat curves, by measuring the non-equivariance residual of the learned field
+  and proving it bounds what any post-hoc symmetrisation can remove. We then show
+  the residual does not predict what a mechanism is worth: two arms that are
+  equally equivariant differ by $28$ points.
+
+  \item \textbf{Calibration in both directions, including against ourselves.}
+  Supplying each waypoint with local geometry is worth $+40.0$ points where the
+  frame is worth $+36.5$, so the representation change studied here is not the
+  largest effect available on this benchmark. It is not a substitute for that
+  information either: with local geometry present, the frame still adds $+24.8$.
+\end{itemize}
 
 % TEASER: the stage decomposition, top of column 1 on page 1.
 \begin{figure}[t]
