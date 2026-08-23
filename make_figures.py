@@ -100,22 +100,30 @@ LEARNED = [
 C_CTRL = "#3E6DA8"
 C_TREAT = "#C2560F"
 
-# --- the cascade: SE(3) taken apart one stage at a time --------------------
-# Four MEASURED arms at 250 environments, not a decomposition drawn as if it
-# were measured. The translation-only arm is a real run (reduce_mode
-# "translation", sg_dim 3), so every level here is a checkpoint that exists.
-# The deltas between them are the DOF split: +12.3 for the three translations,
-# +18.0 for the two rotations. They sum to 30.3 against a measured gap of 30.1;
-# the 0.2 is rounding, and the figure plots the measured levels rather than the
-# running sum so the discrepancy cannot silently accumulate.
+# --- the cascade, at the HEADLINE setting ---------------------------------
+# 60 environments, trained to convergence, three seeds. The earlier version ran
+# 15.4 -> 45.5 at 250 environments and a fixed 20-epoch budget, which is the
+# scaling grid, not the headline. A teaser is the first quantitative thing anyone
+# reads, and it disagreed with the abstract.
+#
+# The DOF split (+12.3 translations, +18.0 rotations) is NOT here: it was only
+# measured on the 20-epoch grid. It lives in the mechanism table, labelled.
 CASCADE = [
-    ("world frame\n$\\mathrm{SE}(3)$ acts on everything",  15.4, C_CTRL),
-    ("recentre on the midpoint\n3 translations removed",   27.7, "#7A93B8"),
-    ("align the first axis\n2 rotations removed",          45.5, C_TREAT),
-    ("all three roll mechanisms\nresidual $\\mathrm{SO}(2)$", 47.0, "#9AA3AE"),
+    ("world frame",                 14.60, C_CTRL),
+    ("+ query-conditioned encoder", 15.59, "#7A93B8"),
+    ("+ $(s,g)$ reduction",         51.10, C_TREAT),
 ]
-CASCADE_DELTAS = ["$+12.3$", "$+18.0$", "$+1.5$"]
+CASCADE_DELTAS = ["$+1.0$", "$+35.5$"]
 CASCADE_FLOOR = 15.6   # straight line from start to goal, same 500 problems
+
+# The three mechanisms for the residual roll. ALTERNATIVES, not a decomposition:
+# each was measured against its own base and they were never composed. Drawing
+# them end to end would assert an additivity that was never tested.
+ROLL_MECHANISMS = [
+    ("roll augmentation (data)",       0.80),
+    ("frame averaging (operator)",     0.68),
+    ("equivariant backbone (weights)", 0.15),
+]
 
 INK = "#333333"
 MUTED = "#777777"
@@ -346,38 +354,55 @@ def fig_convergence(path="fig_convergence.pdf"):
 
 
 def fig_cascade(path="fig_cascade.pdf"):
-    #The paper's central result in one image: SE(3) taken apart a stage at a
-    #time, with what each stage is worth. The last bar is deliberately the same
-    #width as its predecessors and almost invisible in length -- that IS the
-    #finding about the sixth degree of freedom.
-    fig, ax = plt.subplots(figsize=(6.4, 2.6))
-    ys = range(len(CASCADE))[::-1]
+    #The paper's argument in one image, entirely at the headline setting.
+    #Top: what the query frame is worth, with the query-conditioned control in
+    #between, so a reader sees that conditioning alone does not do it.
+    #Bottom: the three mechanisms for the leftover roll, all drawn from a common
+    #baseline as ALTERNATIVES rather than stacked end to end.
+    fig, (ax, bx) = plt.subplots(
+        2, 1, figsize=(6.4, 3.2),
+        gridspec_kw=dict(height_ratios=[3, 1.5], hspace=0.75))
+
+    ys = list(range(len(CASCADE)))[::-1]
     for y, (label, val, colour) in zip(ys, CASCADE):
-        ax.barh(y, val, height=0.62, color=colour, zorder=2)
-        ax.text(val + 0.8, y, f"{val:.1f}", va="center", ha="left",
+        ax.barh(y, val, height=0.58, color=colour, zorder=2)
+        ax.text(val + 0.8, y, f"{val:.2f}", va="center", ha="left",
                 fontsize=8.5, fontweight="bold", color="0.15", zorder=3)
     ax.axvline(CASCADE_FLOOR, color="0.35", lw=0.9, ls="--", zorder=1)
-    ax.text(CASCADE_FLOOR + 0.6, len(CASCADE) - 0.42,
+    ax.text(CASCADE_FLOOR + 0.7, len(CASCADE) - 0.45,
             "straight line, 15.6", fontsize=7.5, color="0.35", va="bottom")
-    # the increments, drawn between consecutive bars
     for i, d in enumerate(CASCADE_DELTAS):
         y0, y1 = len(CASCADE) - 1 - i, len(CASCADE) - 2 - i
         x0, x1 = CASCADE[i][1], CASCADE[i + 1][1]
-        ax.annotate("", xy=(x1, y1 + 0.34), xytext=(x0, y0 - 0.34),
+        ax.annotate("", xy=(x1, y1 + 0.32), xytext=(x0, y0 - 0.32),
                     arrowprops=dict(arrowstyle="-|>", color="0.45", lw=0.8,
                                     shrinkA=0, shrinkB=0))
         ax.text((x0 + x1) / 2, (y0 + y1) / 2, d, fontsize=8.5, color="0.25",
                 ha="center", va="center",
                 bbox=dict(boxstyle="round,pad=0.15", fc="white", ec="none"))
-    ax.set_yticks(list(ys))
-    ax.set_yticklabels([c[0] for c in CASCADE], fontsize=7.5)
+    ax.set_yticks(ys)
+    ax.set_yticklabels([c[0] for c in CASCADE], fontsize=8)
+    ax.set_xlim(0, 60)
     ax.set_xlabel("Collision-free rate (%), held-out environments", fontsize=8)
-    ax.set_xlim(0, 56)
     ax.tick_params(axis="x", labelsize=7.5)
     ax.spines[["top", "right", "left"]].set_visible(False)
     ax.tick_params(axis="y", length=0)
-    fig.tight_layout(pad=0.3)
-    fig.savefig(path)
+
+    my = list(range(len(ROLL_MECHANISMS)))[::-1]
+    for y, (label, val) in zip(my, ROLL_MECHANISMS):
+        bx.barh(y, val, height=0.5, color="#9AA3AE", zorder=2)
+        bx.text(val + 0.03, y, f"$+{val:.2f}$", va="center", ha="left",
+                fontsize=8, fontweight="bold", color="0.15")
+    bx.set_yticks(my)
+    bx.set_yticklabels([m[0] for m in ROLL_MECHANISMS], fontsize=8)
+    bx.set_xlim(0, 1.35)
+    bx.set_xlabel("Added to the reduced arm; each measured separately, not composed",
+                  fontsize=8)
+    bx.tick_params(axis="x", labelsize=7.5)
+    bx.spines[["top", "right", "left"]].set_visible(False)
+    bx.tick_params(axis="y", length=0)
+
+    fig.savefig(path, bbox_inches="tight")
     plt.close(fig)
     print(f"wrote {path}")
 

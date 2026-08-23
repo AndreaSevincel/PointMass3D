@@ -40,6 +40,14 @@
 \small Lorem Ipsum University}
 \date{}
 
+% IEEE PDF eXpress rejects Type 3 fonts. Two sources on this TeX Live install:
+% matplotlib's PDF backend (fixed in make_figures.py with pdf.fonttype 42) and
+% LaTeX's default itemize bullet, which arrives as an unnamed Type 3 font with a
+% single glyph. Forcing the math bullet takes it from CMSY, which is Type 1.
+\renewcommand{\labelitemi}{$\bullet$}
+\renewcommand{\labelitemii}{$\circ$}
+\renewcommand{\labelitemiii}{$\ast$}
+
 \begin{document}
 \maketitle
 
@@ -129,8 +137,15 @@ Our contributions are as follows.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_cascade.pdf}
-\caption{Lorem ipsum dolor sit amet, consectetur adipiscing elit sed do
-eiusmod tempor incididunt ut labore}
+\caption{\textbf{Sixty environments, trained to convergence, three seeds}, the
+setting used throughout this paper. \emph{Top}: a frame read off the query in
+closed form is worth $+35.5$ points, and showing the obstacle encoder the same
+query without changing frame is worth $+1.0$. The dashed line is a straight
+segment from start to goal on the identical problems, which the world-frame arm
+does not beat. \emph{Bottom}: the three mechanisms for the one degree of freedom
+the frame cannot remove. Each is measured against its own baseline and they are
+alternatives rather than a decomposition, so they are not composed here and were
+never composed in the experiments.}
 \label{fig:teaser}
 \end{figure}
 
@@ -319,6 +334,21 @@ incididunt $\|f - \mathcal{A}f\|^2 \le r^2$.
 \filler{4}
 
 % ============================== (0.7) ================================
+\section*{Acknowledgements}
+
+The authors thank the IWIN-FINS Laboratory at Shanghai Jiao Tong University for
+the computational resources used in this work.
+
+The software implementation was carried out with Claude Code under the first
+author's direction. The implementations of the classical planners used to
+generate expert trajectories follow the published
+algorithms~\cite{kuffner2000rrtconnect,zucker2013chomp,schulman2014trajopt} and
+their public reference implementations. The problem formulation, the theoretical
+analysis, the experimental design and the text of this paper are the authors'
+own. Every reported number is produced by the released code, whose geometric and
+equivariance-critical components are verified by property-based tests that run on
+untrained networks and include negative controls.
+
 \small
 \begin{thebibliography}{99}
 
