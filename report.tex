@@ -123,7 +123,7 @@ exists to remove, and proved exactly what it bounds.
 
 \textbf{(iii) Calibration, and two bottlenecks.} A collision-free rate on a new
 benchmark means nothing without a scale. Measuring the floor is what revealed
-that the world-frame arm sits exactly on the straight line, and measuring a
+that the world-frame model sits exactly on the straight line, and measuring a
 longer training run is what revealed that compute and representation relieve
 different constraints.
 
@@ -153,7 +153,7 @@ $600$ start-goal pairs each with $30$ paths and their time reversals.
 Environments $250$-$299$ are held out and never trained on. Thirty
 near-duplicate paths per pair means the nominal ten million trajectories carry on
 the order of $360{,}000$ distinct queries. This affects no comparison here, since
-both arms see identical data, but if I generated more I would cut paths per pair
+both models see identical data, but if I generated more I would cut paths per pair
 and buy environments instead.
 
 \section{Stage 2: The flow-matching planner}
@@ -242,7 +242,7 @@ What $r$ bounds is what symmetrising a \emph{given} field can remove.
 
 \paragraph{Oriented boxes.} The reduction is a general rotation, so axis-aligned
 boxes do not stay axis-aligned. I changed the box representation to a centre plus
-three half-edge vectors, and gave both arms that representation so it is not a
+three half-edge vectors, and gave both models that representation so it is not a
 confound.
 
 \paragraph{Points and free vectors transform differently.} The reduction is
@@ -255,7 +255,7 @@ rigid-body domain's rotation columns.
 \section{Protocol and calibration}
 \label{sec:protocol}
 
-Every arm is evaluated on the same $500$ held-out problems: $50$ environments
+Every model is evaluated on the same $500$ held-out problems: $50$ environments
 $\times$ $10$ distinct start-goal pairs $\times$ $20$ samples, eight Euler
 steps. I report two metrics and never conflate them. A sample is \emph{free} if
 the whole path is collision-free. \emph{Best-of-20} is whether any of the twenty
@@ -282,7 +282,7 @@ flow, $(\svec,\gvec)$ reduction & \textbf{51.1} & $-0.002$ & 0.063 \\
 \bottomrule
 \end{tabular}
 \caption{The same $500$ held-out problems solved five other ways. The learned
-rows are the converged $60$-environment arms, three-seed means. Classical timings
+rows are the converged $60$-environment models, three-seed means. Classical timings
 are one CPU core and one query; the learned rows are one GPU and twenty samples,
 so the time column is not like-for-like.}
 \label{tab:baselines}
@@ -396,7 +396,7 @@ $300$ & 51.27 & 51.12 & $+0.15$ \\
 \end{table}
 
 The constraint buys optimisation and not accuracy. The equivariant model reaches
-by epoch $10$ a level the unconstrained arm needs about $32$ epochs for, and by
+by epoch $10$ a level the unconstrained model needs about $32$ epochs for, and by
 epoch $40$ one it needs about $87$. At convergence the difference is $+0.15$
 points, which is zero.
 
@@ -407,7 +407,7 @@ points, which is zero.
 \centering\small
 \begin{tabular}{lrr}
 \toprule
-Arm ($250$ environments) & $r$ under $\SE$ & Free (\%) \\
+Model ($250$ environments) & $r$ under $\SE$ & Free (\%) \\
 \midrule
 world frame                  & 0.0881 & 15.4 \\
 \quad $+$ $\SE$ augmentation & 0.0181 & 17.5 \\
@@ -425,7 +425,7 @@ residual, buys $30.1$. So $r$ does not forecast what a mechanism is worth, and
 the rule ``build the constrained architecture only if $r$ is large'' has no
 support.
 
-The world-frame arm performs at the straight-line floor. It is $91\%$
+The world-frame model performs at the straight-line floor. It is $91\%$
 equivariant.
 
 \subsection{Is the benefit simply letting the encoder see the query?}
@@ -437,7 +437,7 @@ deviation of $0$.  That invites a deflationary reading of the whole report:
 perhaps the reduction buys query-dependence rather than canonicalisation, and a
 one-line change to the encoder would buy the same thing.
 
-I built the arm that separates them. It is the world frame throughout, with no
+I built the model that separates them. It is the world frame throughout, with no
 change of frame anywhere, but the raw query is concatenated to every obstacle
 before the pool, so its scene code does vary with the query. It carries $0.07\%$
 more parameters. It converges to $15.59\%$ against the world frame's
@@ -445,7 +445,7 @@ $14.60$, both over three seeds, and seed-matched the difference is
 $+1.01$ and positive on every seed. Query-dependence alone is worth about one
 point of the $36.5$. Canonicalisation supplies the other $35.5$.
 
-At $15.59\%$ the arm sits on the straight line's $15.6\%$. Giving the encoder the
+At $15.59\%$ the model sits on the straight line's $15.6\%$. Giving the encoder the
 query is exactly enough to reach the trivial baseline and not enough to beat it.
 
 \subsection{Local geometry}
@@ -472,7 +472,7 @@ $(\svec,\gvec)$ reduction      & 51.10 & 79.37 & $+28.3$ \\
 \emph{reduction contributes}   & $+36.5$ & $+24.8$ & \\
 \bottomrule
 \end{tabular}
-\caption{Every cell is a mean over two or three seeds. The local-geometry arms
+\caption{Every cell is a mean over two or three seeds. The local-geometry models
 are the least seed-sensitive measurements in this work.}
 \label{tab:localgeom}
 \end{table}
@@ -498,17 +498,17 @@ information reaches individual waypoints.
 \subsection{Three shorter results}
 
 \textbf{Two bottlenecks, not one.} Tripling the training budget is worth $+8.0$
-points to the canonicalised arm and $+0.9$ to the world-frame one, an interaction
+points to the canonicalised model and $+0.9$ to the world-frame one, an interaction
 of $+7.1$. Compute cannot buy what the representation forecloses. On the
-best-of-$20$ metric the same tripling moves the world-frame arm backwards, from
+best-of-$20$ metric the same tripling moves the world-frame model backwards, from
 $42.3\%$ to $39.2\%$. More training bought a per-sample gain while costing sample
 diversity.
 
 \textbf{It replicates in a second state space.} I built an SE(3) rigid-body
 domain whose state is a full pose rather than a point, using an L-shaped union of
 five spheres chosen to have trivial symmetry so the domain is not secretly
-easier. The world-frame arm fails to clear its own trivial floor in both domains,
-the reduction clears it in both, and the ratio between arms is $2.9\times$ in
+easier. The world-frame model fails to clear its own trivial floor in both domains,
+the reduction clears it in both, and the ratio between models is $2.9\times$ in
 each.
 
 \textbf{It is not specific to flow matching.} Replacing the objective with DDPM
@@ -525,7 +525,7 @@ the rigid body of the second domain. It fails for a manipulator planning in join
 space: the query still defines a frame in the workspace, but a rigid motion of
 the world induces no clean action on joint angles. Mobile bases, free-flying
 bodies and end-effector-space planning pass this test. Joint-space planning for
-arms does not.
+models does not.
 
 \paragraph{The learned planner loses to the classical ones.} RRT-Connect solves
 $99.6\%$ in under $0.3$\,s on one CPU core, and the learned sampler reaches
@@ -534,7 +534,7 @@ $51.1\%$.
 
 Of the six degrees of freedom of $\SE$, five are removable exactly and for free
 by a frame the query already supplies. That is worth $+36.5$ points on this
-benchmark, against a world-frame arm that does not beat a straight line. The
+benchmark, against a world-frame model that does not beat a straight line. The
 sixth is not removable by any continuous rule, and all three mechanisms available
 for it are worth under a point each. The architecture is not pointless: it
 reaches any given level two to three times sooner, so the symmetry buys

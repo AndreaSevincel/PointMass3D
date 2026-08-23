@@ -28,7 +28,7 @@
 \contentsline {paragraph}{Validation split.}{10}{section*.13}%
 \contentsline {paragraph}{Two success metrics, kept separate.}{10}{section*.14}%
 \contentsline {paragraph}{Statistics.}{10}{section*.15}%
-\contentsline {paragraph}{Loss is not comparable across arms.}{10}{section*.16}%
+\contentsline {paragraph}{Loss is not comparable across models.}{10}{section*.16}%
 \contentsline {section}{\numberline {6}Calibration: floors and ceilings}{10}{section.6}%
 \contentsline {paragraph}{The floor.}{11}{section*.17}%
 \contentsline {paragraph}{The stochastic floor.}{11}{section*.18}%
@@ -55,7 +55,7 @@
 \contentsline {paragraph}{Frame averaging pays more as the model improves.}{19}{section*.31}%
 \contentsline {subsection}{\numberline {7.8}Where the benefit comes from}{20}{subsection.7.8}%
 \contentsline {paragraph}{Is it simply letting the encoder see the query?}{20}{section*.32}%
-\contentsline {subsection}{\numberline {7.9}The world-frame arm is the straight line at every density}{21}{subsection.7.9}%
+\contentsline {subsection}{\numberline {7.9}The world-frame model is the straight line at every density}{21}{subsection.7.9}%
 \contentsline {subsection}{\numberline {7.10}It replicates in a second state space}{21}{subsection.7.10}%
 \contentsline {paragraph}{This domain also supplies a near-converged test of Sec.\nobreakspace {}\ref {sec:budget}.}{22}{section*.33}%
 \contentsline {subsection}{\numberline {7.11}The effect is not specific to flow matching}{22}{subsection.7.11}%
@@ -78,7 +78,7 @@
 \contentsline {paragraph}{Seeds are not yet at every scale.}{26}{section*.47}%
 \contentsline {section}{\numberline {10}What I would do next}{26}{section.10}%
 \contentsline {paragraph}{1. Making $r$ vary deliberately.}{26}{section*.48}%
-\contentsline {paragraph}{2. A third seed on two of the local-geometry arms.}{26}{section*.49}%
+\contentsline {paragraph}{2. A third seed on two of the local-geometry models.}{26}{section*.49}%
 \contentsline {paragraph}{3. The Brownian-bridge prior.}{26}{section*.50}%
 \contentsline {paragraph}{4. Convergence at $250$ environments, and more environments.}{26}{section*.51}%
 \contentsline {section}{\numberline {11}Conclusion}{27}{section.11}%

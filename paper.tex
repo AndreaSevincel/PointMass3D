@@ -117,7 +117,7 @@ $\svec$ and $\gvec$ and aligning the first axis with the start--goal direction
 removes five of the six degrees of freedom of $\SE$ exactly, at initialisation,
 at no computational cost. On a cluttered 3D point-mass benchmark, trained to
 convergence, this raises the held-out per-sample collision-free rate from
-$14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three seeds. The world-frame arm
+$14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three seeds. The world-frame model
 does not beat the $15.6\%$ obtained by joining start to goal with a straight line
 on the identical problems. A paired bootstrap over environments puts the
 difference at $-1.02$ points, $95\%$ CI $[-3.06, +0.90]$, so training on world
@@ -139,7 +139,7 @@ We explain that null result rather than merely reporting it. The
 non-equivariance residual, the disagreement among rotated copies of the learned
 field, is $1.7\%$; frame averaging is exactly the orthogonal projection onto the
 equivariant subspace, so $1.7\%$ bounds what any post-hoc symmetrisation of this
-model can remove. We also measure what the residual does \emph{not} do: two arms
+model can remove. We also measure what the residual does \emph{not} do: two models
 that are equally equivariant differ by $28$ points of held-out performance, so it
 does not forecast what a symmetry mechanism is worth.
 
@@ -230,7 +230,7 @@ so the comparison is not confounded by capacity, and a negative control confirms
 it is not equivariant off-axis, so the verification cannot pass vacuously. The
 constrained architecture does buy something the other two do not: roughly a
 two- to threefold saving in optimisation, reaching by epoch $10$ what the unconstrained
-arm reaches by epoch $40$. Three unrelated mechanisms agreeing that the residual
+model reaches by epoch $40$. Three unrelated mechanisms agreeing that the residual
 roll is nearly exhausted is a considerably stronger statement than any one of
 them makes alone.
 
@@ -243,7 +243,7 @@ orthogonal projection onto the equivariant subspace (Proposition~\ref{prop:fa}),
 the error it can remove is bounded by that $1.7\%$ (Corollary~\ref{cor:budget}),
 while the model is failing on most of its samples: the model's error is
 overwhelmingly equivariant error. We are equally explicit about what the residual
-does not do. It does not forecast what a mechanism is worth --- two arms with
+does not do. It does not forecast what a mechanism is worth --- two models with
 indistinguishable residuals differ by $28$ points --- and it did not, and could
 not, predict the optimisation saving in (iii).
 
@@ -259,7 +259,7 @@ with them here. Because a generative planner is deployed as best-of-$N$ behind a
 collision check, we also report that per-query metric against the honest control
 for it --- the model's own untrained prior, sampled $N$ times, at its best width.
 That comparison separates two things the per-sample number conflates: the
-world-frame arm is at the straight-line floor per sample, but well above the
+world-frame model is at the straight-line floor per sample, but well above the
 untrained prior per query, so it has learned sample \emph{diversity} without
 learning sample \emph{quality}.
 
@@ -297,7 +297,7 @@ about what the residual adds to it. Two things survive scrutiny. One is
 Corollary~\ref{cor:budget}, which follows from the projection property already
 established in~\cite{elesedy2021strict,puny2022fa} and bounds exactly what
 post-hoc symmetrisation of a given field can remove. The other is a measured
-negative: across three arms of this benchmark $r$ does \emph{not} predict what a
+negative: across three models of this benchmark $r$ does \emph{not} predict what a
 symmetry mechanism is worth, and two models with indistinguishable residuals
 differ by $28$ points (Table~\ref{tab:twosigns}), because one of them fixed the
 representation and the other only learned the symmetry. We do not claim more.
@@ -698,16 +698,16 @@ class, and with it optimisation, capacity allocation and generalisation, none of
 which $r$ measures.
 
 We test that reading directly, and it fails: see
-Sec.~\ref{sec:twosigns}, where two arms with indistinguishable residuals differ
+Sec.~\ref{sec:twosigns}, where two models with indistinguishable residuals differ
 by $28$ points of held-out performance.
 
 This is also a consistency check on Proposition~\ref{prop:exact} for a
-\emph{trained} model. For the reduced arm the $\SE$ residual is $0.0186$ at
+\emph{trained} model. For the reduced model the $\SE$ residual is $0.0186$ at
 $K{=}9$ and $0.0194$ at $K{=}32$, against $0.0191$ and $0.0192$ for the roll
 residual at matched $K$: a rigid motion acts on the reduced representation only
 through a roll, as claimed, and the two independently computed quantities agree
 to $0.0005$. Table~\ref{tab:twosigns} quotes $K{=}8$, which is why its entry for
-this arm ($0.0174$) differs slightly from the $K{=}9$ and $K{=}32$ values here;
+this model ($0.0174$) differs slightly from the $K{=}9$ and $K{=}32$ values here;
 the estimator is converged to within $0.002$ over that range.
 
 We state the limit of this argument explicitly, because it is the objection a
@@ -718,7 +718,7 @@ and may converge to a different --- possibly better --- equivariant field. What 
 small $r$ does establish is that the model's residual error is overwhelmingly
 \emph{within} the equivariant subspace, so \emph{projecting this model onto that
 subspace} can remove very little of it. It does not follow that a constrained
-architecture would gain little: Sec.~\ref{sec:twosigns} exhibits two arms that
+architecture would gain little: Sec.~\ref{sec:twosigns} exhibits two models that
 satisfy the constraint equally well and differ by $28$ points, so membership of
 that subspace is not what separates them.
 
@@ -770,7 +770,7 @@ that way manufactures the non-equivariance it claims to find.
 
 All results use environments $250$--$299$, which no model was trained on,
 evaluated as $50$ environments $\times\ 10$ start--goal pairs $\times\ 20$ samples
-with $8$ Euler steps. The two arms are:
+with $8$ Euler steps. The two models are:
 
 \begin{itemize}\itemsep2pt
   \item \textbf{Control}: world frame, conditioned on the raw pair $(\svec,\gvec)$.
@@ -778,7 +778,7 @@ with $8$ Euler steps. The two arms are:
         augmentation, conditioned on the invariant scalar $d$.
 \end{itemize}
 
-Both arms use the twelve-dimensional oriented-box representation, so it is not a
+Both models use the twelve-dimensional oriented-box representation, so it is not a
 confound; both train on identical trajectories for $20$ epochs.
 
 \textbf{Validation split.} Within training environments, validation holds out
@@ -803,13 +803,13 @@ result gets overstated: at $N=20$ they differ by tens of points.
 the sample size rather than the number of trajectories ($10{,}000$), since samples
 within a problem and problems within an environment are correlated. This gives a
 standard error of $\approx 2$ percentage points, and $\approx 2.7$ for a
-difference of two arms. We checked that assumption rather than asserting it: a
+difference of two models. We checked that assumption rather than asserting it: a
 bootstrap that resamples whole \emph{environments} --- the outermost correlated
 unit --- gives a standard error of $2.2$ points on the $15.6\%$ straight-line rate
 and $2.9$ on the $74.0\%$ TrajOpt rate (10{,}000 resamples), so the nominal figure
 is if anything slightly conservative at the rates that matter here.
 
-\textbf{Loss is not comparable across arms.} The treatment regresses targets in
+\textbf{Loss is not comparable across models.} The treatment regresses targets in
 the reduced frame, where trajectories are canonicalised along $+\xhat$, so its
 target variance and hence its MSE are mechanically smaller. All reported
 quantities are world-frame task metrics.
@@ -836,7 +836,7 @@ flow, $(\svec,\gvec)$ reduction & \textbf{51.1} & $-0.002$ & 0.063 \\
 \bottomrule
 \end{tabular}
 \caption{The same $500$ held-out problems, solved five other ways. The learned
-rows are the converged $60$-environment arms of Sec.~\ref{sec:budget}, three-seed
+rows are the converged $60$-environment models of Sec.~\ref{sec:budget}, three-seed
 means, which is the headline setting of this paper; the $2\times4$ scaling grid
 of Sec.~\ref{sec:scaling} runs at a fixed $20$-epoch budget and reaches $45.5$,
 and a single-seed run at $250$ environments trained to convergence reaches
@@ -851,7 +851,7 @@ per-sample rates}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_baselines.pdf}
-\caption{Where the learned planner actually sits. The world-frame arm lies on the
+\caption{Where the learned planner actually sits. The world-frame model lies on the
 straight-line floor; the reduction lifts it by $36.5$ points; the classical
 planners remain far above. We show this rather than omit it: the contribution
 here is the representation result, not a competitive planner}
@@ -871,7 +871,7 @@ $15.6\%$ of these problems --- the clutter is dense, but not so dense that the
 direct path is usually blocked. The world-frame model converges to $14.60\%$ per
 sample. A paired bootstrap over environments puts the difference at $-1.02$
 points with a $95\%$ interval of $[-3.06, +0.90]$, so the two are not separable.
-On a per-sample basis, whatever the world-frame arm has learned is worth nothing
+On a per-sample basis, whatever the world-frame model has learned is worth nothing
 over connecting the endpoints with a line. This is the sharpest available
 statement of the problem the reduction solves, and it is invisible without the
 trivial baseline.
@@ -880,12 +880,12 @@ trivial baseline.
 \emph{ignoring} the symmetry costs. The comparison a practitioner who already
 knows about the symmetry would want is against the other standard way of using
 it: augmenting the training distribution with random rigid motions of the whole
-problem. We ran that arm at all four scales (Fig.~\ref{fig:scaling},
+problem. We ran that model at all four scales (Fig.~\ref{fig:scaling},
 Table~\ref{tab:main}). It helps, it helps more as data grows --- augmentation
 needs data to exploit --- and it is not close: $12.7$, $13.8$, $15.3$, $17.5$
 against the reduction's $19.2$, $34.4$, $40.6$, $45.5$. At the largest scale
 augmentation captures about $7\%$ of what canonicalisation does, and leaves the
-world-frame arm within $2$ points of the straight-line floor. Making equivariance
+world-frame model within $2$ points of the straight-line floor. Making equivariance
 \emph{likely} through the data is a different and much weaker mechanism than
 removing the degrees of freedom outright.
 
@@ -903,7 +903,7 @@ straight-line rate to the digit through an independent code path, which is a che
 on both harnesses.
 
 This changes the reading of the world-frame result in a way worth stating
-carefully. Per sample, that arm is at the straight-line floor. Per query at $N=20$
+carefully. Per sample, that model is at the straight-line floor. Per query at $N=20$
 it is not: the world-frame model trained on $20$ environments solves $44.8\%$ of
 queries with at least one free sample, against $15.8\%$ for the best untrained
 prior at the same $N$. So the world-frame model has learned something real --- its
@@ -946,14 +946,14 @@ claim it does.
 \centering
 \includegraphics[width=\textwidth]{fig_cascade.pdf}
 \caption{$\SE$ taken apart one stage at a time, at $250$ training environments.
-Every bar is a measured arm rather than a term in a decomposition: the second is
+Every bar is a measured model rather than a term in a decomposition: the second is
 a translation-only reduction, trained and evaluated like the others. The
 increments between them are what each group of degrees of freedom is worth. The
 bottom bar adds all three mechanisms built for the residual $\mathrm{SO}(2)$ ---
 roll augmentation, frame averaging and an equivariant backbone --- and is
 deliberately drawn on the same scale: its near-coincidence with the bar above is
 the paper's second finding. The dashed line is a straight segment from start to
-goal on the identical problems, which the world-frame arm does not beat.}
+goal on the identical problems, which the world-frame model does not beat.}
 \label{fig:cascade}
 \end{figure*}
 
@@ -976,8 +976,8 @@ envs & World & {\footnotesize +aug.} & Reduction & Reduction \\
 \bottomrule
 \end{tabular}
 \caption{Held-out performance against training-set size. ``+aug.'' is the
-world-frame arm trained with random $\SE$ motions of the whole problem. The
-world-frame arm gains $2.5$ points across a $12.5\times$ increase in
+world-frame model trained with random $\SE$ motions of the whole problem. The
+world-frame model gains $2.5$ points across a $12.5\times$ increase in
 environments and augmentation adds at most $2.1$ more, while the reduction gains
 $26.2$ and has not plateaued. Every world-frame and reduction cell is a mean over
 three seeds; the seed-matched differences are $+6.37\pm0.19$, $+20.87\pm1.56$,
@@ -994,16 +994,16 @@ deployment metric, best-of-$20$ behind a collision check}
 shortage of training data one would expect it to close; instead the world-frame
 baseline is nearly flat while the reduced model continues to improve. The hollow
 marker is the no-roll ablation, drawn on the treatment line because it is the same
-arm with one component removed}
+model with one component removed}
 \label{fig:scaling}
 \end{figure}
 
 Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
 $250$ environments the reduction reaches $45.5\%$ against $15.4\%$, a gap of
-$\mathbf{+30.08\pm0.38}$ points, measured across three seeds per arm.
+$\mathbf{+30.08\pm0.38}$ points, measured across three seeds per model.
 
 The uncertainty is quoted from the seed spread in the same cell, which is what
-makes it a test rather than an extrapolation. Both arms were run at seeds
+makes it a test rather than an extrapolation. Both models were run at seeds
 $0,1,2$ at every scale, so the differences are seed-matched throughout:
 $+6.37\pm0.19$, $+20.87\pm1.56$, $+25.85\pm0.37$ and $+30.08\pm0.38$ at $20$,
 $60$, $150$ and $250$ environments. The $250$-environment gap is roughly $79$
@@ -1051,7 +1051,7 @@ Equivariant backbone              & ---     & $+0.15$ & $n{=}3$; $2$--$3\times$ 
 \bottomrule
 \end{tabular}
 \caption{Decomposition by mechanism on the same held-out set, in percentage
-points against the arm without that mechanism --- so the rows are not additive,
+points against the model without that mechanism --- so the rows are not additive,
 and the two indented rows decompose the row above them. Canonicalisation accounts
 for the effect at either budget, and both of its parts matter: recentring and
 axis alignment contribute $41\%$ and $59\%$. The two columns are the same
@@ -1059,7 +1059,7 @@ mechanisms measured at $20$ epochs and at convergence; reading only the first
 would put frame averaging at zero, which Sec.~\ref{sec:inert} shows is an
 artefact of the budget rather than a property of the mechanism. Dashes are
 comparisons we did not run to convergence. The $\SE$-augmentation and
-translation-only arms are single seed and are therefore differenced against the
+translation-only models are single seed and are therefore differenced against the
 SAME seed, never against a three-seed mean}
 \label{tab:ablation}
 \end{table}
@@ -1068,7 +1068,7 @@ SAME seed, never against a three-seed mean}
 \centering
 \includegraphics[width=0.92\textwidth]{fig_mechanisms.pdf}
 \caption{(a) Canonicalisation is seven times the next largest mechanism. The band
-is $\pm2$ across-seed standard errors, measured on the treatment arm at $60$
+is $\pm2$ across-seed standard errors, measured on the treatment model at $60$
 environments; frame averaging sits inside it, and the roll-augmentation bar rests
 on a single-seed ablation. (b) The non-equivariance residual of
 Eq.~\eqref{eq:resid} is flat across a $12.5\times$ range of training data --- it
@@ -1080,11 +1080,11 @@ under $3\%$}
 
 Table~\ref{tab:ablation} and Fig.~\ref{fig:mechanisms}a decompose the result.
 Removing roll augmentation (the reduction with a fixed gauge) costs $34.4\%$
-against $33.5\%$ at $60$ environments. Both arms were run at the same three
+against $33.5\%$ at $60$ environments. Both models were run at the same three
 seeds, so the comparison should be paired, and paired it is $+1.2$, $+0.2$ and
 $+1.1$ points: a mean of $+0.8\pm0.3$, consistently positive but $t=2.6$ on two
 degrees of freedom, which does not clear significance at $n{=}3$. Unpaired, the
-across-arm spread swamps it entirely ($0.4$ SE). Frame averaging on the best
+across-model spread swamps it entirely ($0.4$ SE). Frame averaging on the best
 model gives $45.63\%$ at $K{=}1$ and $45.70\%$ at $K{=}3$ --- $0.05$ across-seed
 standard errors.
 
@@ -1131,7 +1131,7 @@ The statistics here are stronger than elsewhere in the paper, and it is worth
 saying why: $K{=}1$ and $K{=}3$ are evaluated on the same weights, the same
 problems and the same prior draws, so the difference is paired within a
 checkpoint and carries no seed variance at all. The across-seed standard error of
-$1.56$ points, which governs comparisons between separately trained arms, is
+$1.56$ points, which governs comparisons between separately trained models, is
 simply the wrong noise model for it.
 
 \textbf{It is quality that drives this, not $r$.} The two are easy to conflate,
@@ -1151,13 +1151,13 @@ is confounded and saying so is more useful than the conclusion it appears to
 support. Narrowing the cone also costs generalisation --- $K{=}1$ falls from
 $31.4$ to $20.6$ --- so $r$ and quality move in opposite directions by
 construction, and a flat result is consistent both with $r$ being irrelevant and
-with $r$ mattering while quality cancels it. Re-scoring every arm on a common
+with $r$ mattering while quality cancels it. Re-scoring every model on a common
 $15$-degree cone of held-out queries, a subset of all four training cones so that
-no arm extrapolates, lifts them all by about $15$ points and confirms that much
+no model extrapolates, lifts them all by about $15$ points and confirms that much
 of the collapse was distribution shift --- but it does not equalise them: the
-spread stays at $12$ points, because an arm trained on a narrow cone generalises
+spread stays at $12$ points, because an model trained on a narrow cone generalises
 worse even \emph{within} that cone despite seeing the same number of
-trajectories. And among the three arms whose quality does match ($45.0$, $46.0$,
+trajectories. And among the three models whose quality does match ($45.0$, $46.0$,
 $46.9$), $r$ barely varies ($0.0195$, $0.0196$, $0.0187$). The only setting that
 moves $r$ appreciably is the one that destroys quality, so on this benchmark the
 cone dial cannot separate them. Read \emph{with} the convergence curve, where $r$
@@ -1195,7 +1195,7 @@ Sec.~\ref{sec:twosigns} makes concrete.
 
 To test the tempting reading directly we measured $r$ under the \emph{full}
 $\SE$ action rather than the roll alone, which makes it defined for the
-world-frame arm as well: $K$ random rigid motions are applied to the whole
+world-frame model as well: $K$ random rigid motions are applied to the whole
 problem, the field is evaluated in each, and each result is mapped back by the
 inverse rotation. Table~\ref{tab:twosigns} is the result.
 
@@ -1204,7 +1204,7 @@ inverse rotation. Table~\ref{tab:twosigns} is the result.
 \small
 \begin{tabular}{@{}l r r@{}}
 \toprule
-Arm ($250$ envs) & $r$ under $\SE$ & Free (\%) \\
+Model ($250$ envs) & $r$ under $\SE$ & Free (\%) \\
 \midrule
 World frame                  & $0.0881$ & $15.4$ \\
 \quad $+\ \SE$ augmentation  & $0.0181$ & $17.5$ \\
@@ -1230,7 +1230,7 @@ can remove, which is Eq.~\eqref{eq:budget} and is a theorem; what it does not
 measure is whether symmetry is the binding constraint at all.
 
 One number in Table~\ref{tab:twosigns} deserves saying out loud. The world-frame
-arm ignores the symmetry entirely and performs at the straight-line floor --- and
+model ignores the symmetry entirely and performs at the straight-line floor --- and
 it is still $91\%$ equivariant. A model that has learned nothing useful about
 planning has nonetheless landed close to the equivariant subspace, because most
 of what a velocity field does on this problem is roughly pose-independent
@@ -1293,21 +1293,21 @@ runs; the per-seed pairs are $50.9$ vs $50.8$ and $51.6$ vs $51.6$.}
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_convergence.pdf}
-\caption{The constraint buys optimisation, not accuracy. Both arms converge to
+\caption{The constraint buys optimisation, not accuracy. Both models converge to
 the same held-out rate; the equivariant one arrives roughly four times sooner.
-Dotted lines mark where the unconstrained arm first reaches the equivariant
-arm's epoch-$10$ and epoch-$40$ values. Seed $0$ at $60$ environments; the
+Dotted lines mark where the unconstrained model first reaches the equivariant
+model's epoch-$10$ and epoch-$40$ values. Seed $0$ at $60$ environments; the
 seed-matched difference at epoch $300$ is $+0.15$ points.}
 \label{fig:convergence}
 \end{figure}
 
 Table~\ref{tab:arch} and Fig.~\ref{fig:convergence} are unambiguous in both
 directions. The constrained model
-reaches by epoch $10$ a level the unconstrained arm needs about $32$ epochs
+reaches by epoch $10$ a level the unconstrained model needs about $32$ epochs
 for, and by epoch $40$ one it needs about $87$ --- a saving of $2.2$ to $3.2$
 times in optimisation, largest early and shrinking as both converge. By convergence the advantage is $+0.15$ points seed-matched, which
-is zero. The same pattern holds at $250$ environments, where the constrained arm
-reaches $54.8$ by epoch $80$ against the unconstrained arm's $51.6$.
+is zero. The same pattern holds at $250$ environments, where the constrained model
+reaches $54.8$ by epoch $80$ against the unconstrained model's $51.6$.
 
 This completes the taxonomy, and the three mechanisms agree. Roll augmentation
 is worth $+0.8$, frame averaging $+0.68$, and an equivariant architecture $+0.15$
@@ -1352,8 +1352,8 @@ $(\svec,\gvec)$ reduction       & $51.10$ & $79.37$ & $+28.3$ \\
 \caption{Local geometry against the query frame, at convergence. Every cell is a
 mean over two or three seeds. Across-seed standard errors for the four cells of
 the main $2\times2$ are $0.20$, $0.25$, $0.01$ and $0.10$: the local-geometry
-arms are the least seed-sensitive measurements in this work, with the
-world-frame arm reproducing to $0.01$ points across its seeds.}
+models are the least seed-sensitive measurements in this work, with the
+world-frame model reproducing to $0.01$ points across its seeds.}
 \label{tab:localgeom}
 \end{table}
 
@@ -1385,8 +1385,8 @@ $\mathbf{+17.24\pm0.17}$ at $250$, two seeds at each scale. The $5.1$-point deca
 is an order of magnitude larger than either standard error, so it is measured
 rather than suggested. Local geometry is what scales here --- it gains $+11$
 points across that range while the reduction alongside it loses $5$ --- and the
-reduced arm with local geometry is close to saturating at roughly $80\%$, so the
-world-frame arm has room to close on it that the reduced arm no longer has. The
+reduced model with local geometry is close to saturating at roughly $80\%$, so the
+world-frame model has room to close on it that the reduced model no longer has. The
 reduction remains worth a great deal at both scales and costs nothing; but a
 reader extrapolating to much larger datasets should expect this margin to narrow,
 not hold.
@@ -1404,8 +1404,8 @@ free of consequence.
 \subsection{How much of the level is training budget}
 \label{sec:budget}
 
-Every arm above is trained for $20$ epochs, and that budget is not enough. Holding
-the data fixed at $60$ environments and training the reduced arm for $60$ epochs
+Every model above is trained for $20$ epochs, and that budget is not enough. Holding
+the data fixed at $60$ environments and training the reduced model for $60$ epochs
 instead raises the held-out collision-free rate from $34.4\%$ --- the mean over
 three seeds --- to $\mathbf{42.4\%}$, with minimum clearance improving from
 $-0.031$ to $-0.013$ and endpoint error from $0.0024$ to $0.0022$. Three times
@@ -1423,7 +1423,7 @@ model at $20$ epochs is substantially underfit, so the $45.5\%$ grid value
 understates what this architecture reaches at convergence.
 
 Second --- and this is the part we did not anticipate --- the same tripling is
-worth almost nothing to the world-frame arm. Running it at $60$ epochs on the
+worth almost nothing to the world-frame model. Running it at $60$ epochs on the
 same $60$ environments moves it from $13.6\%$ to $14.4\%$:
 \begin{center}\small
 \begin{tabular}{lrrr}
@@ -1446,7 +1446,7 @@ representation bottleneck --- the network being shown a pose it must relearn at
 every value --- is removed by canonicalisation and \emph{cannot} be removed by
 compute. The capacity bottleneck is removed by compute and cannot be removed by
 canonicalisation. This also settles the reading of Fig.~\ref{fig:scaling}: the
-world-frame arm's flatness is not an artefact of an insufficient budget, because
+world-frame model's flatness is not an artefact of an insufficient budget, because
 giving it three times the budget leaves it flat.
 
 The deployment metric at this budget is high: best-of-$20$ behind a collision
@@ -1457,10 +1457,10 @@ should read that number, with the caveat from Sec.~\ref{sec:baselines} that
 classical planners still solve more of them and faster.
 
 On that metric the interaction is not merely larger but changes sign for the
-control. The reduction rises from $79.6\%$ to $87.2\%$, while the world-frame arm
+control. The reduction rises from $79.6\%$ to $87.2\%$, while the world-frame model
 \emph{falls}, from a three-seed mean of $42.3\%$ (spread $41.4$--$43.2$) to
 $39.2\%$: an interaction of $+10.7$ points against the $+7.1$ measured per
-sample. Tripling the optimisation of the world-frame arm made it worse on the
+sample. Tripling the optimisation of the world-frame model made it worse on the
 metric that describes how a generative planner is actually deployed --- more
 training bought a per-sample gain of $+0.9$ while costing sample diversity, which
 is the resource best-of-$N$ actually spends. Taken alone this cell would be weak
@@ -1472,9 +1472,9 @@ $8\times$ budget range in a different state space, with no seed-matched
 comparison involved. Two domains, two budget ranges, one direction. The $+7.1$
 per-sample interaction is separate and does not depend on either.
 
-\textbf{Trained to a plateau, the world-frame arm does not beat the straight
+\textbf{Trained to a plateau, the world-frame model does not beat the straight
 line.} The $3\times$ comparison above answers the convergence-rate objection with
-a trend rather than a limit, so we ran both arms at $60$ environments to $300$
+a trend rather than a limit, so we ran both models at $60$ environments to $300$
 epochs --- a $15\times$ budget --- snapshotting every $10$ epochs and scoring
 every snapshot on the same held-out problems.
 
@@ -1492,19 +1492,19 @@ Gap                       & $18.2$ & $27.9$ & $34.1$ & $\mathbf{+36.5\pm0.32}$ \
 \end{center}
 
 Every cell is a mean over three seeds, and the $\pm$ on the converged column is
-the across-seed standard error --- the right noise model here, since both arms
-are trained, run at the same three seeds, and differenced within seed. Both arms
+the across-seed standard error --- the right noise model here, since both models
+are trained, run at the same three seeds, and differenced within seed. Both models
 are flat by the end: the control gains $0.1$ points over the final ten epochs and
 the reduction $0.2$, so this is a converged comparison rather than a comparison
 of convergence rates.
 Three things follow.
 
-\textbf{The world-frame arm does not beat the straight line.} It converges to
+\textbf{The world-frame model does not beat the straight line.} It converges to
 $14.60\pm0.20\%$ against the $15.6\%$ of Sec.~\ref{sec:baselines}, measured on
 the identical problems. Quoting the across-seed spread here would overstate the
 result: it describes variation between training runs, not the uncertainty of a
 comparison against a fixed baseline. The appropriate test is paired, since both
-arms are evaluated on the same $500$ problems and both track per-environment
+models are evaluated on the same $500$ problems and both track per-environment
 clutter, so we resample environments and recompute the difference within each
 replicate. That gives $-1.02$ points with a $95\%$ interval of
 $[-3.06, +0.90]$ and a standard error of $1.01$ --- less than half the $2.2$ of
@@ -1516,7 +1516,7 @@ not what causes the deficit, and a reader could previously always answer ``it is
 undertrained''.
 
 The gap \emph{widens} monotonically with budget, from $18.2$ to $36.5$ points.
-Undertraining was not manufacturing it; if it had been, the flat arm would be the
+Undertraining was not manufacturing it; if it had been, the flat model would be the
 one with headroom.
 
 And the reduction at $60$ environments and $300$ epochs ($51.1\%$) exceeds the
@@ -1525,7 +1525,7 @@ environments are substitutable over this range --- which bears directly on the
 dataset-generation argument of Sec.~\ref{sec:limits}.
 
 \textbf{At full data the control gains nothing at all.} Repeating the study at
-$250$ environments sharpens it. Over $300$ epochs the world-frame arm moves from
+$250$ environments sharpens it. Over $300$ epochs the world-frame model moves from
 $14.6\%$ to $14.4\%$ --- it ends \emph{below} where it began and never leaves the
 band $14.2$--$15.3$ --- while the reduction climbs from $38.8\%$ to $55.8\%$:
 
@@ -1613,7 +1613,7 @@ interior and into the input representation. In the world frame that interaction
 must be reconstructed inside the trunk from a per-environment constant and six
 query numbers, delivered through a global modulation; in the reduced frame it is
 already present in the features. We offer this as the mechanism behind
-Sec.~\ref{sec:baselines}'s finding that the world-frame arm never exceeds the
+Sec.~\ref{sec:baselines}'s finding that the world-frame model never exceeds the
 straight line, and we are explicit that it is a claim about representation
 content, measured with linear probes on two trained checkpoints, not a causal
 intervention.
@@ -1623,7 +1623,7 @@ above invites a deflationary reading of the whole result. The world-frame scene
 code cannot vary with the query \emph{by construction}, so perhaps the reduction
 is not buying canonicalisation at all, only query-dependence, which a one-line
 change to the encoder would also buy. This is the sharpest objection to the paper
-and it is directly testable, so we built the arm that separates the two: the
+and it is directly testable, so we built the model that separates the two: the
 world frame throughout, no change of frame anywhere, with the raw query
 concatenated to every obstacle before the pool. Its scene code varies with the
 query (within-environment standard deviation $0.022$ against the baseline's
@@ -1638,7 +1638,7 @@ supported: a query-dependent scene code is necessary for the mechanism described
 above and nowhere near sufficient for the effect.
 
 The level it reaches is worth stating exactly, because it is a cleaner statement
-of the paper's floor result than the world-frame arm alone provides. At
+of the paper's floor result than the world-frame model alone provides. At
 $15.59\%$ it lands on the straight line's $15.6\%$, not above it: giving the
 encoder the query is enough to reach the trivial baseline and not enough to beat
 it. What takes the model past the floor at all is the change of frame.
@@ -1646,14 +1646,14 @@ it. What takes the model past the floor at all is the change of frame.
 It also bounds what the encoder can do at all. A single global code can say
 \emph{that} a path is blocked; it cannot say \emph{which waypoint} should move
 and in which direction, because every waypoint receives the same modulation. That
-is a candidate explanation for the level at which the reduced arm plateaus, and
-it is separate from the gap: both arms share the encoder. We implement an oracle
+is a candidate explanation for the level at which the reduced model plateaus, and
+it is separate from the gap: both models share the encoder. We implement an oracle
 diagnostic for it --- appending the true SDF and its gradient at each waypoint,
 which measures the headroom a better encoder could reach without designing one
 --- and report no result from it here, since running it is future work rather
 than a finding.
 
-\subsection{The world-frame arm is the straight line at every density}
+\subsection{The world-frame model is the straight line at every density}
 \label{sec:density}
 
 \begin{table}[t]
@@ -1671,18 +1671,18 @@ $32$           & $18.0$ & $18.7$ & $53.5$ & $+34.8$ & $92.7$ \\
 $40$ (trained) & $11.3$ & $13.5$ & $46.4$ & $+32.9$ & $89.3$ \\
 \bottomrule
 \end{tabular}
-\caption{Both arms evaluated across a $5\times$ range of clutter, on freshly
+\caption{Both models evaluated across a $5\times$ range of clutter, on freshly
 generated layouts neither model has seen. Scoring needs no expert trajectories
 --- only obstacles, starts, goals and the collision checker --- so a density axis
-costs minutes rather than the days a training sweep would. Both arms are trained
+costs minutes rather than the days a training sweep would. Both models are trained
 at $40$ obstacles, so every other column is out of distribution: this measures
 generalisation across density, not the effect of training at another one}
 \label{tab:density}
 \end{table}
 
-The finding of Sec.~\ref{sec:baselines} --- that the world-frame arm scores what
+The finding of Sec.~\ref{sec:baselines} --- that the world-frame model scores what
 a straight line scores --- is stated at one density, where it can be read as
-coincidence. It is not. Across a $5\times$ range of clutter the world-frame arm
+coincidence. It is not. Across a $5\times$ range of clutter the world-frame model
 tracks the straight-line floor to within a few points at every setting, and to
 within a tenth of a point at three of five (Table~\ref{tab:density}). The
 reduction clears the floor by $29$ to $41$ points everywhere.
@@ -1693,10 +1693,10 @@ floor and above by the ceiling should do; our training density of $40$ sits on
 the dense side of that peak.
 
 This also answers a question about the benchmark's design that we would otherwise
-have to argue rather than measure. Thinning the clutter raises both arms
+have to argue rather than measure. Thinning the clutter raises both models
 substantially --- the reduction reaches $90.8\%$ per sample at $8$ obstacles ---
 but the \emph{deployment} metric saturates: best-of-$20$ hits $100\%$ below about
-$24$ obstacles, at which point the two arms are no longer distinguishable as
+$24$ obstacles, at which point the two models are no longer distinguishable as
 planners even though they still differ by $29$ points per sample. Forty obstacles
 is not an arbitrary choice of difficulty; it is roughly the density at which
 best-of-$N$ still discriminates.
@@ -1723,9 +1723,9 @@ $(\svec,\gvec)$ reduction & $24.8$ & $\mathbf{40.6}$ & $+15.8$ \\
 \caption{The second state space, at two budgets an $8\times$ factor apart. The
 trivial baseline for this domain is geodesic interpolation --- straight in
 position, slerp in rotation --- the $\SE$ analogue of joining start to goal with
-a line. The world-frame arm gains $0.3$ points across the whole budget range and
+a line. The world-frame model gains $0.3$ points across the whole budget range and
 never clears its floor at any budget; the reduction clears it and is still
-climbing. On the deployment metric the world-frame arm moves \emph{backwards},
+climbing. On the deployment metric the world-frame model moves \emph{backwards},
 as it does in the point-mass domain. Single seed per cell}
 \label{tab:se3}
 \end{table}
@@ -1742,31 +1742,31 @@ linearly in position and geodesically in rotation; and the trivial baseline is
 the corresponding geodesic interpolation, the $\SE$ analogue of joining start to
 goal with a line.
 
-Three things replicate (Table~\ref{tab:se3}). The world-frame arm fails to beat
+Three things replicate (Table~\ref{tab:se3}). The world-frame model fails to beat
 the trivial baseline in \emph{both} domains --- $1.8$ points below the geodesic
 floor here, $1.2$ below the straight-line floor there --- so the finding of
 Sec.~\ref{sec:baselines} is not an accident of one workspace family. The
 reduction clears its floor in both. And at matched budgets the ratio between the
-arms is $2.9\times$ in each: an intermediate rigid-body checkpoint reaches $3.0$
+models is $2.9\times$ in each: an intermediate rigid-body checkpoint reaches $3.0$
 and $8.6$, against $14.4$ and $42.4$ for the point mass.
 
 \textbf{This domain also supplies a near-converged test of
 Sec.~\ref{sec:budget}, and it agrees.} The $\SE$ cells above span an $8\times$
 budget range rather than the $3\times$ available in the point-mass domain, and
-the best-validation checkpoints sit at epochs $155$ and $159$, so neither arm had
+the best-validation checkpoints sit at epochs $155$ and $159$, so neither model had
 stopped improving on validation loss when the runs ended. Over that range the
-world-frame arm gains $0.3$ points and the reduction $3.8$: the interaction
-survives at a budget where the ``both arms are simply undertrained'' reading is
+world-frame model gains $0.3$ points and the reduction $3.8$: the interaction
+survives at a budget where the ``both models are simply undertrained'' reading is
 much harder to sustain. We regard this as the strongest form of the
 two-bottleneck claim currently available, precisely because it does not rest on
 the $3\times$ comparison a reader is most likely to challenge.
 
 The best-of-$20$ column carries the sharper version. In the point-mass domain we
-observed the world-frame arm losing $3.1$ points of deployment performance under
+observed the world-frame model losing $3.1$ points of deployment performance under
 $3\times$ the budget, and flagged it as a single cell against a three-seed mean.
 Here it declines monotonically across the budget range, $16.8 \to 15.0$, with no
 seed-matching subtlety, while the reduction rises $24.8 \to 40.6$. Two state
-spaces agree that additional optimisation makes the world-frame arm \emph{worse}
+spaces agree that additional optimisation makes the world-frame model \emph{worse}
 at best-of-$N$ --- it buys a marginal per-sample gain by spending the sample
 diversity that best-of-$N$ actually consumes --- and that is a stronger statement
 than either domain supports alone.
@@ -1811,7 +1811,7 @@ comparison}
 Every learned number to this point comes from conditional flow matching, which
 leaves open whether the reduction is exploiting something about straight-line
 interpolants rather than something about the problem. We therefore ran the same
-two arms under a Diffuser/MPD-style DDPM objective~\cite{janner2022diffuser,
+two models under a Diffuser/MPD-style DDPM objective~\cite{janner2022diffuser,
 carvalho2023mpd}: $\epsilon$-prediction on a cosine schedule, sharing the
 backbone, the conditioning, the oriented-box features and the frame options
 unchanged, so the objective is the only difference.
@@ -1829,18 +1829,18 @@ We regard this as the strongest form of the generality claim. The reduction is a
 statement about the problem, not about the generative model, and at a budget
 where both objectives are actually trained it pays the same.
 
-One methodological point is worth recording, because scoring this arm carelessly
+One methodological point is worth recording, because scoring this model carelessly
 would have produced the opposite reading. The $8$-step operating point used
 throughout this paper was chosen because straight-line interpolants tolerate it
 (Sec.~\ref{sec:cost}). DDPM does not: it gains roughly four points on
-\emph{both} arms between $8$ and $100$ evaluations. Reporting the DDPM arm only
+\emph{both} models between $8$ and $100$ evaluations. Reporting the DDPM model only
 at $8$ steps would have understated it and invited the fair objection that the
 baseline was handicapped by a budget tuned for the method it is meant to test.
 We report both, and read the comparison at each objective's own best setting.
 
 The converged DDPM cells are single seed, against three for the $20$-epoch rows;
 the $+37.0$ should be read as a point estimate whose agreement with the flow
-arm's seed-matched $+36.50\pm0.32$ is the informative part.
+model's seed-matched $+36.50\pm0.32$ is the informative part.
 
 \subsection{Cost}
 \label{sec:cost}
@@ -1873,12 +1873,12 @@ is exactly the half the single-seed ablation leaves unresolved.
 
 \textbf{The learned planner loses to the classical ones.} Table~\ref{tab:baselines}
 is unambiguous: RRT-Connect solves essentially every problem in $0.28$\,s of
-single-core CPU time, while the best learned arm reaches $55.8\%$ per sample even
+single-core CPU time, while the best learned model reaches $55.8\%$ per sample even
 trained to convergence. Part of the shortfall is capacity --- the model is small,
 at $2.16$M parameters --- and part is that a $64$-waypoint sampler from an
 unconditional prior is a weaker instrument than a complete planner on a problem
 with an exact SDF. What it is \emph{not}, any longer, is training budget:
-Sec.~\ref{sec:budget} runs both arms to a plateau. We draw the comparison anyway,
+Sec.~\ref{sec:budget} runs both models to a plateau. We draw the comparison anyway,
 because a representation result measured only against other configurations of
 itself is not anchored to anything.
 
@@ -1946,7 +1946,7 @@ failure mode.
 \textbf{Dataset diversity.} The dataset is less diverse than its nominal size
 suggests: $30$ near-duplicate trajectories per pair means $10.8$M paths carry on
 the order of $360$k distinct queries. This does not affect the comparison, since
-both arms train on identical data, but it bears on how additional data should be
+both models train on identical data, but it bears on how additional data should be
 generated --- cutting trajectories per pair from $30$ to $5$ would buy roughly six
 times the environments for the same generation cost. We no longer read
 Fig.~\ref{fig:scaling} as saying environments are the single binding constraint,
@@ -1957,18 +1957,18 @@ to saturation.
 \textbf{Ablations must be seed-matched, and at $n{=}3$ they are underpowered.}
 Comparing a three-seed mean against a single-seed ablation would put roll
 augmentation at $+4.4$ points. Seed $0$ happens to be the worst draw for
-\emph{both} arms ($31.3$ and $30.1$ against $36.0/35.8$ and $35.9/34.8$), so the
+\emph{both} models ($31.3$ and $30.1$ against $36.0/35.8$ and $35.9/34.8$), so the
 mismatch manufactured most of the effect; run at matched seeds it is
-$+0.8\pm0.3$. The lesson generalises. The treatment arm's across-seed spread is
+$+0.8\pm0.3$. The lesson generalises. The treatment model's across-seed spread is
 $1.6$ points, five times the paired spread of the ablation, so any ablation
 compared unpaired at this scale is measuring seed noise. Even paired, $n{=}3$
 gives two degrees of freedom and a critical $t$ of $4.3$: we can bound these
 mechanisms as small but cannot resolve whether they are zero. All four cells of
 the main grid now carry three seeds, as does the query-conditioned control of
-Sec.~\ref{sec:mechanism}. The local-geometry arms of
+Sec.~\ref{sec:mechanism}. The local-geometry models of
 Table~\ref{tab:localgeom} carry three seeds for the reduction and two for the
-world-frame and equivariant arms, and the two $250$-environment
-local-geometry arms carry two each. The remaining $250$-environment cells,
+world-frame and equivariant models, and the two $250$-environment
+local-geometry models carry two each. The remaining $250$-environment cells,
 several ablations, and the converged DDPM cells are single seed and are reported
 as point estimates.
 
@@ -1978,12 +1978,12 @@ frame derivable from the query in closed form, which is what a start and a goal
 planning for a manipulator --- where the state is an end-effector pose --- the
 construction carries over unchanged, and Sec.~\ref{sec:se3} is already that case:
 an $\SE$ state with the frame built from the two endpoint positions and the
-orientations left to the network. In joint-space planning for a $7$-DoF arm it
+orientations left to the network. In joint-space planning for a $7$-DoF model it
 does not carry over as written, and we want to be precise about why rather than
 gesture at ``higher dimensions''. A rigid motion of the workspace does not act on
 a joint vector $\mathbf{q}\in\mathbb{R}^7$ by any linear map: the symmetry is a
 workspace symmetry, and the forward kinematics do not intertwine it with joint
-coordinates. What survives is narrower and still useful --- for an arm on a fixed
+coordinates. What survives is narrower and still useful --- for an model on a fixed
 base, a rotation of the scene about the base axis is realised exactly by an
 offset on the first joint, so a one-parameter canonicalisation is available in
 joint space, and the remaining five degrees of freedom are not. Whether the
@@ -2001,7 +2001,7 @@ start--goal frame is not read off two points in $\mathbb{R}^3$, is open, and it 
 the setting where we would most expect the construction to need rethinking rather
 than reimplementing.
 
-\textbf{Reproducibility.} The benchmark, the expert pipeline, both learned arms,
+\textbf{Reproducibility.} The benchmark, the expert pipeline, both learned models,
 the classical baselines, and the residual diagnostic are one codebase; every
 number in this paper is produced by a script that takes the checkpoint and the
 held-out shard range as arguments, and the figures are regenerated from those
@@ -2023,8 +2023,8 @@ predicts the benefit of post-hoc symmetrisation (which
 Corollary~\ref{cor:budget} suggests and Sec.~\ref{sec:budget} now weakly
 supports) or that it does not even then, which is the harder negative.
 \emph{(2) A third seed on two of the local-geometry cells}: the world-frame and
-equivariant arms with local geometry carry two seeds against three elsewhere,
-though they are also the least seed-sensitive arms measured here, with
+equivariant models with local geometry carry two seeds against three elsewhere,
+though they are also the least seed-sensitive models measured here, with
 across-seed standard errors of $0.01$ and $0.02$.
 \emph{(3) Convergence at $250$ environments}, so the
 headline is converged as well as full-data; Sec.~\ref{sec:budget} establishes the
