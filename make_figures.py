@@ -117,10 +117,13 @@ CASCADE_DELTAS = ["$+1.0$", "$+35.5$"]
 CASCADE_FLOOR = 15.6   # straight line from start to goal, same 500 problems
 
 # The three mechanisms for the residual roll. ALTERNATIVES, not a decomposition:
+# The starred row is the 20-epoch grid: roll augmentation was never run to
+# convergence, and drawing it unmarked beside two converged numbers under a
+# "trained to convergence" heading claims a measurement that was not made.
 # each was measured against its own base and they were never composed. Drawing
 # them end to end would assert an additivity that was never tested.
 ROLL_MECHANISMS = [
-    ("roll augmentation (data)",       0.80),
+    ("roll augmentation (data)$^{*}$", 0.80),
     ("frame averaging (operator)",     0.68),
     ("equivariant backbone (weights)", 0.15),
 ]
@@ -341,7 +344,7 @@ def fig_convergence(path="fig_convergence.pdf"):
     ax.set_xlabel("Training epochs", fontsize=7.5)
     ax.set_ylabel("Collision-free rate (%)", fontsize=7.5)
     ax.set_xlim(0, 305)
-    ax.set_ylim(20, 53)
+    ax.set_ylim(0, 55)
     ax.tick_params(labelsize=7)
     ax.legend(frameon=False, loc="lower right", fontsize=7)
     ax.spines[["top", "right"]].set_visible(False)

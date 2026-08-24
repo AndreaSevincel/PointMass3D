@@ -99,12 +99,14 @@ model on problems it never saw, beside a straight line from start to goal. The
 frame raises the held-out collision-free rate from $14.60 \pm 0.20\%$ to
 $51.10 \pm 0.25\%$, against $15.6\%$ for the straight line, which the world-frame
 model does not beat. The three mechanisms for the remaining degree of freedom are
-worth under a point each at convergence, though the constrained architecture
+worth under a point each, though the constrained architecture
 reaches any given level two to three times sooner. Two models that are equally
 equivariant differ by $28$ points, so how equivariant a planner became does not
-predict what the symmetry bought it. We also bound the result from above. Giving
-each waypoint its distance and direction to the nearest obstacle is worth $+40.0$
-points where the frame is worth $+36.5$, and the two are not substitutes.
+predict what the symmetry bought it. We also calibrate how large the frame's
+effect is on this benchmark. Giving each waypoint its distance and direction to
+the nearest obstacle is worth $+40.0$ points where the frame is worth $+36.5$, so
+the representation change studied here is not the largest effect available, and
+the two are not substitutes.
 \end{abstract}
 
 \section{Introduction}
@@ -144,8 +146,8 @@ to one invariant scalar. The frame needs a second axis to be determined, and our
 takes it from a fixed world axis, so rotating the whole problem rolls the frame
 rather than leaving it unchanged. What survives is exactly that rotation: $\SE$
 collapses to $\mathrm{SO}(2)$. No continuous rule can fix the
-remainder~\cite{milnor1978hairy}, so the sixth degree of freedom must be handled
-by one of the three mechanisms above, and we build all three. Fig.~\ref{fig:teaser} takes the group apart
+remainder~\cite{milnor1978hairy}, so the sixth degree of freedom is left to one
+of the three mechanisms above, and we build all three. Fig.~\ref{fig:teaser} takes the group apart
 one stage at a time.
 
 We build all three on a cluttered 3D benchmark, hold the architecture, data and
@@ -164,7 +166,8 @@ Our contributions are as follows.
   collision-free rate from $14.60\%$ to $51.10\%$ with no change to the architecture, the data or the budget.
 
   \item \textbf{All three mechanisms for the sixth, measured against each
-  other.} None recovers a point at convergence, but the constrained architecture
+  other.} Neither of the two run to convergence recovers a point, and the third
+was already not significant at a fixed budget. The constrained architecture
   reaches any given level two to three times sooner, so what the symmetry buys is
   optimisation rather than accuracy. We explain the null result rather than
   inferring it from
@@ -192,7 +195,9 @@ segment from start to goal on the identical problems, which the world-frame mode
 does not beat. \emph{Bottom}: the three mechanisms for the one degree of freedom
 the frame cannot remove. Each is measured against its own baseline and they are
 alternatives rather than a decomposition, so they are not composed here and were
-never composed in the experiments.}
+never composed in the experiments. Two of the three are converged measurements.
+Roll augmentation, starred, is the $20$-epoch grid, where it was already not
+significant across three seeds and was not run further.}
 \label{fig:teaser}
 \end{figure}
 
@@ -251,13 +256,17 @@ $\mathcal{C} = \mathbb{R}^3$ for the point mass studied throughout and
 $\mathcal{C} = \SE$ for the rigid-body domain of
 Sec.~\ref{sec:replications},
 and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
-$d_{\mathcal{O}} : \mathbb{R}^3 \to \mathbb{R}$. A trajectory is a waypoint
-sequence $x = [p_1, \dots, p_N] \in \mathcal{C}^N$, and the feasible set of
-$\mathcal{P}$ is
+$d_{\mathcal{O}} : \mathbb{R}^3 \to \mathbb{R}$. For $\mathcal{C} = \SE$ we
+overload $d_{\mathcal{O}}(p)$ to mean the minimum, over the spheres composing the
+body at pose $p$, of the field at each centre less that sphere's radius, so
+$\rho$ is absorbed into the body and the constraint below reads unchanged. A trajectory is a waypoint
+sequence $x = [p_1, \dots, p_N] \in \mathcal{C}^N$ and $\gamma(x)$ the path it
+traces, piecewise linear in position and geodesic in orientation. The feasible
+set of $\mathcal{P}$ is
 \begin{equation}
   \mathcal{S}(\mathcal{P}) =
   \big\{\, x \;:\; p_1 = \svec,\; p_N = \gvec,\;
-  d_{\mathcal{O}}(p_i) \ge \rho \;\; \forall i \,\big\},
+  d_{\mathcal{O}}(p) \ge \rho \;\; \forall\, p \in \gamma(x) \,\big\},
   \label{eq:feasible}
 \end{equation}
 with $\rho$ the robot radius. The objective is to learn a generative model
@@ -477,11 +486,12 @@ the equivariant subspace, which contains $\mathcal{A}f - f^\ast$.
 \subsection{Benchmark and protocol}
 
 PointMass3D places forty obstacles, twenty spheres and twenty oriented boxes, in
-$[-1,1]^3$. The robot is a point of radius $0.03$. Collision checking uses an
-analytic signed distance field, and every segment between consecutive waypoints
-is resampled at a spacing of $0.01$ before it is tested, so the check is
-continuous to a third of the robot radius rather than evaluated at the $64$
-waypoints alone. A trajectory
+$[-1,1]^3$. The robot is a sphere of radius $\rho = 0.03$. Collision checking uses an
+analytic signed distance field, and $\gamma(x)$ is resampled at a spacing of
+$0.01$ before it is tested rather than evaluated at the $64$ waypoints alone.
+Since $d_{\mathcal{O}}$ is $1$-Lipschitz, every point of $\gamma(x)$ lies within
+$0.005$ of a tested sample, so the reported rates differ from the continuous ones
+by at most a $0.005$ perturbation of $\rho$, a sixth of the robot radius. A trajectory
 is $N=64$ waypoints in $\mathbb{R}^3$.
 
 Expert paths come from RRT-Connect, then random shortcutting, uniform
@@ -572,8 +582,8 @@ representation buys, subject to Table~\ref{tab:floors}.
 \label{sec:scaling}
 % ~220 words.
 Across a $12.5\times$ increase in training environments the world-frame model
-gains $2.5$ points, from $12.9$ to $15.4$. The reduction gains $26.2$, from
-$19.2$ to $45.5$, and has not plateaued. Seed-matched, the difference grows
+goes from $12.9$ to $15.4$. The reduction goes from $19.2$ to $45.5$, and has
+not plateaued. Seed-matched, the difference grows
 monotonically at every size: $+6.37 \pm 0.19$, $+20.87 \pm 1.56$,
 $+25.85 \pm 0.37$ and $+30.08 \pm 0.38$.
 
@@ -589,9 +599,9 @@ model reaches $55.8$.
 \centering
 \includegraphics[width=\columnwidth]{fig_scaling_col.pdf}
 \caption{\textbf{Held-out collision-free rate against training-set size, at a
-fixed budget of $20$ epochs.} The world-frame model gains $2.5$ points across a
-$12.5\times$ increase in environments and the reduction gains $26.2$ without
-plateauing. Holding the budget fixed is what makes representation the only
+fixed budget of $20$ epochs.} The world-frame model moves $2.5$ points across a
+$12.5\times$ increase in environments, from $12.9$ to $15.4$, while the
+reduction runs from $19.2$ to $45.5$ without plateauing. Holding the budget fixed is what makes representation the only
 variable, and it is also why these are not convergence levels: trained out, the
 $250$-environment reduced model reaches $55.8$, above the $51.10$ quoted at $60$
 environments elsewhere. Every world-frame and reduction cell is a mean over three
@@ -745,7 +755,7 @@ Replication & Condition & World & Reduced & Gap \\
 \midrule
 \multicolumn{5}{l}{\textbf{Second state space.} $\SE$ rigid body, floor $4.8$}\\
             & $20$ ep.       & 2.8 & 6.2 & $+3.4$ \\
-            & ${\sim}156$ ep.& 3.1 & \textbf{10.0} & $+6.9$ \\
+            & $155$/$159$ ep.& 3.1 & \textbf{10.0} & $+6.9$ \\
 \midrule
 \multicolumn{5}{l}{\textbf{Other objective.} DDPM, matched network evaluations}\\
             & $20$ ep.       & 12.27 & 28.97 & $+16.71$ \\
@@ -761,9 +771,9 @@ Replication & Condition & World & Reduced & Gap \\
 objective, and a $5\times$ range of clutter. The rigid body is an L-shaped union
 of five spheres whose state is a full pose, chosen to have trivial symmetry so
 the domain is not secretly easier; both models are below their own floor at $20$
-epochs and only the reduced one clears it. The second budget is where
-best-validation loss sits for both models, at epochs $155$ and $159$, so neither
-had stopped improving when the runs ended. The density rows are freshly generated
+epochs and only the reduced one clears it. The second column is each model's
+own best-validation checkpoint, epoch $155$ for the world frame and $159$ for the
+reduction, so neither had stopped improving when the runs ended. The density rows are freshly generated
 layouts at densities neither model was trained on. Single seed except the DDPM
 $20$-epoch row.}
 \label{tab:replications}

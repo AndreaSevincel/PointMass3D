@@ -160,9 +160,13 @@ def sample(
     anchor_endpoints=False,
     device="cpu",
     generator=None,
+    capture=None,
 ):
 
     #Draw trajectories by integrating the learned velocity field.
+    #capture, if given, is a list that receives a CPU copy of the state after
+    #every Euler step. It is for visualisation only: it never touches x, so a
+    #run with capture set produces bit-identical samples to one without.
     #Everything here is in whatever frame the caller supplies; anchor_start /
     #anchor_goal must be in that same frame.
 
@@ -187,10 +191,14 @@ def sample(
             x[:, [0, -1], :] = (1.0 - tt) * known_eps + tt * known
         v = net.decode(x, t, c, spheres, boxes, sphere_mask, box_mask)
         x = x + (ts[i + 1] - ts[i]) * v
+        if capture is not None:
+            capture.append(x.detach().cpu().clone())
 
     if anchor_endpoints:
         x[:, 0, :] = anchor_start
         x[:, -1, :] = anchor_goal
+        if capture:
+            capture[-1] = x.detach().cpu().clone()
     return x
 
 
@@ -364,6 +372,7 @@ def sample_reduced(
     generator=None,
     phi=None,
     return_residual=False,
+    capture=None,
 ):
     #Sample in the (s,g)-reduced frame and map the result back to world.
     #k_fa > 1 turns on frame averaging over the residual roll: K rolled copies
@@ -426,10 +435,20 @@ def sample_reduced(
                 (num_l1 / v.norm(dim=-1).mean().clamp_min(1e-9)).item()
             )
         x = x + (ts[i + 1] - ts[i]) * v
+        if capture is not None:
+            #recorded in WORLD coordinates, so a viewer can compare the two arms
+            #frame by frame; the reduced state itself lives in a rotated frame
+            capture.append(
+                (torch.einsum("bji,bkj->bki", R0, x) + origin[:, None, :])
+                .detach().cpu().clone())
 
     if anchor_endpoints:
         x[:, 0, :] = known[:, 0]
         x[:, -1, :] = known[:, 1]
+        if capture:
+            capture[-1] = (
+                torch.einsum("bji,bkj->bki", R0, x) + origin[:, None, :]
+            ).detach().cpu().clone()
 
     #reduced -> world: R0^T @ x + origin
     x_world = torch.einsum("bji,bkj->bki", R0, x) + origin[:, None, :]
