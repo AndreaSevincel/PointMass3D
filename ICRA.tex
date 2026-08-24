@@ -23,6 +23,16 @@
 \newcommand{\gvec}{\mathbf{g}}
 \newcommand{\xhat}{\hat{\mathbf{x}}}
 \newcommand{\yhat}{\hat{\mathbf{y}}}
+% IEEE section numbering: Roman sections, letter subsections, so cross-references
+% read "Sec. III-A" as in the venue's own papers rather than "Sec. 3.1".
+\renewcommand{\thesection}{\Roman{section}}
+\renewcommand{\thesubsection}{\thesection-\Alph{subsection}}
+% The period after the number belongs in the HEADING only. Putting it in
+% \thesection would put it inside every \ref as well.
+\makeatletter
+\renewcommand{\@seccntformat}[1]{\csname the#1\endcsname.\hspace{0.5em}}
+\makeatother
+
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
 
@@ -196,11 +206,42 @@ That is the quantity we bound, and it is not the quantity, we find, that predict
 anything.
 
 \section{Method}
-In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec. 3.1). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec. 3.2). To establish that the remainder cannot be removed by the same route, we give two independent obstructions, one topological and one distributional (Sec. 3.3). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec. 3.4), and define the non-equivariance residual that bounds what the second of them can remove.
+In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec.~\ref{sec:problem}). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec.~\ref{sec:decompose}). To establish that the remainder cannot be removed by the same route, we give two independent obstructions, one topological and one distributional (Sec.~\ref{sec:obstruction}). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec.~\ref{sec:threeways}), and define the non-equivariance residual that bounds what the second of them can remove.
 
 
+
+\subsection{Problem formulation}
+\label{sec:problem}
+
+We formulate motion planning in a workspace $\mathbb{R}^d$ ($d=3$ throughout,
+$d=6$ for the rigid-body domain of Sec.~\ref{sec:results}). A task is defined by
+the tuple $\mathcal{P} = (\svec, \gvec, \mathcal{O})$, where
+$\svec, \gvec \in \mathbb{R}^d$ are the start and goal configurations and
+$\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
+$d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. The objective is to learn a
+generative model $p_\theta$ that produces a collision-free waypoint sequence
+$x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$ conditioned on $\mathcal{P}$,
+with $p_1 = \svec$, $p_N = \gvec$, and $d_{\mathcal{O}}(p_i) \ge \rho$ for every
+$i$, where $\rho$ is the robot radius.
+
+The task carries an exact symmetry. For any rigid transformation $T \in \SE$, the
+transformed task $T\mathcal{P} = (T\svec, T\gvec, T\mathcal{O})$ has as its
+solutions exactly the transformed solutions of $\mathcal{P}$:
+\begin{equation}
+  x \text{ solves } \mathcal{P}
+  \;\Longleftrightarrow\;
+  Tx \text{ solves } T\mathcal{P},
+  \label{eq:equivariance}
+\end{equation}
+so a generative planner should satisfy
+$p_\theta(Tx \mid T\mathcal{P}) = p_\theta(x \mid \mathcal{P})$. We use
+conditional flow matching~\cite{lipman2023fm}, which learns a time-dependent
+velocity field $v_\theta(x_t, t, \mathcal{P})$ whose integral transports a simple
+prior to $p_\theta(x \mid \mathcal{P})$. Nothing in that objective enforces
+Eq.~\eqref{eq:equivariance}.
 
 \subsection{Decomposing the group}
+\label{sec:decompose}
 We formulate motion planning in a workspace $\mathbb{R}^d$ ($d=3$ throughout, $d=6$ for the rigid-body domain of Sec. V). A task is defined by the tuple $\mathcal{P} = (\mathbf{s}, \mathbf{g}, \mathcal{O})$, where $\mathbf{s}, \mathbf{g} \in \mathbb{R}^d$ are the start and goal configurations and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field $d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. The objective is to learn a generative model $p_\theta$ that produces a collision-free waypoint sequence $x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$ conditioned on $\mathcal{P}$, with $p_1 = \mathbf{s}$, $p_N = \mathbf{g}$, and $d_{\mathcal{O}}(p_i) \ge \rho$ for every $i$, where $\rho$ is the robot radius.
 
 \filler{7}
@@ -211,7 +252,13 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua $X' = R_{\hat{x}}(\theta)\,X$.
 \end{proposition}
 
-\begin{proposition}[Dolor sit amet]
+\subsection{Why the remainder is not removable}
+\label{sec:obstruction}
+% ~140 words. Both obstructions, stated as GIVEN rather than derived, with the
+% attribution you settled on for the report.
+\filler{3}
+
+\begin{proposition}[Topological obstruction]
 \label{prop:two}
 Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
 incididunt ut labore.
@@ -221,6 +268,12 @@ incididunt ut labore.
 Lorem ipsum dolor sit amet consectetur adipiscing elit, sed do eiusmod tempor
 incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
 \end{proof}
+
+\subsection{Three ways to impose the symmetry}
+\label{sec:threeways}
+% ~120 words. Data, operator, weights. One or two sentences each; the reader met
+% this list in the introduction, so do not re-explain it.
+\filler{3}
 
 % ============================== PAGES 3--4 (1.2) =====================
 \section{Setup and Calibration}
@@ -286,6 +339,7 @@ through an obstacle.}
 
 % ============================== PAGES 4--5 (1.3) =====================
 \section{Results}
+\label{sec:results}
 \subsection{Scaling}
 \label{sec:scaling}
 % ~220 words.
