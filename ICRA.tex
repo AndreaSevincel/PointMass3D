@@ -206,21 +206,23 @@ That is the quantity we bound, and it is not the quantity, we find, that predict
 anything.
 
 \section{Method}
-In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec.~\ref{sec:problem}). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec.~\ref{sec:decompose}). To establish that the remainder cannot be removed by the same route, we give two independent obstructions, one topological and one distributional (Sec.~\ref{sec:obstruction}). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec.~\ref{sec:threeways}), and define the non-equivariance residual that bounds what the second of them can remove.
+In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec.~\ref{sec:problem}). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec.~\ref{sec:decompose}). To establish that the remainder cannot be removed by the same route, we give two obstructions, one topological and one that applies to scenes carrying a symmetry of their own (Sec.~\ref{sec:obstruction}). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec.~\ref{sec:threeways}), and define the non-equivariance residual that bounds what the second of them can remove.
 
 
 
 \subsection{Problem formulation}
 \label{sec:problem}
 
-We formulate motion planning in a workspace $\mathbb{R}^d$ ($d=3$ throughout,
-$d=6$ for the rigid-body domain of Sec.~\ref{sec:results}). A task is defined by
-the tuple $\mathcal{P} = (\svec, \gvec, \mathcal{O})$, where
-$\svec, \gvec \in \mathbb{R}^d$ are the start and goal configurations and
-$\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
-$d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. A trajectory is a waypoint
-sequence $x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$, and the feasible
-set of $\mathcal{P}$ is
+We formulate motion planning in the workspace $\mathbb{R}^3$. A task is the
+tuple $\mathcal{P} = (\svec, \gvec, \mathcal{O})$, where
+$\svec, \gvec \in \mathcal{C}$ are the start and goal configurations,
+$\mathcal{C} = \mathbb{R}^3$ for the point mass studied throughout and
+$\mathcal{C} = \SE$ for the rigid-body domain of
+Sec.~\ref{sec:replications},
+and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
+$d_{\mathcal{O}} : \mathbb{R}^3 \to \mathbb{R}$. A trajectory is a waypoint
+sequence $x = [p_1, \dots, p_N] \in \mathcal{C}^N$, and the feasible set of
+$\mathcal{P}$ is
 \begin{equation}
   \mathcal{S}(\mathcal{P}) =
   \big\{\, x \;:\; p_1 = \svec,\; p_N = \gvec,\;
@@ -246,8 +248,17 @@ and a generative planner should inherit this,
 \end{equation}
 We use conditional flow matching~\cite{lipman2023fm}, which learns a
 time-dependent velocity field $v_\theta(x_t, t, \mathcal{P})$ whose integral
-transports a simple prior to $p_\theta(x \mid \mathcal{P})$. Nothing in that
-objective enforces Eq.~\eqref{eq:planner-equivariance}.
+transports a simple prior to $p_\theta(x \mid \mathcal{P})$. Velocities are free
+vectors, so the corresponding condition on the field is
+\begin{equation}
+  v_\theta(Tx_t, t, T\mathcal{P}) = R\, v_\theta(x_t, t, \mathcal{P}),
+  \quad T = (R, \tau) \in \SE ,
+  \label{eq:field-equivariance}
+\end{equation}
+which yields Eq.~\eqref{eq:planner-equivariance} whenever the prior transported
+by the flow is itself invariant under the action. Nothing in the flow matching
+objective enforces either one, and Sec.~\ref{sec:residual} measures how far a
+trained field falls from Eq.~\eqref{eq:field-equivariance}.
 
 \subsection{Decomposing the group}
 \label{sec:decompose}
@@ -257,29 +268,40 @@ cost. Unfortunately the canonicalization is not entirely complete, since fixing
 the rotation about the first axis needs a second reference axis, and the query
 does not give us one. We decompose as follows.
 
-Write $m = \tfrac{1}{2}(\svec + \gvec)$, $d = \|\gvec - \svec\|$
-and $\hat{u} = (\gvec - \svec)/d$, and let $R_{\mathcal{P}} \in \mathrm{SO}(3)$
-be the rotation whose rows are $(\hat{u},\, \hat{v},\, \hat{u} \times \hat{v})$
-for some unit $\hat{v} \perp \hat{u}$. The reduction is the rigid map
+We declare $m = \tfrac{1}{2}(\svec + \gvec)$, $\ell = \|\gvec - \svec\| > 0$
+and $\hat{u} = (\gvec - \svec)/\ell$. The second axis is not determined by the
+query, and ours is read off the world basis vector $e_k$ that $\hat{u}$ is least
+aligned with,
+\begin{equation}
+  k = \operatorname*{arg\,min}_{i} |\hat{u}_i| ,
+  \qquad
+  \hat{n} = \frac{\hat{u} \times e_k}{\|\hat{u} \times e_k\|} .
+  \label{eq:second-axis}
+\end{equation}
+The denominator never vanishes: $k$ forces $\hat{u}_k^2 \le \tfrac{1}{3}$, so
+$\|\hat{u} \times e_k\|^2 = 1 - \hat{u}_k^2 \ge \tfrac{2}{3}$. Let
+$R_{\mathcal{P}} \in \mathrm{SO}(3)$ be the rotation with
+$R_{\mathcal{P}}^{\top} = [\,\hat{u}\;\; \hat{n}\;\; \hat{u} \times \hat{n}\,]$.
+The reduction is the rigid map
 \begin{equation}
   T_{\mathcal{P}}(p) = R_{\mathcal{P}}\,(p - m),
   \label{eq:reduction}
 \end{equation}
 under which the endpoints stop being inputs and become constants,
 \begin{equation}
-  T_{\mathcal{P}}(\svec) = \big({-\tfrac{d}{2}},\, 0,\, 0\big),
+  T_{\mathcal{P}}(\svec) = \big({-\tfrac{\ell}{2}},\, 0,\, 0\big),
   \qquad
-  T_{\mathcal{P}}(\gvec) = \big({+\tfrac{d}{2}},\, 0,\, 0\big).
+  T_{\mathcal{P}}(\gvec) = \big({+\tfrac{\ell}{2}},\, 0,\, 0\big).
   \label{eq:endpoints}
 \end{equation}
 
-The network never sees a world coordinate. The task is carried into the
+Hence the network never sees a world coordinate. The task is carried into the
 frame, $\hat{x}_t = T_{\mathcal{P}}(x_t)$ and
 $\hat{\mathcal{O}} = T_{\mathcal{P}}\mathcal{O}$, obstacle centres transforming
 as points, box edges as free vectors under $R_{\mathcal{P}}$ alone, and radii not
 at all. The field is evaluated entirely inside the frame,
-$\hat{v} = v_\theta(\hat{x}_t, t \mid d, \hat{\mathcal{O}})$, where by
-Eq.~\eqref{eq:endpoints} the query enters as the single scalar $d$ in place of
+$\hat{v} = v_\theta(\hat{x}_t, t \mid \ell, \hat{\mathcal{O}})$, where by
+Eq.~\eqref{eq:endpoints} the query enters as the single scalar $\ell$ in place of
 the six numbers of $(\svec, \gvec)$. The output is returned to the world by the
 rotation alone, $v = R_{\mathcal{P}}^{\top}\hat{v}$, velocities being free
 vectors.
@@ -287,25 +309,36 @@ vectors.
 Eq.~\eqref{eq:reduction} costs one cross product per query, constrains nothing
 about $v_\theta$, and holds at initialisation. It fixes five of the six degrees
 of freedom of $\SE$, three of translation through $m$ and two of rotation
-through $\hat{u}$. It does not fix the sixth. The admissible $\hat{v}$ form a
-circle in the plane normal to $\hat{u}$, and any rule selecting one of them must
-read something beyond $\svec$ and $\gvec$; ours reads the world coordinate axis
-least aligned with $\hat{u}$ and orthogonalises against it. That rule turns with
-the world. Replacing $\mathcal{P}$ by $T\mathcal{P}$ therefore leaves the reduced
-task not invariant but rolled about its own first axis,
+through $\hat{u}$. It does not fix the sixth, and
+Eq.~\eqref{eq:second-axis} reads the world basis, so it turns with the world.
+
+\begin{proposition}[The residual is $\mathrm{SO}(2)$]
+\label{prop:residual}
+Let $R_1(\theta)$ denote the rotation by $\theta$ about the first coordinate
+axis. For every task $\mathcal{P}$ with $\ell > 0$ and every $T \in \SE$ there is a
+$\theta = \theta(T, \mathcal{P})$ with
 \begin{equation}
-  \hat{x} \;\longmapsto\; R_{\hat{u}}(\theta)\,\hat{x},
-  \qquad \theta = \theta(T, \mathcal{P}),
+  T_{T\mathcal{P}} \circ T \;=\; R_1(\theta) \circ T_{\mathcal{P}} .
   \label{eq:residual}
 \end{equation}
-so what Eq.~\eqref{eq:planner-equivariance} still asks of a planner in this frame
-is equivariance to $\mathrm{SO}(2)$, not to nothing.
-
-\begin{proposition}[Lorem ipsum]
-\label{prop:one}
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua $X' = R_{\hat{x}}(\theta)\,X$.
 \end{proposition}
+\begin{proof}
+$\|T\gvec - T\svec\| = \ell$, so by Eq.~\eqref{eq:endpoints} both
+$T_{T\mathcal{P}} \circ T$ and $T_{\mathcal{P}}$ carry $\svec$ to
+$(-\tfrac{\ell}{2},0,0)$ and $\gvec$ to $(+\tfrac{\ell}{2},0,0)$. Their composite
+$A = T_{T\mathcal{P}} \circ T \circ T_{\mathcal{P}}^{-1}$ is therefore an
+orientation-preserving isometry fixing two distinct points, hence a rotation
+about the line joining them, which is the first coordinate axis.
+\end{proof}
+
+Nothing in the proof refers to Eq.~\eqref{eq:second-axis}. The residual is
+$\mathrm{SO}(2)$ for every rule selecting the second axis, and the rule decides
+only which $\theta$. What Eq.~\eqref{eq:planner-equivariance} still asks of a
+planner in this frame is equivariance to $\mathrm{SO}(2)$, then, and not to
+nothing. One rule would escape it, a rule continuous in $\mathcal{P}$ and
+returning the same $\hat{n}$ for $\mathcal{P}$ and $T\mathcal{P}$. Ours is not
+continuous: it jumps where the minimising $k$ in Eq.~\eqref{eq:second-axis} ties.
+Sec.~\ref{sec:obstruction} is why no rule does better.
 
 \subsection{Why the remainder is not removable}
 \label{sec:obstruction}
@@ -313,15 +346,35 @@ incididunt ut labore et dolore magna aliqua $X' = R_{\hat{x}}(\theta)\,X$.
 % attribution you settled on for the report.
 \filler{3}
 
+% ATTRIBUTION. This argument was explained to you; you did not derive it. Say so
+% here or in the acknowledgement, the way report.tex does.
 \begin{proposition}[Topological obstruction]
 \label{prop:two}
-Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor
-incididunt ut labore.
+There is no continuous $\hat{n} : S^2 \to S^2$ with $\hat{n}(\hat{u}) \perp
+\hat{u}$ for every $\hat{u} \in S^2$. Every rule selecting the second axis,
+Eq.~\eqref{eq:second-axis} among them, is therefore discontinuous somewhere on
+the sphere of query directions.
 \end{proposition}
-% Two-line proof only. Anything longer goes in an appendix or is cut.
 \begin{proof}
-Lorem ipsum dolor sit amet consectetur adipiscing elit, sed do eiusmod tempor
-incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
+Such an $\hat{n}$ is a continuous nowhere-vanishing tangent vector field on
+$S^2$, which the hairy ball theorem forbids~\cite{milnor1978hairy}.
+\end{proof}
+
+% CLAIM SIZE. This one is weaker than Prop. 2 and does not by itself establish
+% that the remainder is not removable; Prop. 2 does that. It says where a
+% canonicalisation is ambiguous rather than merely discontinuous, which is the
+% case Sec. VI returns to. Rewrite freely, but do not widen it.
+\begin{proposition}[Scenes with their own symmetry]
+\label{prop:three}
+Let $\hat{\mathcal{O}}$ be a reduced scene with
+$R_1(\pi)\,\hat{\mathcal{O}} = \hat{\mathcal{O}}$. Then no rule reading only the
+reduced task can distinguish the frame $R_{\mathcal{P}}$ from
+$R_1(\pi)\,R_{\mathcal{P}}$.
+\end{proposition}
+\begin{proof}
+$R_1(\pi)$ fixes both endpoints of Eq.~\eqref{eq:endpoints} and fixes
+$\hat{\mathcal{O}}$ by hypothesis, so the two frames present the rule with
+identical arguments.
 \end{proof}
 
 \subsection{Three ways to impose the symmetry}
@@ -329,6 +382,17 @@ incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
 % ~120 words. Data, operator, weights. One or two sentences each; the reader met
 % this list in the introduction, so do not re-explain it.
 \filler{3}
+
+% Cor. 1 in Sec. V-E is stated in terms of \mathcal{A}, so \mathcal{A} has to be
+% defined before it is used. This is the operator mechanism.
+Averaging a field $f$ over the $K$ rolls $\theta_k = 2\pi k / K$ gives
+\begin{equation}
+  (\mathcal{A}f)(\hat{x}) = \frac{1}{K} \sum_{k=0}^{K-1}
+  R_1(\theta_k)^{\top} f\big(R_1(\theta_k)\,\hat{x}\big) ,
+  \label{eq:frame-averaging}
+\end{equation}
+the orthogonal projection of $f$ onto the fields equivariant to the cyclic
+subgroup $C_K \subset \mathrm{SO}(2)$~\cite{puny2022fa}.
 
 % ============================== PAGES 3--4 (1.2) =====================
 \section{Setup and Calibration}
@@ -475,6 +539,7 @@ against $0.20$ and $0.25$ without.}
 
 % ============================== PAGE 6--7 (0.8) ======================
 \subsection{Replications}
+\label{sec:replications}
 % ~180 words covering all three at once. One table, three blocks of rows.
 \filler{5}
 
@@ -511,6 +576,7 @@ $20$-epoch row.}
 \end{table}
 
 \subsection{The residual, and what it bounds}
+\label{sec:residual}
 % A THIRD OF A COLUMN. ~120 words plus the corollary. State the bound, state
 % that it does not predict, cite the prior work for the projection property,
 % and stop.
