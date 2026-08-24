@@ -218,33 +218,88 @@ $d=6$ for the rigid-body domain of Sec.~\ref{sec:results}). A task is defined by
 the tuple $\mathcal{P} = (\svec, \gvec, \mathcal{O})$, where
 $\svec, \gvec \in \mathbb{R}^d$ are the start and goal configurations and
 $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
-$d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. The objective is to learn a
-generative model $p_\theta$ that produces a collision-free waypoint sequence
-$x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$ conditioned on $\mathcal{P}$,
-with $p_1 = \svec$, $p_N = \gvec$, and $d_{\mathcal{O}}(p_i) \ge \rho$ for every
-$i$, where $\rho$ is the robot radius.
-
-The task carries an exact symmetry. For any rigid transformation $T \in \SE$, the
-transformed task $T\mathcal{P} = (T\svec, T\gvec, T\mathcal{O})$ has as its
-solutions exactly the transformed solutions of $\mathcal{P}$:
+$d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. A trajectory is a waypoint
+sequence $x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$, and the feasible
+set of $\mathcal{P}$ is
 \begin{equation}
-  x \text{ solves } \mathcal{P}
-  \;\Longleftrightarrow\;
-  Tx \text{ solves } T\mathcal{P},
+  \mathcal{S}(\mathcal{P}) =
+  \big\{\, x \;:\; p_1 = \svec,\; p_N = \gvec,\;
+  d_{\mathcal{O}}(p_i) \ge \rho \;\; \forall i \,\big\},
+  \label{eq:feasible}
+\end{equation}
+with $\rho$ the robot radius. The objective is to learn a generative model
+$p_\theta(x \mid \mathcal{P})$ supported on $\mathcal{S}(\mathcal{P})$.
+
+A rigid transformation $T \in \SE$ acts on a task by
+$T\mathcal{P} = (T\svec, T\gvec, T\mathcal{O})$ and on a trajectory waypointwise,
+$(Tx)_i = Tp_i$. The task is then exactly $\SE$-equivariant:
+\begin{equation}
+  \mathcal{S}(T\mathcal{P}) = T\,\mathcal{S}(\mathcal{P}),
+  \qquad \forall\, T \in \SE ,
   \label{eq:equivariance}
 \end{equation}
-so a generative planner should satisfy
-$p_\theta(Tx \mid T\mathcal{P}) = p_\theta(x \mid \mathcal{P})$. We use
-conditional flow matching~\cite{lipman2023fm}, which learns a time-dependent
-velocity field $v_\theta(x_t, t, \mathcal{P})$ whose integral transports a simple
-prior to $p_\theta(x \mid \mathcal{P})$. Nothing in that objective enforces
-Eq.~\eqref{eq:equivariance}.
+and a generative planner should inherit this,
+\begin{equation}
+  p_\theta(Tx \mid T\mathcal{P}) = p_\theta(x \mid \mathcal{P}),
+  \qquad \forall\, T \in \SE .
+  \label{eq:planner-equivariance}
+\end{equation}
+We use conditional flow matching~\cite{lipman2023fm}, which learns a
+time-dependent velocity field $v_\theta(x_t, t, \mathcal{P})$ whose integral
+transports a simple prior to $p_\theta(x \mid \mathcal{P})$. Nothing in that
+objective enforces Eq.~\eqref{eq:planner-equivariance}.
 
 \subsection{Decomposing the group}
 \label{sec:decompose}
-We formulate motion planning in a workspace $\mathbb{R}^d$ ($d=3$ throughout, $d=6$ for the rigid-body domain of Sec. V). A task is defined by the tuple $\mathcal{P} = (\mathbf{s}, \mathbf{g}, \mathcal{O})$, where $\mathbf{s}, \mathbf{g} \in \mathbb{R}^d$ are the start and goal configurations and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field $d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. The objective is to learn a generative model $p_\theta$ that produces a collision-free waypoint sequence $x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$ conditioned on $\mathcal{P}$, with $p_1 = \mathbf{s}$, $p_N = \mathbf{g}$, and $d_{\mathcal{O}}(p_i) \ge \rho$ for every $i$, where $\rho$ is the robot radius.
 
-\filler{7}
+The motion planning task gives us a canonical frame at initialisation, and at no
+cost. Unfortunately the canonicalization is not entirely complete, since fixing
+the rotation about the first axis needs a second reference axis, and the query
+does not give us one. We decompose as follows.
+
+Write $m = \tfrac{1}{2}(\svec + \gvec)$, $d = \|\gvec - \svec\|$
+and $\hat{u} = (\gvec - \svec)/d$, and let $R_{\mathcal{P}} \in \mathrm{SO}(3)$
+be the rotation whose rows are $(\hat{u},\, \hat{v},\, \hat{u} \times \hat{v})$
+for some unit $\hat{v} \perp \hat{u}$. The reduction is the rigid map
+\begin{equation}
+  T_{\mathcal{P}}(p) = R_{\mathcal{P}}\,(p - m),
+  \label{eq:reduction}
+\end{equation}
+under which the endpoints stop being inputs and become constants,
+\begin{equation}
+  T_{\mathcal{P}}(\svec) = \big({-\tfrac{d}{2}},\, 0,\, 0\big),
+  \qquad
+  T_{\mathcal{P}}(\gvec) = \big({+\tfrac{d}{2}},\, 0,\, 0\big).
+  \label{eq:endpoints}
+\end{equation}
+
+The network never sees a world coordinate. The task is carried into the
+frame, $\hat{x}_t = T_{\mathcal{P}}(x_t)$ and
+$\hat{\mathcal{O}} = T_{\mathcal{P}}\mathcal{O}$, obstacle centres transforming
+as points, box edges as free vectors under $R_{\mathcal{P}}$ alone, and radii not
+at all. The field is evaluated entirely inside the frame,
+$\hat{v} = v_\theta(\hat{x}_t, t \mid d, \hat{\mathcal{O}})$, where by
+Eq.~\eqref{eq:endpoints} the query enters as the single scalar $d$ in place of
+the six numbers of $(\svec, \gvec)$. The output is returned to the world by the
+rotation alone, $v = R_{\mathcal{P}}^{\top}\hat{v}$, velocities being free
+vectors.
+
+Eq.~\eqref{eq:reduction} costs one cross product per query, constrains nothing
+about $v_\theta$, and holds at initialisation. It fixes five of the six degrees
+of freedom of $\SE$, three of translation through $m$ and two of rotation
+through $\hat{u}$. It does not fix the sixth. The admissible $\hat{v}$ form a
+circle in the plane normal to $\hat{u}$, and any rule selecting one of them must
+read something beyond $\svec$ and $\gvec$; ours reads the world coordinate axis
+least aligned with $\hat{u}$ and orthogonalises against it. That rule turns with
+the world. Replacing $\mathcal{P}$ by $T\mathcal{P}$ therefore leaves the reduced
+task not invariant but rolled about its own first axis,
+\begin{equation}
+  \hat{x} \;\longmapsto\; R_{\hat{u}}(\theta)\,\hat{x},
+  \qquad \theta = \theta(T, \mathcal{P}),
+  \label{eq:residual}
+\end{equation}
+so what Eq.~\eqref{eq:planner-equivariance} still asks of a planner in this frame
+is equivariance to $\mathrm{SO}(2)$, not to nothing.
 
 \begin{proposition}[Lorem ipsum]
 \label{prop:one}
