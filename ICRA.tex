@@ -18,6 +18,11 @@
 \setlength{\emergencystretch}{1em}
 
 \newcommand{\SE}{\mathrm{SE}(3)}
+\newcommand{\SO}{\mathrm{SO}(2)}
+\newcommand{\svec}{\mathbf{s}}
+\newcommand{\gvec}{\mathbf{g}}
+\newcommand{\xhat}{\hat{\mathbf{x}}}
+\newcommand{\yhat}{\hat{\mathbf{y}}}
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
 
@@ -28,7 +33,7 @@
 
 \newcommand{\lipB}{A motion planning task names a start and a goal, and those two points already determine a canonical frame. No existing work measures what that frame is worth before any mechanism is applied, and none separates how equivariant a trained model became from how much that equivariance bought it.
 
-We ask both. Holding architecture, data and training budget fixed, we build all three mechanisms on one cluttered 3D benchmark and calibrate against a trivial floor and four classical planners on identical held-out problems. The frame removes five of the six degrees of freedom of SE(3) exactly, at initialisation and at no cost, and is worth $+36.5$ points. The three mechanisms for the sixth are worth under a point each. Two models that are equally equivariant differ by $28$ points. We also bound our own result from above: giving each waypoint local geometry is worth more than the frame is, and the frame still adds $+24.8$ alongside it.}
+We ask both. Holding architecture, data and training budget fixed, we build all three mechanisms on PointMass3D, a cluttered 3D benchmark, and score every model on problems it never saw, alongside a straight line from start to goal and three classical planners. The frame removes five of the six degrees of freedom of SE(3) exactly, at initialisation and at no cost, and is worth $+36.5$ points. The three mechanisms for the sixth are worth under a point each at convergence, though the constrained architecture reaches any given level two to three times sooner, so the symmetry buys optimisation rather than accuracy. Two models that are equally equivariant differ by $28$ points. We also bound our own result from above: giving each waypoint local geometry is worth more than the frame is, and the frame still adds $+24.8$ alongside it.}
 \newcounter{fillc}
 \newcommand{\filler}[1]{%
   \setcounter{fillc}{0}%
@@ -122,7 +127,10 @@ Our contributions are as follows.
   seeds, with no change to the architecture, the data or the budget.
 
   \item \textbf{All three mechanisms for the sixth, measured against each
-  other.} None recovers a point. We explain that rather than inferring it from
+  other.} None recovers a point at convergence, but the constrained architecture
+  reaches any given level two to three times sooner, so what the symmetry buys is
+  optimisation rather than accuracy. We explain the null result rather than
+  inferring it from
   flat curves, by measuring the non-equivariance residual of the learned field
   and proving it bounds what any post-hoc symmetrisation can remove. We then show
   the residual does not predict what a mechanism is worth: two models that are
@@ -153,9 +161,40 @@ never composed in the experiments.}
 
 % ============================== PAGE 2 (1.0) =========================
 \section{Related Work}
-% ~250 words. Three clusters, roughly 80 words each: equivariant
-% architectures; canonicalisation and frame averaging; generative planners.
-\filler{9}
+
+\textbf{Classical planners.} Sampling-based~\cite{kuffner2000rrtconnect} and
+optimization-based~\cite{zucker2013chomp,schulman2014trajopt} planners act
+directly on workspace geometry, so a rigid transformation of the problem
+transforms the solution. They offer probabilistic completeness or local
+convergence, at a per-query cost that follows from searching or optimizing at
+inference time. We use RRT-Connect, CHOMP and TrajOpt both to generate expert
+trajectories and to bound what is achievable on our benchmark.
+
+\textbf{Learning-based planners.} MPNet~\cite{qureshi2019mpnet} and Motion Policy
+Networks~\cite{fishman2022mpinets} amortize planning into a network evaluated in
+milliseconds. Diffuser~\cite{janner2022diffuser}, Motion Planning
+Diffusion~\cite{carvalho2023mpd} and Diffusion Policy~\cite{chi2023dp} generate
+whole trajectories with a denoising model, and flow
+matching~\cite{lipman2023fm,liu2023rectified,albergo2023interpolants} replaces
+the denoising chain with a learned velocity field, which is the objective we use.
+None of them inherits the symmetry that the classical planners get from the
+geometry for free.
+
+\textbf{Restoring the symmetry.} The general framing is
+geometric~\cite{bronstein2021gdl}, and equivariant models are known to carry a
+strict generalisation benefit under the right conditions~\cite{elesedy2021strict}.
+Group-equivariant
+convolution~\cite{cohen2016gcnn}, tensor field networks~\cite{thomas2018tfn},
+SE(3)-Transformers~\cite{fuchs2020se3t} and vector neurons~\cite{deng2021vn}
+build the constraint into the weights, packaged for practitioners
+by~\cite{geiger2022e3nn}, and robot learning has adopted them
+widely~\cite{simeonov2022ndf,ryu2023edf,urain2023se3dif,wang2024equidp,yang2024equibot}.
+Frame averaging~\cite{puny2022fa} and learned
+canonicalization~\cite{kaba2023canon} act at inference instead, and the
+projection property our bound rests on is theirs. The Lie
+derivative~\cite{gruver2023lie} measures how equivariant a trained model became.
+That is the quantity we bound, and it is not the quantity we find predicts
+anything.
 
 \section{Method}
 \subsection{Decomposing the group}
@@ -182,9 +221,33 @@ incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
 % ============================== PAGES 3--4 (1.2) =====================
 \section{Setup and Calibration}
 \subsection{Benchmark and protocol}
-% ~180 words. Workspace, obstacle counts, trajectory length, held-out split,
-% sample count, integrator budget. Dense and factual; no argument here.
-\filler{5}
+
+PointMass3D places forty obstacles, twenty spheres and twenty oriented boxes, in
+$[-1,1]^3$. The robot is a point of radius $0.03$. Collision checking uses an
+analytic signed distance field, so it is exact rather than sampled. A trajectory
+is $N=64$ waypoints in $\mathbb{R}^3$.
+
+Expert paths come from RRT-Connect, then random shortcutting, uniform
+resampling, and CHOMP refinement. The dataset is $300$ environments, each with
+$600$ start-goal pairs and $30$ paths per pair including time reversals.
+Environments $250$ to $299$ are held out and never trained on. Unless stated
+otherwise, models train on the first $60$ of the remaining $250$; the scaling
+study in Sec.~\ref{sec:scaling} varies that count.
+
+The planner is a conditional flow-matching model with $2.16$M parameters: a
+dilated temporal convolutional trunk~\cite{oord2016wavenet} with FiLM
+conditioning~\cite{perez2018film}
+and a PointNet-style obstacle encoder~\cite{qi2017pointnet}. The encoder
+max-pools all forty obstacles into a single $128$-dimensional vector, and FiLM
+applies that vector identically to every one of the $64$ waypoints.
+
+Every model is evaluated on the same $500$ problems: $50$ unseen environments,
+$10$ distinct start-goal pairs each, $20$ samples per pair, eight Euler steps. We
+report two metrics and never conflate them. A sample is \emph{free} if the whole
+path is collision-free. \emph{Best-of-20} asks whether any of the twenty samples
+for a query is free. They differ by about thirty points. Uncertainty is quoted
+across seeds for claims about a method. For comparisons against a fixed baseline
+measured on the same problems we use a paired bootstrap over environments.
 
 \begin{table}[t]
 \centering
@@ -192,20 +255,23 @@ incididunt ut labore et dolore magna aliqua ut enim ad minim veniam.
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-Lorem & Ipsum (\%) & Dolor & s/query \\
+Planner & Free (\%) & Clearance & s/query \\
 \midrule
-lorem ipsum          & 00.0 & 0.000 & $<$0.001 \\
-dolor sit            & 00.0 & 0.000 & 0.000 \\
-amet consectetur     & 00.0 & 0.000 & 0.000 \\
-adipiscing elit      & 00.0 & 0.000 & 0.000 \\
-sed do eiusmod       & 00.0 & 0.000 & 0.000 \\
+straight line                   & 15.6 & 0.055 & $<$0.001 \\
+TrajOpt                         & 74.0 & 0.026 & 0.352 \\
+CHOMP                           & 88.8 & 0.019 & 0.394 \\
+RRT-Connect                     & 99.6 & 0.017 & 0.284 \\
+expert (RRT+CHOMP)              & 100.0 & 0.037 & 0.342 \\
 \midrule
-tempor incididunt    & 00.0 & $-$0.000 & 0.000 \\
-ut labore et dolore  & \textbf{00.0} & $-$0.000 & 0.000 \\
+flow, world frame               & 14.6 & $-0.071$ & 0.053 \\
+flow, $(\svec,\gvec)$ reduction & \textbf{51.1} & $-0.002$ & 0.063 \\
 \bottomrule
 \end{tabular}
-\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod
-tempor incididunt ut labore et dolore magna aliqua}
+\caption{The same $500$ unseen problems solved five other ways. The learned rows
+are converged, three-seed means at $60$ environments. Classical timings are one
+CPU core and one query; the learned rows are one GPU and twenty samples, so the
+time column is not like-for-like. Clearance is negative when a path passes
+through an obstacle.}
 \label{tab:floors}
 \end{table}
 
@@ -231,20 +297,25 @@ tempor incididunt ut labore et dolore magna aliqua}
 \centering
 \footnotesize
 \setlength{\tabcolsep}{3.5pt}
-% MERGED mechanism table: one row per mechanism, one column per budget.
-\begin{tabular}{@{}l r r >{\raggedright\arraybackslash}p{1.7cm}@{}}
+% Mechanism decomposition. Two budgets, because the DOF split was only ever
+% measured on the 20-epoch grid.
+\begin{tabular}{@{}l r r >{\raggedright\arraybackslash}p{1.6cm}@{}}
 \toprule
-Lorem ipsum & A & B & Dolor \\
+Mechanism & $20$ ep. & conv. & \\
 \midrule
-lorem ipsum dolor      & $+00.0$ & $+00.0$ & sit amet \\
-\quad consectetur      & $+00.0$ & ---     & adipiscing \\
-\quad elit sed         & $+00.0$ & ---     & eiusmod \\
-tempor incididunt      & $+0.0$  & ---     & ut labore \\
-et dolore magna        & $+0.0$  & $+0.00$ & aliqua \\
-ut enim ad minim       & ---     & $+0.00$ & veniam quis \\
+$(\svec,\gvec)$ reduction         & $+30.1$ & $+36.5$ & $n{=}3$ \\
+\quad 3 translations              & $+12.3$ & ---     & recentring \\
+\quad 2 rotations                 & $+18.0$ & ---     & axis alignment \\
+$\SE$ augmentation                & $+2.1$  & ---     & $7\%$ of the above \\
+roll augmentation                 & $+0.8$  & ---     & n.s., $n{=}3$ \\
+frame averaging ($K{:}1\!\to\!3$) & $+0.1$  & $+0.68$ & $\pm0.13$, $n{=}3$ \\
+equivariant backbone              & ---     & $+0.15$ & $n{=}3$ \\
 \bottomrule
 \end{tabular}
-\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod}
+\caption{Points on the held-out collision-free rate, each measured against the
+model without that mechanism. The rows are not additive and were never composed.
+The two degree-of-freedom rows were measured only on the fixed-budget grid, which
+is why that column exists.}
 \label{tab:mechanisms}
 \end{table}
 
@@ -272,17 +343,19 @@ ut enim ad minim       & ---     & $+0.00$ & veniam quis \\
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}lrrr@{}}
 \toprule
-Lorem ipsum & Dolor & Sit & $\Delta$ \\
+$60$ envs, converged & global only & $+$ local & geometry adds \\
 \midrule
-lorem ipsum       & 00.00 & 00.00 & $+00.0$ \\
-dolor sit amet    & 00.00 & 00.00 & $+00.0$ \\
-\quad consectetur & 00.00 & \textbf{00.00} & $+00.0$ \\
+world frame                    & 14.60 & 54.54 & $+40.0$ \\
+$(\svec,\gvec)$ reduction      & 51.10 & 79.37 & $+28.3$ \\
+\quad $+$ equivariant backbone & 51.27 & \textbf{82.13} & $+30.9$ \\
 \midrule
-\emph{adipiscing} & $+00.0$ & $+00.0$ & \\
+\emph{the frame contributes}   & $+36.5$ & $+24.8$ & \\
 \bottomrule
 \end{tabular}
-\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod
-tempor incididunt}
+\caption{Local geometry against the query frame. Every cell is a mean over two or
+three seeds. The two local-geometry columns are the least seed-sensitive
+measurements in this work, with across-seed standard errors of $0.01$ and $0.10$
+against $0.20$ and $0.25$ without.}
 \label{tab:twobytwo}
 \end{table}
 
@@ -297,19 +370,29 @@ tempor incididunt}
 \setlength{\tabcolsep}{3.5pt}
 \begin{tabular}{@{}llrrr@{}}
 \toprule
-Lorem & Ipsum & A & B & $\Delta$ \\
+Replication & Condition & World & Reduced & Gap \\
 \midrule
-dolor   & sit amet     & 00.0 & 00.0 & $+00.0$ \\
-        & consectetur  & 00.0 & 00.0 & $+00.0$ \\
+\multicolumn{5}{l}{\emph{second state space}: $\SE$ rigid body, floor $4.8$}\\
+            & $20$ ep.       & 2.8 & 6.2 & $+3.4$ \\
+            & ${\sim}156$ ep.& 3.1 & \textbf{10.0} & $+6.9$ \\
 \midrule
-elit    & sed do       & 00.0 & 00.0 & $+00.0$ \\
-        & eiusmod      & 00.0 & 00.0 & $+00.0$ \\
+\multicolumn{5}{l}{\emph{other objective}: DDPM, matched network evaluations}\\
+            & $20$ ep.       & 12.27 & 28.97 & $+16.71$ \\
+            & $300$ ep.      & 13.51 & 50.52 & $\mathbf{+37.01}$ \\
 \midrule
-tempor  & incididunt   & 00.0 & 00.0 & $+00.0$ \\
-        & ut labore    & 00.0 & 00.0 & $+00.0$ \\
+\multicolumn{5}{l}{\emph{other clutter}: obstacles per environment}\\
+            & $8$            & 61.4 & 90.8 & $+29.4$ \\
+            & $24$           & 24.8 & 66.0 & $\mathbf{+41.2}$ \\
+            & $40$ (trained) & 13.5 & 46.4 & $+32.9$ \\
 \bottomrule
 \end{tabular}
-\caption{Lorem ipsum dolor sit amet consectetur adipiscing elit}
+\caption{The effect survives a change of state space, a change of generative
+objective, and a $5\times$ range of clutter. The rigid body is an L-shaped union
+of five spheres whose state is a full pose, chosen to have trivial symmetry so
+the domain is not secretly easier; both models are below their own floor at $20$
+epochs and only the reduced one clears it. The density rows are freshly generated
+layouts at densities neither model was trained on. Single seed except the DDPM
+$20$-epoch row.}
 \label{tab:replications}
 \end{table}
 
@@ -327,13 +410,48 @@ incididunt $\|f - \mathcal{A}f\|^2 \le r^2$.
 
 % ============================== PAGE 7 (0.8) =========================
 \section{Limitations}
-% ~200 words. Scope condition first, then seeds, then the single benchmark
-% family. Keep the self-corrections: they cost little and buy credibility.
-\filler{7}
+
+\begin{itemize}\itemsep3pt
+  \item \textbf{The group must act on the state space, not just the workspace.}
+  This holds for a point mass and for the rigid body of Table~\ref{tab:replications}.
+  It fails for a manipulator planning in joint space: the query still defines a
+  frame in the workspace, but a rigid motion of the world induces no clean action
+  on joint angles. Mobile bases, free-flying bodies and end-effector-space
+  planning satisfy the condition. Joint-space planning for arms does not.
+
+  \item \textbf{The learned planner loses to the classical ones.} RRT-Connect
+  solves $99.6\%$ in under $0.3$\,s on one CPU core. On this benchmark one should
+  use RRT-Connect. What we measure is what a representation change is worth, and
+  that is only isolable where the confounds are removable.
+
+  \item \textbf{One workspace family, one clutter generator, one architecture.}
+  The claim that the sixth degree of freedom needs no treatment relies on the
+  training distribution supplying implicit roll diversity through many start-goal
+  directions. A dataset with few directions per environment could reverse it.
+
+  \item \textbf{Seeds are not uniform.} The $60$-environment cells carry three
+  seeds, the local-geometry cells two or three, and the $250$-environment cells
+  one. Every claim we lean on has at least two.
+
+  \item \textbf{Local geometry assumes explicit primitives at inference.} The
+  signed distance is a deterministic function of obstacle data the network
+  already receives, so it is a featurisation rather than an oracle, but it is
+  unavailable to a planner working from perception.
+\end{itemize}
 
 \section{Conclusion}
-% ~120 words. Shorter than feels comfortable.
-\filler{4}
+
+Five of the six degrees of freedom of $\SE$ were removable exactly, at
+initialisation and at no cost, by a frame the planning query already supplied.
+That was worth $+36.5$ points of held-out collision-free rate, against a
+world-frame model that did not beat a straight line. The sixth was not removable
+by any continuous rule, and all three mechanisms available for it recovered under
+a point each. The constrained architecture was not idle: it reached any given
+level two to three times sooner, so the symmetry bought optimisation and not
+accuracy. Two models that were equally equivariant differed by $28$ points, so
+how equivariant a model became did not predict what the mechanism was worth.
+Giving each waypoint its distance and direction to the nearest obstacle was worth
+more than the frame was, and the frame still added $+24.8$ points on top of it.
 
 % ============================== (0.7) ================================
 \section*{Acknowledgements}

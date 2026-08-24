@@ -396,7 +396,7 @@ def fig_cascade(path="fig_cascade.pdf"):
     bx.set_yticks(my)
     bx.set_yticklabels([m[0] for m in ROLL_MECHANISMS], fontsize=8)
     bx.set_xlim(0, 1.35)
-    bx.set_xlabel("Added to the reduced arm; each measured separately, not composed",
+    bx.set_xlabel("Added to the reduced model; each measured separately, not composed",
                   fontsize=8)
     bx.tick_params(axis="x", labelsize=7.5)
     bx.spines[["top", "right", "left"]].set_visible(False)
