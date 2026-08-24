@@ -29,11 +29,11 @@
 % ---- placeholder text -------------------------------------------------
 % Two paragraphs, alternated, so a \filler{n} block has the visual texture
 % of real prose without any of it being real.
-\newcommand{\lipA}{The task of motion planning is equivariant to rigid-body transformations, but the field the flow matching network learns is not. In the current literature, there are three techniques to restore equivariance: in the data, in the operator, or in the weights.}
+\newcommand{\lipA}{The task of motion planning is equivariant to rigid-body transformations, but the field that the flow matching network learns is not. In the current literature, there are three techniques to restore equivariance: in the data, in the operator, or in the weights.}
 
-\newcommand{\lipB}{A motion planning task names a start and a goal, and those two points already determine a canonical frame. No existing work measures what that frame is worth before any mechanism is applied, and none separates how equivariant a trained model became from how much that equivariance bought it.
+\newcommand{\lipB}{A motion planning task names a start and a goal, and those two points already determine a canonical frame. No existing work measures what that frame is worth before any technique is applied, and none separates how equivariant a trained model became from how much that equivariance bought it.
 
-We ask both. Holding architecture, data and training budget fixed, we build all three mechanisms on PointMass3D, a cluttered 3D benchmark, and score every model on problems it never saw, alongside a straight line from start to goal and three classical planners. The frame removes five of the six degrees of freedom of SE(3) exactly, at initialisation and at no cost, and is worth $+36.5$ points. The three mechanisms for the sixth are worth under a point each at convergence, though the constrained architecture reaches any given level two to three times sooner, so the symmetry buys optimisation rather than accuracy. Two models that are equally equivariant differ by $28$ points. We also bound our own result from above: giving each waypoint local geometry is worth more than the frame is, and the frame still adds $+24.8$ alongside it.}
+We ask both. Holding architecture, data and training budget fixed, we build all three mechanisms on PointMass3D, a cluttered 3D benchmark, and score every model on problems it never saw, alongside a straight line from start to goal and three classical planners. The frame removes five of the six degrees of freedom of SE(3) exactly, at initialisation and at no cost, and is worth $+36.5$ points. The three mechanisms for the sixth are worth under a point each, at convergence, though the constrained architecture reaches any given level two to three times sooner, so the symmetry buys optimisation rather than accuracy. Two models that are equally equivariant differ by $28$ points. We also report the measurement that limits our claim. Giving each waypoint its distance and direction to the nearest obstacle is worth more than the frame is, and the two are not substitutes: with that information supplied, the frame still adds $+24.8$ points.}
 \newcounter{fillc}
 \newcommand{\filler}[1]{%
   \setcounter{fillc}{0}%
@@ -84,7 +84,7 @@ limits real-time applicability. Learning-based
 planners~\cite{carvalho2023mpd,fishman2022mpinets,janner2022diffuser,qureshi2019mpnet}
 amortize that cost across queries and have emerged as a promising alternative.
 They do not inherit the symmetry. A network trained on world coordinates relearns
-the same manoeuvre at every position and orientation.
+the same maneuver at every position and orientation.
 
 Existing work restores it in one of three parts of the pipeline. In the data,
 through augmentation. In the inference operator, through frame averaging or
@@ -96,7 +96,7 @@ systems~\cite{ryu2023edf,simeonov2022ndf,wang2024equidp,yang2024equibot}. All
 three modify the model. None measures how much of the symmetry the problem
 statement already supplies before any model is built.
 
-A planning query names a start and a goal, and those two points determine a
+A planning query names a start and a goal, and those two points determine a canonical
 frame. Place the origin at their midpoint, align the first axis with the
 direction between them, and express every waypoint and every obstacle in that
 frame. Three translational and two rotational degrees of freedom vanish exactly,
@@ -104,13 +104,13 @@ at initialisation, at no computational cost and with no constraint on the
 architecture. The six numbers that conditioned the network on the query collapse
 to one invariant scalar. The frame needs a second axis to be determined, and ours
 takes it from a fixed world axis, so rotating the whole problem rolls the frame
-rather than leaving it unchanged. What survives is exactly that roll: $\SE$
-collapses to $\mathrm{SO}(2)$, not to nothing. No continuous rule can fix the
+rather than leaving it unchanged. What survives is exactly that rotation: $\SE$
+collapses to $\mathrm{SO}(2)$. No continuous rule can fix the
 remainder~\cite{milnor1978hairy}, so the sixth degree of freedom must be handled
 by one of the three mechanisms above. Fig.~\ref{fig:teaser} takes the group apart
 one stage at a time.
 
-We build all three on a cluttered 3D benchmark, hold architecture, data and
+We build all three on a cluttered 3D benchmark, hold the architecture, data and
 training budget fixed, and score every model on problems it never saw,
 alongside a straight line from start to goal and three classical planners. The frame is worth
 $+36.5$ points of held-out collision-free rate. The three mechanisms for the
@@ -123,8 +123,7 @@ Our contributions are as follows.
 \begin{itemize}\itemsep2pt
   \item \textbf{Five of six degrees of freedom are free.} A frame derived from
   the query in closed form removes them exactly, raising the held-out
-  collision-free rate from $14.60\pm0.20\%$ to $51.10\pm0.25\%$ across three
-  seeds, with no change to the architecture, the data or the budget.
+  collision-free rate from $14.60\%$ to $51.10\%$ with no change to the architecture, the data or the budget.
 
   \item \textbf{All three mechanisms for the sixth, measured against each
   other.} None recovers a point at convergence, but the constrained architecture
@@ -147,11 +146,9 @@ Our contributions are as follows.
 \begin{figure}[t]
 \centering
 \includegraphics[width=\columnwidth]{fig_cascade.pdf}
-\caption{\textbf{Sixty environments, trained to convergence, three seeds}, the
-setting used throughout this paper. \emph{Top}: a frame read off the query in
+\caption{\textbf{Sixty environments, trained to convergence.} \emph{Top}: a frame read off the query in
 closed form is worth $+35.5$ points over the bar immediately above it, and
-$+36.5$ over the plain world frame, which is the figure quoted elsewhere in this
-paper. Showing the obstacle encoder the same query without changing frame is
+$+36.5$ over the plain world frame. Showing the obstacle encoder the same query without changing frame is
 worth $+1.0$. The dashed line is a straight
 segment from start to goal on the identical problems, which the world-frame model
 does not beat. \emph{Bottom}: the three mechanisms for the one degree of freedom
@@ -166,7 +163,7 @@ never composed in the experiments.}
 
 \textbf{Classical planners.} Sampling-based~\cite{kuffner2000rrtconnect} and
 optimization-based~\cite{schulman2014trajopt,zucker2013chomp} planners act
-directly on workspace geometry, so a rigid transformation of the problem
+directly on geometry, so a rigid transformation of the problem
 transforms the solution. They offer probabilistic completeness or local
 convergence, at a per-query cost that follows from searching or optimizing at
 inference time. We use RRT-Connect and CHOMP to generate expert trajectories,
@@ -195,12 +192,17 @@ Frame averaging~\cite{puny2022fa} and learned
 canonicalization~\cite{kaba2023canon} act at inference instead, and the
 projection property our bound rests on is theirs. The Lie
 derivative~\cite{gruver2023lie} measures how equivariant a trained model became.
-That is the quantity we bound, and it is not the quantity we find predicts
+That is the quantity we bound, and it is not the quantity, we find, that predicts
 anything.
 
 \section{Method}
+In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec. 3.1). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec. 3.2). To establish that the remainder cannot be removed by the same route, we give two independent obstructions, one topological and one distributional (Sec. 3.3). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec. 3.4), and define the non-equivariance residual that bounds what the second of them can remove.
+
+
+
 \subsection{Decomposing the group}
-% ~200 words plus the two propositions.
+We formulate motion planning in a workspace $\mathbb{R}^d$ ($d=3$ throughout, $d=6$ for the rigid-body domain of Sec. V). A task is defined by the tuple $\mathcal{P} = (\mathbf{s}, \mathbf{g}, \mathcal{O})$, where $\mathbf{s}, \mathbf{g} \in \mathbb{R}^d$ are the start and goal configurations and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field $d_{\mathcal{O}} : \mathbb{R}^d \to \mathbb{R}$. The objective is to learn a generative model $p_\theta$ that produces a collision-free waypoint sequence $x = [p_1, \dots, p_N] \in \mathbb{R}^{N \times d}$ conditioned on $\mathcal{P}$, with $p_1 = \mathbf{s}$, $p_N = \mathbf{g}$, and $d_{\mathcal{O}}(p_i) \ge \rho$ for every $i$, where $\rho$ is the robot radius.
+
 \filler{7}
 
 \begin{proposition}[Lorem ipsum]
