@@ -77,22 +77,22 @@ configuration in complex environments. Equivariance to rigid-body transformation
 is a cornerstone of generalization in this setting. It ensures that a planner
 solves structurally identical tasks identically, regardless of where in the world
 they are posed. Sampling-based~\cite{kuffner2000rrtconnect} and
-optimization-based~\cite{zucker2013chomp,schulman2014trajopt} algorithms are
+optimization-based~\cite{schulman2014trajopt,zucker2013chomp} algorithms are
 equivariant by construction, since they act on the geometry directly, and they
 offer completeness or convergence guarantees. Their per-query computational cost
 limits real-time applicability. Learning-based
-planners~\cite{qureshi2019mpnet,fishman2022mpinets,janner2022diffuser,carvalho2023mpd}
+planners~\cite{carvalho2023mpd,fishman2022mpinets,janner2022diffuser,qureshi2019mpnet}
 amortize that cost across queries and have emerged as a promising alternative.
 They do not inherit the symmetry. A network trained on world coordinates relearns
 the same manoeuvre at every position and orientation.
 
 Existing work restores it in one of three parts of the pipeline. In the data,
 through augmentation. In the inference operator, through frame averaging or
-canonicalization~\cite{puny2022fa,kaba2023canon}. Or in the weights, through
+canonicalization~\cite{kaba2023canon,puny2022fa}. Or in the weights, through
 architectures equivariant by
-construction~\cite{cohen2016gcnn,thomas2018tfn,fuchs2020se3t,deng2021vn}, as
+construction~\cite{cohen2016gcnn,deng2021vn,fuchs2020se3t,thomas2018tfn}, as
 adopted in recent robot learning
-systems~\cite{simeonov2022ndf,ryu2023edf,wang2024equidp,yang2024equibot}. All
+systems~\cite{ryu2023edf,simeonov2022ndf,wang2024equidp,yang2024equibot}. All
 three modify the model. None measures how much of the symmetry the problem
 statement already supplies before any model is built.
 
@@ -111,8 +111,8 @@ by one of the three mechanisms above. Fig.~\ref{fig:teaser} takes the group apar
 one stage at a time.
 
 We build all three on a cluttered 3D benchmark, hold architecture, data and
-training budget fixed, and calibrate against a trivial floor and four classical
-planners on the identical held-out problems. The frame is worth
+training budget fixed, and score every model on problems it never saw,
+alongside a straight line from start to goal and three classical planners. The frame is worth
 $+36.5$ points of held-out collision-free rate. The three mechanisms for the
 sixth are worth $+0.8$, $+0.68$ and $+0.15$. A straight line from start to goal
 scores $15.6\%$, and the world-frame model, trained to a plateau, reaches
@@ -149,8 +149,10 @@ Our contributions are as follows.
 \includegraphics[width=\columnwidth]{fig_cascade.pdf}
 \caption{\textbf{Sixty environments, trained to convergence, three seeds}, the
 setting used throughout this paper. \emph{Top}: a frame read off the query in
-closed form is worth $+35.5$ points, and showing the obstacle encoder the same
-query without changing frame is worth $+1.0$. The dashed line is a straight
+closed form is worth $+35.5$ points over the bar immediately above it, and
+$+36.5$ over the plain world frame, which is the figure quoted elsewhere in this
+paper. Showing the obstacle encoder the same query without changing frame is
+worth $+1.0$. The dashed line is a straight
 segment from start to goal on the identical problems, which the world-frame model
 does not beat. \emph{Bottom}: the three mechanisms for the one degree of freedom
 the frame cannot remove. Each is measured against its own baseline and they are
@@ -163,19 +165,19 @@ never composed in the experiments.}
 \section{Related Work}
 
 \textbf{Classical planners.} Sampling-based~\cite{kuffner2000rrtconnect} and
-optimization-based~\cite{zucker2013chomp,schulman2014trajopt} planners act
+optimization-based~\cite{schulman2014trajopt,zucker2013chomp} planners act
 directly on workspace geometry, so a rigid transformation of the problem
 transforms the solution. They offer probabilistic completeness or local
 convergence, at a per-query cost that follows from searching or optimizing at
-inference time. We use RRT-Connect, CHOMP and TrajOpt both to generate expert
-trajectories and to bound what is achievable on our benchmark.
+inference time. We use RRT-Connect and CHOMP to generate expert trajectories,
+and all three to bound what is achievable on our benchmark.
 
 \textbf{Learning-based planners.} MPNet~\cite{qureshi2019mpnet} and Motion Policy
 Networks~\cite{fishman2022mpinets} amortize planning into a network evaluated in
 milliseconds. Diffuser~\cite{janner2022diffuser}, Motion Planning
 Diffusion~\cite{carvalho2023mpd} and Diffusion Policy~\cite{chi2023dp} generate
 whole trajectories with a denoising model, and flow
-matching~\cite{lipman2023fm,liu2023rectified,albergo2023interpolants} replaces
+matching~\cite{albergo2023interpolants,lipman2023fm,liu2023rectified} replaces
 the denoising chain with a learned velocity field, which is the objective we use.
 None of them inherits the symmetry that the classical planners get from the
 geometry for free.
@@ -188,7 +190,7 @@ convolution~\cite{cohen2016gcnn}, tensor field networks~\cite{thomas2018tfn},
 SE(3)-Transformers~\cite{fuchs2020se3t} and vector neurons~\cite{deng2021vn}
 build the constraint into the weights, packaged for practitioners
 by~\cite{geiger2022e3nn}, and robot learning has adopted them
-widely~\cite{simeonov2022ndf,ryu2023edf,urain2023se3dif,wang2024equidp,yang2024equibot}.
+widely~\cite{ryu2023edf,simeonov2022ndf,urain2023se3dif,wang2024equidp,yang2024equibot}.
 Frame averaging~\cite{puny2022fa} and learned
 canonicalization~\cite{kaba2023canon} act at inference instead, and the
 projection property our bound rests on is theirs. The Lie
@@ -283,6 +285,7 @@ through an obstacle.}
 % ============================== PAGES 4--5 (1.3) =====================
 \section{Results}
 \subsection{Scaling}
+\label{sec:scaling}
 % ~220 words.
 \filler{7}
 
@@ -372,15 +375,15 @@ against $0.20$ and $0.25$ without.}
 \toprule
 Replication & Condition & World & Reduced & Gap \\
 \midrule
-\multicolumn{5}{l}{\emph{second state space}: $\SE$ rigid body, floor $4.8$}\\
+\multicolumn{5}{l}{\textbf{Second state space.} $\SE$ rigid body, floor $4.8$}\\
             & $20$ ep.       & 2.8 & 6.2 & $+3.4$ \\
             & ${\sim}156$ ep.& 3.1 & \textbf{10.0} & $+6.9$ \\
 \midrule
-\multicolumn{5}{l}{\emph{other objective}: DDPM, matched network evaluations}\\
+\multicolumn{5}{l}{\textbf{Other objective.} DDPM, matched network evaluations}\\
             & $20$ ep.       & 12.27 & 28.97 & $+16.71$ \\
             & $300$ ep.      & 13.51 & 50.52 & $\mathbf{+37.01}$ \\
 \midrule
-\multicolumn{5}{l}{\emph{other clutter}: obstacles per environment}\\
+\multicolumn{5}{l}{\textbf{Other clutter.} Obstacles per environment}\\
             & $8$            & 61.4 & 90.8 & $+29.4$ \\
             & $24$           & 24.8 & 66.0 & $\mathbf{+41.2}$ \\
             & $40$ (trained) & 13.5 & 46.4 & $+32.9$ \\
@@ -460,9 +463,9 @@ The authors thank the IWIN-FINS Laboratory at Shanghai Jiao Tong University for
 the computational resources used in this work.
 
 The software implementation was carried out with Claude Code under the first
-author's direction. The implementations of the classical planners used to
-generate expert trajectories follow the published
-algorithms~\cite{kuffner2000rrtconnect,zucker2013chomp,schulman2014trajopt} and
+author's direction. The classical planner implementations, used to generate
+expert trajectories and to bound what is achievable, follow the published
+algorithms~\cite{kuffner2000rrtconnect,schulman2014trajopt,zucker2013chomp} and
 their public reference implementations. The problem formulation, the theoretical
 analysis, the experimental design and the text of this paper are the authors'
 own. Every reported number is produced by the released code, whose geometric and

@@ -14,35 +14,35 @@
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \citation{kuffner2000rrtconnect}
-\citation{zucker2013chomp}
 \citation{schulman2014trajopt}
-\citation{qureshi2019mpnet}
+\citation{zucker2013chomp}
+\citation{carvalho2023mpd}
 \citation{fishman2022mpinets}
 \citation{janner2022diffuser}
-\citation{carvalho2023mpd}
-\citation{puny2022fa}
+\citation{qureshi2019mpnet}
 \citation{kaba2023canon}
+\citation{puny2022fa}
 \citation{cohen2016gcnn}
-\citation{thomas2018tfn}
-\citation{fuchs2020se3t}
 \citation{deng2021vn}
-\citation{simeonov2022ndf}
+\citation{fuchs2020se3t}
+\citation{thomas2018tfn}
 \citation{ryu2023edf}
+\citation{simeonov2022ndf}
 \citation{wang2024equidp}
 \citation{yang2024equibot}
 \citation{milnor1978hairy}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}\protected@file@percent }
 \citation{kuffner2000rrtconnect}
-\citation{zucker2013chomp}
 \citation{schulman2014trajopt}
+\citation{zucker2013chomp}
 \citation{qureshi2019mpnet}
 \citation{fishman2022mpinets}
 \citation{janner2022diffuser}
 \citation{carvalho2023mpd}
 \citation{chi2023dp}
+\citation{albergo2023interpolants}
 \citation{lipman2023fm}
 \citation{liu2023rectified}
-\citation{albergo2023interpolants}
 \citation{bronstein2021gdl}
 \citation{elesedy2021strict}
 \citation{cohen2016gcnn}
@@ -50,16 +50,16 @@
 \citation{fuchs2020se3t}
 \citation{deng2021vn}
 \citation{geiger2022e3nn}
-\citation{simeonov2022ndf}
 \citation{ryu2023edf}
+\citation{simeonov2022ndf}
 \citation{urain2023se3dif}
 \citation{wang2024equidp}
 \citation{yang2024equibot}
 \citation{puny2022fa}
 \citation{kaba2023canon}
 \citation{gruver2023lie}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Sixty environments, trained to convergence, three seeds}, the setting used throughout this paper. \emph  {Top}: a frame read off the query in closed form is worth $+35.5$ points, and showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph  {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments.}}{2}{figure.1}\protected@file@percent }
-\newlabel{fig:teaser}{{1}{2}{\textbf {Sixty environments, trained to convergence, three seeds}, the setting used throughout this paper. \emph {Top}: a frame read off the query in closed form is worth $+35.5$ points, and showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments}{figure.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Sixty environments, trained to convergence, three seeds}, the setting used throughout this paper. \emph  {Top}: a frame read off the query in closed form is worth $+35.5$ points over the bar immediately above it, and $+36.5$ over the plain world frame, which is the figure quoted elsewhere in this paper. Showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph  {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments.}}{2}{figure.1}\protected@file@percent }
+\newlabel{fig:teaser}{{1}{2}{\textbf {Sixty environments, trained to convergence, three seeds}, the setting used throughout this paper. \emph {Top}: a frame read off the query in closed form is worth $+35.5$ points over the bar immediately above it, and $+36.5$ over the plain world frame, which is the figure quoted elsewhere in this paper. Showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments}{figure.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {2}Related Work}{2}{section.2}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {3}Method}{2}{section.3}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Decomposing the group}{2}{subsection.3.1}\protected@file@percent }
@@ -68,13 +68,14 @@
 \citation{qi2017pointnet}
 \newlabel{prop:one}{{1}{3}{Lorem ipsum}{proposition.1}{}}
 \newlabel{prop:two}{{2}{3}{Dolor sit amet}{proposition.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is negative when a path passes through an obstacle.}}{3}{table.1}\protected@file@percent }
-\newlabel{tab:floors}{{1}{3}{The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is negative when a path passes through an obstacle}{table.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {4}Setup and Calibration}{3}{section.4}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {4.1}Benchmark and protocol}{3}{subsection.4.1}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}The floor, and a paired test against it}{4}{subsection.4.2}\protected@file@percent }
+\@writefile{toc}{\contentsline {subsection}{\numberline {4.2}The floor, and a paired test against it}{3}{subsection.4.2}\protected@file@percent }
+\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is negative when a path passes through an obstacle.}}{4}{table.1}\protected@file@percent }
+\newlabel{tab:floors}{{1}{4}{The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is negative when a path passes through an obstacle}{table.1}{}}
 \@writefile{toc}{\contentsline {section}{\numberline {5}Results}{4}{section.5}\protected@file@percent }
 \@writefile{toc}{\contentsline {subsection}{\numberline {5.1}Scaling}{4}{subsection.5.1}\protected@file@percent }
+\newlabel{sec:scaling}{{5.1}{4}{Scaling}{subsection.5.1}{}}
 \@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Lorem ipsum dolor sit amet consectetur adipiscing elit}}{5}{figure.2}\protected@file@percent }
 \newlabel{fig:scaling}{{2}{5}{Lorem ipsum dolor sit amet consectetur adipiscing elit}{figure.2}{}}
 \@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Points on the held-out collision-free rate, each measured against the model without that mechanism. The rows are not additive and were never composed. The two degree-of-freedom rows were measured only on the fixed-budget grid, which is why that column exists.}}{5}{table.2}\protected@file@percent }
@@ -93,8 +94,8 @@
 \@writefile{toc}{\contentsline {section}{\numberline {6}Limitations}{9}{section.6}\protected@file@percent }
 \@writefile{toc}{\contentsline {section}{\numberline {7}Conclusion}{9}{section.7}\protected@file@percent }
 \citation{kuffner2000rrtconnect}
-\citation{zucker2013chomp}
 \citation{schulman2014trajopt}
+\citation{zucker2013chomp}
 \bibcite{albergo2023interpolants}{1}
 \bibcite{bronstein2021gdl}{2}
 \bibcite{carvalho2023mpd}{3}
