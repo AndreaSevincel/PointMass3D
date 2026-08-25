@@ -64,9 +64,9 @@
     \ifnum\value{wfp}>7\par\setcounter{wfp}{0}\fi
   \repeat\par}
 
-\title{\vspace{-1.2cm}Lorem Ipsum Dolor Sit Amet}
-\author{Lorem Ipsum \and Dolor Sit \and Amet Consectetur\\
-\small Lorem Ipsum University}
+\title{\vspace{-1.2cm}What Symmetry Buys a Learned Motion Planner}
+\author{Andrea Emir Sevincel \and Xinzhe Zhou \and Xiaoming Duan\\
+\small Shanghai Jiao Tong University}
 \date{}
 
 % IEEE PDF eXpress rejects Type 3 fonts. Two sources on this TeX Live install:
@@ -86,11 +86,11 @@
 % contribution from above.
 \begin{abstract}
 \noindent
-Equivariance to rigid-body transformations is a cornerstone of generalisation in
+Equivariance to rigid-body transformations underwrites generalisation in
 motion planning, and learning-based planners do not inherit it. Existing work
 restores it in the data, in the inference operator, or in the weights. All three
 modify the model. None measures what the problem statement already supplies. A
-planning query names a start and a goal, and those two points determine a frame
+planning query names a start and a goal, and those two points determine a canonical frame
 in closed form. Expressing the task in that frame removes five of the six degrees
 of freedom of $\SE$ exactly, at initialisation, with no constraint on the
 architecture. We build all three mechanisms for the sixth on a cluttered 3D
@@ -100,9 +100,9 @@ frame raises the held-out collision-free rate from $14.60 \pm 0.20\%$ to
 $51.10 \pm 0.25\%$, against $15.6\%$ for the straight line, which the world-frame
 model does not beat. The three mechanisms for the remaining degree of freedom are
 worth under a point each, though the constrained architecture
-reaches any given level two to three times sooner. Two models that are equally
-equivariant differ by $28$ points, so how equivariant a planner became does not
-predict what the symmetry bought it. We also calibrate how large the frame's
+reaches any given level two to three times sooner. Two models with
+indistinguishable residuals differ by $28$ points, so the residual is not
+sufficient to predict what a mechanism is worth. We also calibrate how large the frame's
 effect is on this benchmark. Giving each waypoint its distance and direction to
 the nearest obstacle is worth $+40.0$ points where the frame is worth $+36.5$, so
 the representation change studied here is not the largest effect available, and
@@ -173,8 +173,9 @@ was already not significant at a fixed budget. The constrained architecture
   inferring it from
   flat curves, by measuring the non-equivariance residual of the learned field
   and proving it bounds what any post-hoc symmetrisation can remove. We then show
-  the residual does not predict what a mechanism is worth: two models that are
-  equally equivariant differ by $28$ points.
+  the residual does not settle the question: two models with indistinguishable
+  residuals differ by $28$ points, so it is not sufficient to predict the
+  payoff.
 
   \item \textbf{Calibration in both directions, including against ourselves.}
   Supplying each waypoint with local geometry is worth $+40.0$ points where the
@@ -235,8 +236,8 @@ Frame averaging~\cite{puny2022fa} and learned
 canonicalization~\cite{kaba2023canon} act at inference instead, and the
 projection property our bound rests on is theirs. The Lie
 derivative~\cite{gruver2023lie} measures how equivariant a trained model became.
-That is the quantity we bound, and it is not the quantity, we find, that predicts
-anything. Frames read off the start and the goal are common practice in
+That is the quantity we bound, and we find it is not sufficient to predict what
+a mechanism is worth. Frames read off the start and the goal are common practice in
 manipulation policy learning, where they are used and not measured. The
 construction is not what we claim. What it is worth, against a floor and against
 the alternatives, is.
@@ -379,6 +380,14 @@ nothing. One rule would escape it, a rule continuous in $\mathcal{P}$ and
 returning the same $\hat{n}$ for $\mathcal{P}$ and $T\mathcal{P}$. Ours is not
 continuous: it jumps where the minimising $k$ in Eq.~\eqref{eq:second-axis} ties.
 Sec.~\ref{sec:obstruction} is why no rule does better.
+
+Eq.~\eqref{eq:reduction} can be read as input normalisation rather than as a
+group action, and the two readings name the same operation. The decomposition
+invites it: the three translations alone are worth $+12.3$ points, and recentring
+on $m$ contains no rotation. What the symmetry reading adds is not a different
+computation but an account of which parts come off exactly, what is left when
+they do, and why the remainder is $\mathrm{SO}(2)$ rather than a nuisance to be
+tuned away.
 
 \subsection{Why no continuous rule removes the remainder}
 \label{sec:obstruction}
@@ -812,15 +821,25 @@ either.
   on joint angles. Mobile bases, free-flying bodies and end-effector-space
   planning satisfy the condition. Joint-space planning for arms does not.
 
-  \item \textbf{The learned planner loses to the classical ones.} RRT-Connect
-  solves $99.6\%$ in under $0.3$\,s on one CPU core. On this benchmark one should
-  use RRT-Connect. What we measure is what a representation change is worth, and
-  that is only isolable where the confounds are removable.
+  \item \textbf{The benchmark was chosen for isolability, not for difficulty.}
+  RRT-Connect solves $99.6\%$ of these problems in under $0.3$\,s on one CPU
+  core, and on this benchmark one should use RRT-Connect. A point mass in a box
+  is where clutter, budget, seed and representation can be varied one at a time,
+  which is the only reason any number here is attributable to the representation.
+  The sampler is not a toy at that: behind a collision check it solves $87.2\%$
+  of held-out queries.
 
   \item \textbf{One workspace family, one clutter generator, one architecture.}
   The claim that the sixth degree of freedom needs no treatment relies on the
   training distribution supplying implicit roll diversity through many start-goal
   directions. A dataset with few directions per environment could reverse it.
+
+  \item \textbf{One cell of the design was not run.} The constrained backbone
+  was only ever trained inside the reduced frame, so what we establish is that
+  architectural equivariance adds nothing once the frame is present. That is not
+  the same as showing it cannot supply what the frame supplies. A world-frame
+  equivariant model would separate the two readings, and it is the experiment we
+  would run next.
 
   \item \textbf{Seeds are not uniform.} The $60$-environment cells carry three
   seeds, the local-geometry cells two or three, and the $250$-environment grid
@@ -844,13 +863,24 @@ Five of the six degrees of freedom of $\SE$ were removable exactly, at
 initialisation and at no cost, by a frame the planning query already supplied.
 That was worth $+36.5$ points of held-out collision-free rate, against a
 world-frame model that did not beat a straight line. The sixth was not removable
-by any continuous rule, and all three mechanisms available for it recovered under
-a point each. The constrained architecture was not idle: it reached any given
+by any continuous rule. Of the three mechanisms available for it, neither of the
+two run to convergence recovered a point, and the third was already not
+significant at a fixed budget. The constrained architecture was not idle: it reached any given
 level two to three times sooner, so the symmetry bought optimisation and not
-accuracy. Two models that were equally equivariant differed by $28$ points, so
-how equivariant a model became did not predict what the mechanism was worth.
+accuracy. Two models with indistinguishable residuals differed by $28$ points,
+so the residual was not sufficient to predict what a mechanism was worth.
 Giving each waypoint its distance and direction to the nearest obstacle was worth
 more than the frame was, and the frame still added $+24.8$ points on top of it.
+
+The construction transfers wherever the group acts on the state space and the
+query names two points, which covers mobile bases, free-flying bodies and
+end-effector-space planning, and excludes joint-space planning for arms. It costs
+one cross product per query and constrains nothing about the network. We expect
+the payoff to be largest where relearning the same manoeuvre at every pose is
+most expensive: a model small relative to its workspace, and a narrow
+conditioning path from the scene to the trajectory. Both were true here, and the
+$+36.5$ points shrank to $+24.8$ as soon as we widened that path with local
+geometry.
 
 % ============================== (0.7) ================================
 \section*{Acknowledgements}
