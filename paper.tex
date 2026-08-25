@@ -980,8 +980,8 @@ world-frame model trained with random $\SE$ motions of the whole problem. The
 world-frame model gains $2.5$ points across a $12.5\times$ increase in
 environments and augmentation adds at most $2.1$ more, while the reduction gains
 $26.2$ and has not plateaued. Every world-frame and reduction cell is a mean over
-three seeds; the seed-matched differences are $+6.37\pm0.19$, $+20.87\pm1.56$,
-$+25.85\pm0.37$ and $+30.08\pm0.38$. The ``+aug.'' column is single seed, so it
+three seeds; the seed-matched differences are $+6.37\pm0.17$, $+20.87\pm1.54$,
+$+25.85\pm0.51$ and $+30.08\pm0.44$. The ``+aug.'' column is single seed, so it
 is not compared against a three-seed mean anywhere. The last column is the
 deployment metric, best-of-$20$ behind a collision check}
 \label{tab:main}
@@ -1000,12 +1000,12 @@ model with one component removed}
 
 Table~\ref{tab:main} and Fig.~\ref{fig:scaling} give the principal result. At
 $250$ environments the reduction reaches $45.5\%$ against $15.4\%$, a gap of
-$\mathbf{+30.08\pm0.38}$ points, measured across three seeds per model.
+$\mathbf{+30.08\pm0.44}$ points, measured across three seeds per model.
 
 The uncertainty is quoted from the seed spread in the same cell, which is what
 makes it a test rather than an extrapolation. Both models were run at seeds
 $0,1,2$ at every scale, so the differences are seed-matched throughout:
-$+6.37\pm0.19$, $+20.87\pm1.56$, $+25.85\pm0.37$ and $+30.08\pm0.38$ at $20$,
+$+6.37\pm0.17$, $+20.87\pm1.54$, $+25.85\pm0.51$ and $+30.08\pm0.44$ at $20$,
 $60$, $150$ and $250$ environments. The $250$-environment gap is roughly $79$
 across-seed standard errors. We note that the seed spread is not constant across
 the grid --- the reduction's spread at $60$ environments ($1.56$) is an order of
@@ -1792,7 +1792,7 @@ silently.
 Objective & NFE & World & Reduction & Gap \\
 \midrule
 \multicolumn{5}{l}{\emph{$20$ epochs, three seeds}}\\
-flow matching & $8$   & $13.57$ & $34.43$ & $+20.87\pm1.56$ \\
+flow matching & $8$   & $13.57$ & $34.43$ & $+20.87\pm1.54$ \\
 DDPM          & $8$   & $8.88$  & $23.20$ & $+14.32\pm0.81$ \\
 DDPM          & $100$ & $12.27$ & $28.97$ & $+16.71\pm0.42$ \\[2pt]
 \multicolumn{5}{l}{\emph{$300$ epochs}}\\
