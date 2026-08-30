@@ -356,6 +356,58 @@ def fig_convergence(path="fig_convergence.pdf"):
 
 
 
+
+def fig_scale_conv(path="fig_scale_conv.pdf"):
+    #Figs. 2 and 3 as one column-width float. They make the same point from two
+    #axes -- the reduction scales, and it optimises faster -- so one caption
+    #serves both, and the page budget does not stretch to two floats.
+    fig, (axl, axr) = plt.subplots(1, 2, figsize=(3.4, 1.65))
+    fs = 6.0
+
+    axl.fill_between(ENVS, CONTROL, TREATMENT, color=C_TREAT, alpha=0.08, lw=0)
+    axl.errorbar(ENVS, TREATMENT, yerr=TREATMENT_SE, fmt="-o", color=C_TREAT,
+                 lw=1.3, ms=3, capsize=0, elinewidth=0.9, zorder=3,
+                 label=r"$(s,g)$ reduction")
+    axl.errorbar(ENVS, CONTROL, yerr=CONTROL_SE, fmt="-s", color=C_CTRL,
+                 lw=1.3, ms=2.8, capsize=0, elinewidth=0.9, zorder=3,
+                 label="world frame")
+    axl.plot(ENVS, AUGMENTED, "--^", color=C_CTRL, lw=1.0, ms=2.8,
+             markerfacecolor="white", zorder=3, label=r"$+\,\mathrm{SE}(3)$ aug.")
+    axl.set_xscale("log"); axl.set_xticks(ENVS)
+    axl.set_xticklabels([str(e) for e in ENVS]); axl.minorticks_off()
+    axl.set_xlim(17, 320); axl.set_ylim(0, 50)
+    axl.set_yticks([0, 10, 20, 30, 40, 50])
+    axl.set_xlabel("Training environments", fontsize=fs)
+    axl.set_ylabel("Collision-free rate (%)", fontsize=fs)
+    axl.tick_params(labelsize=fs - 0.5)
+    axl.grid(axis="y", color="0.88", lw=0.5)
+    axl.legend(frameon=False, fontsize=fs - 0.6, loc="upper left")
+    _despine(axl)
+    axl.set_title("(a) scale", fontsize=fs + 0.8, loc="left", color=INK)
+
+    axr.plot(CONV_EPOCHS, CONV_TREAT, color=C_CTRL, lw=1.2,
+             label="unconstrained")
+    axr.plot(CONV_EPOCHS, CONV_EQUIV, color=C_TREAT, lw=1.2,
+             label="$\\mathrm{SO}(2)$-equiv.")
+    for a, b in CONV_MARKS:
+        y = CONV_EQUIV[a // 10 - 1]
+        axr.plot([a, b], [y, y], color="0.55", lw=0.6, ls=":", zorder=0)
+        axr.plot([a], [y], "o", ms=2.4, color=C_TREAT, zorder=3)
+        axr.plot([b], [y], "o", ms=2.4, mfc="none", color=C_CTRL, zorder=3)
+    axr.set_xlabel("Training epochs", fontsize=fs)
+    axr.set_xlim(0, 305); axr.set_ylim(0, 55)
+    axr.set_xticks([0, 100, 200, 300])
+    axr.tick_params(labelsize=fs - 0.5)
+    axr.legend(frameon=False, loc="lower right", fontsize=fs - 0.6)
+    axr.spines[["top", "right"]].set_visible(False)
+    axr.set_title("(b) budget", fontsize=fs + 0.8, loc="left", color=INK)
+
+    fig.tight_layout(pad=0.25, w_pad=1.0)
+    fig.savefig(path)
+    plt.close(fig)
+    print(f"wrote {path}")
+
+
 def fig_cascade(path="fig_cascade.pdf"):
     #The paper's argument in one image, entirely at the headline setting.
     #Top: what the query frame is worth, with the query-conditioned control in
@@ -413,6 +465,7 @@ def fig_cascade(path="fig_cascade.pdf"):
 if __name__ == "__main__":
     fig_scaling()                                        # main.tex, 0.82\textwidth
     fig_scaling("fig_scaling_col.pdf", size=(3.35, 2.45), fs=7.0)   # paper.tex, one column
+    fig_scale_conv()   # ICRA.tex: Figs 2+3 merged into one float
     fig_mechanisms()                                     # paper.tex, figure* (both columns)
     fig_baselines()                                      # paper.tex, one column
     fig_convergence()                                    # paper.tex, one column

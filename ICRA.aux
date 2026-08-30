@@ -27,11 +27,8 @@
 \citation{fuchs2020se3t}
 \citation{thomas2018tfn}
 \citation{ryu2023edf}
-\citation{simeonov2022ndf}
 \citation{wang2024equidp}
-\citation{yang2024equibot}
 \citation{milnor1978hairy}
-\@writefile{toc}{\contentsline {section}{\numberline {I}Introduction}{1}{section.1}\protected@file@percent }
 \citation{kuffner2000rrtconnect}
 \citation{schulman2014trajopt}
 \citation{zucker2013chomp}
@@ -49,109 +46,15 @@
 \citation{thomas2018tfn}
 \citation{fuchs2020se3t}
 \citation{deng2021vn}
-\citation{geiger2022e3nn}
 \citation{ryu2023edf}
-\citation{simeonov2022ndf}
-\citation{urain2023se3dif}
 \citation{wang2024equidp}
-\citation{yang2024equibot}
 \citation{puny2022fa}
 \citation{kaba2023canon}
 \citation{gruver2023lie}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces \textbf  {Sixty environments, trained to convergence.} \emph  {Top}: a frame read off the query in closed form is worth $+35.5$ points over the bar immediately above it, and $+36.5$ over the plain world frame. Showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph  {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments. Two of the three are converged measurements. Roll augmentation, starred, is the $20$-epoch grid, where it was already not significant across three seeds and was not run further.}}{2}{figure.1}\protected@file@percent }
-\newlabel{fig:teaser}{{1}{2}{\textbf {Sixty environments, trained to convergence.} \emph {Top}: a frame read off the query in closed form is worth $+35.5$ points over the bar immediately above it, and $+36.5$ over the plain world frame. Showing the obstacle encoder the same query without changing frame is worth $+1.0$. The dashed line is a straight segment from start to goal on the identical problems, which the world-frame model does not beat. \emph {Bottom}: the three mechanisms for the one degree of freedom the frame cannot remove. Each is measured against its own baseline and they are alternatives rather than a decomposition, so they are not composed here and were never composed in the experiments. Two of the three are converged measurements. Roll augmentation, starred, is the $20$-epoch grid, where it was already not significant across three seeds and was not run further}{figure.1}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {II}Related Work}{2}{section.2}\protected@file@percent }
-\@writefile{toc}{\contentsline {section}{\numberline {III}Method}{2}{section.3}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-A}Problem formulation}{2}{subsection.3.1}\protected@file@percent }
-\newlabel{sec:problem}{{III-A}{2}{Problem formulation}{subsection.3.1}{}}
 \citation{lipman2023fm}
-\newlabel{eq:feasible}{{1}{3}{Problem formulation}{equation.3.1}{}}
-\newlabel{eq:equivariance}{{2}{3}{Problem formulation}{equation.3.2}{}}
-\newlabel{eq:planner-equivariance}{{3}{3}{Problem formulation}{equation.3.3}{}}
-\newlabel{eq:field-equivariance}{{4}{3}{Problem formulation}{equation.3.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-B}Decomposing the group}{3}{subsection.3.2}\protected@file@percent }
-\newlabel{sec:decompose}{{III-B}{3}{Decomposing the group}{subsection.3.2}{}}
-\newlabel{eq:second-axis}{{5}{3}{Decomposing the group}{equation.3.5}{}}
-\newlabel{eq:reduction}{{6}{3}{Decomposing the group}{equation.3.6}{}}
-\newlabel{eq:endpoints}{{7}{3}{Decomposing the group}{equation.3.7}{}}
-\newlabel{prop:residual}{{1}{3}{The residual is $\mathrm {SO}(2)$}{proposition.1}{}}
-\newlabel{eq:residual}{{8}{3}{The residual is $\mathrm {SO}(2)$}{equation.3.8}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-C}Why no continuous rule removes the remainder}{3}{subsection.3.3}\protected@file@percent }
-\newlabel{sec:obstruction}{{III-C}{3}{Why no continuous rule removes the remainder}{subsection.3.3}{}}
 \citation{milnor1978hairy}
 \citation{kaba2023canon}
 \citation{puny2022fa}
 \citation{oord2016wavenet}
 \citation{perez2018film}
 \citation{qi2017pointnet}
-\newlabel{prop:two}{{2}{4}{Topological obstruction}{proposition.2}{}}
-\newlabel{prop:three}{{3}{4}{Scenes with their own symmetry}{proposition.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {III-D}Three ways to impose the symmetry}{4}{subsection.3.4}\protected@file@percent }
-\newlabel{sec:threeways}{{III-D}{4}{Three ways to impose the symmetry}{subsection.3.4}{}}
-\newlabel{eq:frame-averaging}{{9}{4}{Three ways to impose the symmetry}{equation.3.9}{}}
-\newlabel{eq:residual-def}{{10}{4}{Three ways to impose the symmetry}{equation.3.10}{}}
-\newlabel{prop:budget}{{4}{4}{Symmetrisation budget}{proposition.4}{}}
-\newlabel{eq:budget}{{11}{4}{Symmetrisation budget}{equation.3.11}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {IV}Setup and Calibration}{4}{section.4}\protected@file@percent }
-\@writefile{toc}{\contentsline {subsection}{\numberline {IV-A}Benchmark and protocol}{4}{subsection.4.1}\protected@file@percent }
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is $d_{\mathcal  {O}} - \rho $, the margin by which the robot misses the nearest obstacle, minimised along the densely resampled path; it is negative exactly when the path collides. Classical rows average it over solved problems only, learned rows over all samples, which is why the straight line reads $+0.055$ while failing $84.4\%$ of them. The expert row is the filtered training distribution rather than a planner that never fails.}}{5}{table.1}\protected@file@percent }
-\newlabel{tab:floors}{{1}{5}{The same $500$ unseen problems solved five other ways. The learned rows are converged, three-seed means at $60$ environments. Classical timings are one CPU core and one query; the learned rows are one GPU and twenty samples, so the time column is not like-for-like. Clearance is $d_{\mathcal {O}} - \rho $, the margin by which the robot misses the nearest obstacle, minimised along the densely resampled path; it is negative exactly when the path collides. Classical rows average it over solved problems only, learned rows over all samples, which is why the straight line reads $+0.055$ while failing $84.4\%$ of them. The expert row is the filtered training distribution rather than a planner that never fails}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {IV-B}The floor, and a paired test against it}{5}{subsection.4.2}\protected@file@percent }
-\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces \textbf  {Held-out collision-free rate against training-set size, at a fixed budget of $20$ epochs.} The world-frame model moves $2.5$ points across a $12.5\times $ increase in environments, from $12.9$ to $15.4$, while the reduction runs from $19.2$ to $45.5$ without plateauing. Holding the budget fixed is what makes representation the only variable, and it is also why these are not convergence levels: trained out, the $250$-environment reduced model reaches $55.8$, above the $51.10$ quoted at $60$ environments elsewhere. Every world-frame and reduction cell is a mean over three seeds.}}{5}{figure.2}\protected@file@percent }
-\newlabel{fig:scaling}{{2}{5}{\textbf {Held-out collision-free rate against training-set size, at a fixed budget of $20$ epochs.} The world-frame model moves $2.5$ points across a $12.5\times $ increase in environments, from $12.9$ to $15.4$, while the reduction runs from $19.2$ to $45.5$ without plateauing. Holding the budget fixed is what makes representation the only variable, and it is also why these are not convergence levels: trained out, the $250$-environment reduced model reaches $55.8$, above the $51.10$ quoted at $60$ environments elsewhere. Every world-frame and reduction cell is a mean over three seeds}{figure.2}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {V}Results}{5}{section.5}\protected@file@percent }
-\newlabel{sec:results}{{V}{5}{Results}{section.5}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {V-A}Scaling}{5}{subsection.5.1}\protected@file@percent }
-\newlabel{sec:scaling}{{V-A}{5}{Scaling}{subsection.5.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {V-B}Control: a query-conditioned encoder}{5}{subsection.5.2}\protected@file@percent }
-\newlabel{sec:querycond}{{V-B}{5}{Control: a query-conditioned encoder}{subsection.5.2}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {2}{\ignorespaces Points on the held-out collision-free rate, each measured against the model without that mechanism. The rows are not additive and were never composed. The two degree-of-freedom rows were measured only on the fixed-budget grid, which is why that column exists.}}{6}{table.2}\protected@file@percent }
-\newlabel{tab:mechanisms}{{2}{6}{Points on the held-out collision-free rate, each measured against the model without that mechanism. The rows are not additive and were never composed. The two degree-of-freedom rows were measured only on the fixed-budget grid, which is why that column exists}{table.2}{}}
-\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces \textbf  {Held-out collision-free rate against training epochs, $60$ environments.} The constrained backbone reaches any given level two to three times sooner than the unconstrained model in the same frame, and the two converge to within $0.15$ points. Seed-matched over three seeds.}}{6}{figure.3}\protected@file@percent }
-\newlabel{fig:conv}{{3}{6}{\textbf {Held-out collision-free rate against training epochs, $60$ environments.} The constrained backbone reaches any given level two to three times sooner than the unconstrained model in the same frame, and the two converge to within $0.15$ points. Seed-matched over three seeds}{figure.3}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {3}{\ignorespaces Local geometry against the query frame. Every cell is a mean over two or three seeds. The two local-geometry columns are the least seed-sensitive measurements in this work, with across-seed standard errors of $0.01$ and $0.10$ against $0.20$ and $0.25$ without. The equivariant row is a seed-matched pair, $51.27$ against $51.12$ on the same three seeds, so the $+0.15$ of Table\nobreakspace  {}\ref {tab:mechanisms} is that difference and not $51.27$ minus the three-seed mean $51.10$ above it.}}{6}{table.3}\protected@file@percent }
-\newlabel{tab:twobytwo}{{3}{6}{Local geometry against the query frame. Every cell is a mean over two or three seeds. The two local-geometry columns are the least seed-sensitive measurements in this work, with across-seed standard errors of $0.01$ and $0.10$ against $0.20$ and $0.25$ without. The equivariant row is a seed-matched pair, $51.27$ against $51.12$ on the same three seeds, so the $+0.15$ of Table~\ref {tab:mechanisms} is that difference and not $51.27$ minus the three-seed mean $51.10$ above it}{table.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {V-C}Control: local geometry, and how it scales}{6}{subsection.5.3}\protected@file@percent }
-\newlabel{sec:localgeom}{{V-C}{6}{Control: local geometry, and how it scales}{subsection.5.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {V-D}Replications}{6}{subsection.5.4}\protected@file@percent }
-\newlabel{sec:replications}{{V-D}{6}{Replications}{subsection.5.4}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {4}{\ignorespaces The effect survives a change of state space, a change of generative objective, and a $5\times $ range of clutter. The rigid body is an L-shaped union of five spheres whose state is a full pose, chosen to have trivial symmetry so the domain is not secretly easier; both models are below their own floor at $20$ epochs and only the reduced one clears it. The second column is each model's own best-validation checkpoint, epoch $155$ for the world frame and $159$ for the reduction, so neither had stopped improving when the runs ended. The density rows are freshly generated layouts at densities neither model was trained on. Single seed except the DDPM $20$-epoch row.}}{7}{table.4}\protected@file@percent }
-\newlabel{tab:replications}{{4}{7}{The effect survives a change of state space, a change of generative objective, and a $5\times $ range of clutter. The rigid body is an L-shaped union of five spheres whose state is a full pose, chosen to have trivial symmetry so the domain is not secretly easier; both models are below their own floor at $20$ epochs and only the reduced one clears it. The second column is each model's own best-validation checkpoint, epoch $155$ for the world frame and $159$ for the reduction, so neither had stopped improving when the runs ended. The density rows are freshly generated layouts at densities neither model was trained on. Single seed except the DDPM $20$-epoch row}{table.4}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {V-E}The residual, and what it bounds}{7}{subsection.5.5}\protected@file@percent }
-\newlabel{sec:residual}{{V-E}{7}{The residual, and what it bounds}{subsection.5.5}{}}
-\@writefile{toc}{\contentsline {section}{\numberline {VI}Limitations}{7}{section.6}\protected@file@percent }
-\citation{kuffner2000rrtconnect}
-\citation{schulman2014trajopt}
-\citation{zucker2013chomp}
-\bibcite{albergo2023interpolants}{1}
-\bibcite{bronstein2021gdl}{2}
-\bibcite{carvalho2023mpd}{3}
-\bibcite{chi2023dp}{4}
-\bibcite{cohen2016gcnn}{5}
-\bibcite{deng2021vn}{6}
-\bibcite{elesedy2021strict}{7}
-\bibcite{fishman2022mpinets}{8}
-\bibcite{fuchs2020se3t}{9}
-\bibcite{geiger2022e3nn}{10}
-\bibcite{gruver2023lie}{11}
-\bibcite{janner2022diffuser}{12}
-\bibcite{kaba2023canon}{13}
-\bibcite{kuffner2000rrtconnect}{14}
-\bibcite{lipman2023fm}{15}
-\bibcite{liu2023rectified}{16}
-\bibcite{milnor1978hairy}{17}
-\bibcite{oord2016wavenet}{18}
-\bibcite{perez2018film}{19}
-\bibcite{puny2022fa}{20}
-\@writefile{toc}{\contentsline {section}{\numberline {VII}Conclusion}{8}{section.7}\protected@file@percent }
-\bibcite{qi2017pointnet}{21}
-\bibcite{qureshi2019mpnet}{22}
-\bibcite{ryu2023edf}{23}
-\bibcite{schulman2014trajopt}{24}
-\bibcite{simeonov2022ndf}{25}
-\bibcite{thomas2018tfn}{26}
-\bibcite{urain2023se3dif}{27}
-\bibcite{wang2024equidp}{28}
-\bibcite{yang2024equibot}{29}
-\bibcite{zucker2013chomp}{30}
-\gdef \@abspage@last{9}

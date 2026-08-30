@@ -3,18 +3,15 @@
 \documentclass[10pt,twocolumn,letterpaper]{article}
 
 \usepackage[margin=0.75in,columnsep=0.25in]{geometry}
-\IfFileExists{ptmr7t.tfm}{\usepackage{times}}{}
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{amsthm}
 \usepackage{graphicx}
 \usepackage{array}
 \usepackage{url}
+\usepackage{times}
+\usepackage{booktabs}
 \usepackage[hidelinks]{hyperref}
-\IfFileExists{booktabs.sty}{\usepackage{booktabs}}{%
-  \newcommand{\toprule}{\hline}
-  \newcommand{\midrule}{\hline}
-  \newcommand{\bottomrule}{\hline}}
 \setlength{\emergencystretch}{1em}
 
 \newcommand{\SE}{\mathrm{SE}(3)}
@@ -86,7 +83,7 @@
 % contribution from above.
 \begin{abstract}
 \noindent
-Equivariance to rigid-body transformations underwrites generalisation in
+Equivariance to rigid-body transformations is essential generalisation in
 motion planning, and learning-based planners do not inherit it. Existing work
 restores it in the data, in the inference operator, or in the weights. All three
 modify the model. None measures what the problem statement already supplies. A
@@ -132,12 +129,12 @@ canonicalization~\cite{kaba2023canon,puny2022fa}. Or in the weights, through
 architectures equivariant by
 construction~\cite{cohen2016gcnn,deng2021vn,fuchs2020se3t,thomas2018tfn}, as
 adopted in recent robot learning
-systems~\cite{ryu2023edf,simeonov2022ndf,wang2024equidp,yang2024equibot}. All
+systems~\cite{ryu2023edf,wang2024equidp}. All
 three modify the model. None measures how much of the symmetry the problem
 statement already supplies before any model is built.
 
 A planning query names a start and a goal, and those two points determine a canonical
-frame. Place the origin at their midpoint, align the first axis with the
+frame. One can place the origin at their midpoint, align the first axis with the
 direction between them, and express every waypoint and every obstacle in that
 frame. Three translational and two rotational degrees of freedom vanish exactly,
 at initialisation, at no computational cost and with no constraint on the
@@ -152,11 +149,10 @@ one stage at a time.
 
 We build all three on a cluttered 3D benchmark, hold the architecture, data and
 training budget fixed, and score every model on problems it never saw,
-alongside a straight line from start to goal and three classical planners. The frame is worth
-$+36.5$ points of held-out collision-free rate. The three mechanisms for the
-sixth are worth $+0.8$, $+0.68$ and $+0.15$. A straight line from start to goal
-scores $15.6\%$, and the world-frame model, trained to a plateau, reaches
-$14.60\%$.
+alongside a straight line from start to goal and three classical planners. The
+frame is worth $+36.5$ points of held-out collision-free rate; the three
+mechanisms for the sixth are worth $+0.8$, $+0.68$ and $+0.15$. That line scores
+$15.6\%$, which the world-frame model does not reach.
 
 Our contributions are as follows.
 
@@ -166,8 +162,10 @@ Our contributions are as follows.
   collision-free rate from $14.60\%$ to $51.10\%$ with no change to the architecture, the data or the budget.
 
   \item \textbf{All three mechanisms for the sixth, measured against each
-  other.} Neither of the two run to convergence recovers a point, and the third
-was already not significant at a fixed budget. The constrained architecture
+  other.} Frame averaging and the constrained architecture were trained to
+  convergence, and neither recovers a point. Roll augmentation was measured only
+  at a fixed budget, where its $+0.8$ already sat inside the spread across three
+  seeds. The constrained architecture
   reaches any given level two to three times sooner, so what the symmetry buys is
   optimisation rather than accuracy. We explain the null result rather than
   inferring it from
@@ -218,20 +216,19 @@ Networks~\cite{fishman2022mpinets} amortize planning into a network evaluated in
 milliseconds. Diffuser~\cite{janner2022diffuser}, Motion Planning
 Diffusion~\cite{carvalho2023mpd} and Diffusion Policy~\cite{chi2023dp} generate
 whole trajectories with a denoising model, and flow
-matching~\cite{albergo2023interpolants,lipman2023fm,liu2023rectified} replaces
+matching~\cite{lipman2023fm} replaces
 the denoising chain with a learned velocity field, which is the objective we use.
 None of them inherits the symmetry that the classical planners get from the
 geometry for free.
 
 \textbf{Restoring the symmetry.} The general framing is
-geometric~\cite{bronstein2021gdl}, and equivariant models are known to carry a
+geometric, and equivariant models are known to carry a
 strict generalisation benefit under the right conditions~\cite{elesedy2021strict}.
 Group-equivariant
 convolution~\cite{cohen2016gcnn}, tensor field networks~\cite{thomas2018tfn},
 SE(3)-Transformers~\cite{fuchs2020se3t} and vector neurons~\cite{deng2021vn}
-build the constraint into the weights, packaged for practitioners
-by~\cite{geiger2022e3nn}, and robot learning has adopted them
-widely~\cite{ryu2023edf,simeonov2022ndf,urain2023se3dif,wang2024equidp,yang2024equibot}.
+build the constraint into the weights, and robot learning has adopted them
+widely~\cite{ryu2023edf,wang2024equidp}.
 Frame averaging~\cite{puny2022fa} and learned
 canonicalization~\cite{kaba2023canon} act at inference instead, and the
 projection property our bound rests on is theirs. The Lie
@@ -243,7 +240,15 @@ construction is not what we claim. What it is worth, against a floor and against
 the alternatives, is.
 
 \section{Method}
-In this section, we begin by formally defining the generative motion planning objective and the symmetry it carries (Sec.~\ref{sec:problem}). We then decompose SE(3) into the part a planning query determines and the part it does not, and state precisely what survives that reduction (Sec.~\ref{sec:decompose}). To establish that the remainder cannot be removed by the same route, we give two obstructions, one topological and one that applies to scenes carrying a symmetry of their own (Sec.~\ref{sec:obstruction}). Finally, we enumerate the three places a symmetry can be imposed, in the training data, in the inference operator, and in the weights (Sec.~\ref{sec:threeways}), and define the non-equivariance residual that bounds what the second of them can remove.
+We begin by defining the generative planning objective and the symmetry the task
+carries (Sec.~\ref{sec:problem}). Sec.~\ref{sec:decompose} then splits $\SE$ into
+the part a query fixes and the part it leaves behind, and identifies the
+remainder as $\mathrm{SO}(2)$. That remainder does not yield to the same
+treatment, and Sec.~\ref{sec:obstruction} gives two obstructions to it, one
+topological and one that applies to scenes carrying a symmetry of their own.
+Finally, Sec.~\ref{sec:threeways} sets out the three places a symmetry can be
+imposed, in the training data, in the inference operator, and in the weights, and
+defines the non-equivariance residual that bounds what the operator can remove.
 
 
 
@@ -257,20 +262,22 @@ $\mathcal{C} = \mathbb{R}^3$ for the point mass studied throughout and
 $\mathcal{C} = \SE$ for the rigid-body domain of
 Sec.~\ref{sec:replications},
 and $\mathcal{O}$ is a set of convex obstacles inducing a signed distance field
-$d_{\mathcal{O}} : \mathbb{R}^3 \to \mathbb{R}$. For $\mathcal{C} = \SE$ we
-overload $d_{\mathcal{O}}(p)$ to mean the minimum, over the spheres composing the
-body at pose $p$, of the field at each centre less that sphere's radius, so
-$\rho$ is absorbed into the body and the constraint below reads unchanged. A trajectory is a waypoint
+$d_{\mathcal{O}} : \mathbb{R}^3 \to \mathbb{R}$. The robot is a sphere of radius
+$\rho$ centred at $p$. For the rigid body of Sec.~\ref{sec:replications} it is a
+union of five such spheres rigidly attached to the pose, at centres $c_j(p)$; the
+point mass is the single-sphere case $c_1(p) = p$. A trajectory is a waypoint
 sequence $x = [p_1, \dots, p_N] \in \mathcal{C}^N$ and $\gamma(x)$ the path it
 traces, piecewise linear in position and geodesic in orientation. The feasible
 set of $\mathcal{P}$ is
 \begin{equation}
-  \mathcal{S}(\mathcal{P}) =
-  \big\{\, x \;:\; p_1 = \svec,\; p_N = \gvec,\;
-  d_{\mathcal{O}}(p) \ge \rho \;\; \forall\, p \in \gamma(x) \,\big\},
+\begin{aligned}
+  \mathcal{S}(\mathcal{P}) = \big\{\, x \;:\;\; & p_1 = \svec,\; p_N = \gvec, \\
+  & \min_j d_{\mathcal{O}}\big(c_j(p)\big) \ge \rho
+    \;\; \forall\, p \in \gamma(x) \,\big\}.
+\end{aligned}
   \label{eq:feasible}
 \end{equation}
-with $\rho$ the robot radius. The objective is to learn a generative model
+The objective is to learn a generative model
 $p_\theta(x \mid \mathcal{P})$ supported on $\mathcal{S}(\mathcal{P})$.
 
 A rigid transformation $T \in \SE$ acts on a task by
@@ -319,16 +326,17 @@ aligned with,
   \hat{n} = \frac{\hat{u} \times e_k}{\|\hat{u} \times e_k\|} .
   \label{eq:second-axis}
 \end{equation}
-The denominator never vanishes: $k$ forces $\hat{u}_k^2 \le \tfrac{1}{3}$, so
-$\|\hat{u} \times e_k\|^2 = 1 - \hat{u}_k^2 \ge \tfrac{2}{3}$. Let
-$R_{\mathcal{P}} \in \mathrm{SO}(3)$ be the rotation with
-$R_{\mathcal{P}}^{\top} = [\,\hat{u}\;\; \hat{n}\;\; \hat{u} \times \hat{n}\,]$.
-The reduction is the rigid map
+Choosing $k$ this way bounds $\hat{u}_k^2 \le \tfrac{1}{3}$, so
+$\|\hat{u} \times e_k\|^2 = 1 - \hat{u}_k^2 \ge \tfrac{2}{3}$ and the denominator
+stays away from zero for every query. Collecting the three axes into
+$R_{\mathcal{P}} \in \mathrm{SO}(3)$, with
+$R_{\mathcal{P}}^{\top} = [\,\hat{u}\;\; \hat{n}\;\; \hat{u} \times \hat{n}\,]$,
+the reduction is the rigid map
 \begin{equation}
   \Phi_{\mathcal{P}}(p) = R_{\mathcal{P}}\,(p - m),
   \label{eq:reduction}
 \end{equation}
-under which the endpoints stop being inputs and become constants,
+under which the endpoints are no longer inputs but constants,
 \begin{equation}
   \Phi_{\mathcal{P}}(\svec) = \big({-\tfrac{\ell}{2}},\, 0,\, 0\big),
   \qquad
@@ -336,7 +344,7 @@ under which the endpoints stop being inputs and become constants,
   \label{eq:endpoints}
 \end{equation}
 
-Hence the network never sees a world coordinate. The task is carried into the
+The network therefore never sees a world coordinate. The task is carried into the
 frame, $\hat{x}_t = \Phi_{\mathcal{P}}(x_t)$ and
 $\hat{\mathcal{O}} = \Phi_{\mathcal{P}}\mathcal{O}$, obstacle centres transforming
 as points, box edges as free vectors under $R_{\mathcal{P}}$ alone, and radii not
@@ -592,7 +600,8 @@ representation buys, subject to Table~\ref{tab:floors}.
 % ~220 words.
 Across a $12.5\times$ increase in training environments the world-frame model
 goes from $12.9$ to $15.4$. The reduction goes from $19.2$ to $45.5$, and has
-not plateaued. Seed-matched, the difference grows
+not plateaued. On this grid the frame is worth $+30.3$ points, splitting into
+$+12.3$ for the three translations and $+18.0$ for the two rotations. Seed-matched, the difference grows
 monotonically at every size: $+6.37 \pm 0.17$, $+20.87 \pm 1.54$,
 $+25.85 \pm 0.51$ and $+30.08 \pm 0.44$, quoting the standard error of the
 per-seed differences rather than combining the two arms' spreads in quadrature.
@@ -607,53 +616,22 @@ model reaches $55.8$.
 
 \begin{figure}[t]
 \centering
-\includegraphics[width=\columnwidth]{fig_scaling_col.pdf}
-\caption{\textbf{Held-out collision-free rate against training-set size, at a
-fixed budget of $20$ epochs.} The world-frame model moves $2.5$ points across a
-$12.5\times$ increase in environments, from $12.9$ to $15.4$, while the
-reduction runs from $19.2$ to $45.5$ without plateauing. Holding the budget fixed is what makes representation the only
-variable, and it is also why these are not convergence levels: trained out, the
-$250$-environment reduced model reaches $55.8$, above the $51.10$ quoted at $60$
-environments elsewhere. Every world-frame and reduction cell is a mean over three
-seeds.}
+\includegraphics[width=\columnwidth]{fig_scale_conv.pdf}
+\caption{\textbf{(a) Held-out collision-free rate against training-set size,
+at a fixed budget of $20$ epochs.} The world-frame model moves $2.5$ points
+across a $12.5\times$ increase in environments, from $12.9$ to $15.4$, while the
+reduction runs from $19.2$ to $45.5$ without plateauing. Holding the budget fixed
+is what makes representation the only variable, and it is also why these are not
+convergence levels: trained out, the $250$-environment reduced model reaches
+$55.8$. Every world-frame and reduction cell is a mean over three seeds.
+\textbf{(b) The same rate against training epochs, $60$ environments.} The
+constrained backbone reaches any given level two to three times sooner than the
+unconstrained model in the same frame, and the two converge to within $0.15$
+points. Seed-matched over three seeds.}
 \label{fig:scaling}
 \end{figure}
 
-\begin{table}[t]
-\centering
-\footnotesize
-\setlength{\tabcolsep}{3.5pt}
-% Mechanism decomposition. Two budgets, because the DOF split was only ever
-% measured on the 20-epoch grid.
-\begin{tabular}{@{}l r r >{\raggedright\arraybackslash}p{1.6cm}@{}}
-\toprule
-Mechanism & $20$ ep. & conv. & \\
-\midrule
-$(\svec,\gvec)$ reduction         & $+30.1$ & $+36.5$ & $n{=}3$ \\
-\quad 3 translations              & $+12.3$ & ---     & recentring \\
-\quad 2 rotations                 & $+18.0$ & ---     & axis alignment \\
-$\SE$ augmentation                & $+2.1$  & ---     & $7\%$ of the above \\
-roll augmentation                 & $+0.8$  & ---     & n.s., $n{=}3$ \\
-frame averaging ($K{:}1\!\to\!3$) & $+0.1$  & $+0.68$ & $\pm0.13$, $n{=}3$ \\
-equivariant backbone              & ---     & $+0.15$ & $n{=}3$ \\
-\bottomrule
-\end{tabular}
-\caption{Points on the held-out collision-free rate, each measured against the
-model without that mechanism. The rows are not additive and were never composed.
-The two degree-of-freedom rows were measured only on the fixed-budget grid, which
-is why that column exists.}
-\label{tab:mechanisms}
-\end{table}
 
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{fig_convergence.pdf}
-\caption{\textbf{Held-out collision-free rate against training epochs, $60$
-environments.} The constrained backbone reaches any given level two to three
-times sooner than the unconstrained model in the same frame, and the two converge
-to within $0.15$ points. Seed-matched over three seeds.}
-\label{fig:conv}
-\end{figure}
 
 % ============================== PAGES 5--6 (1.2) =====================
 \subsection{Control: a query-conditioned encoder}
@@ -729,9 +707,9 @@ $(\svec,\gvec)$ reduction      & 51.10 & 79.37 & $+28.3$ \\
 three seeds. The two local-geometry columns are the least seed-sensitive
 measurements in this work, with across-seed standard errors of $0.01$ and $0.10$
 against $0.20$ and $0.25$ without. The equivariant row is a seed-matched pair,
-$51.27$ against $51.12$ on the same three seeds, so the $+0.15$ of
-Table~\ref{tab:mechanisms} is that difference and not $51.27$ minus the
-three-seed mean $51.10$ above it.}
+$51.27$ against $51.12$ on the same three seeds, so what that backbone is worth
+is the $+0.15$ between them and not $51.27$ minus the three-seed mean $51.10$
+above it.}
 \label{tab:twobytwo}
 \end{table}
 
@@ -771,21 +749,15 @@ Replication & Condition & World & Reduced & Gap \\
             & $20$ ep.       & 12.27 & 28.97 & $+16.71$ \\
             & $300$ ep.      & 13.51 & 50.52 & $\mathbf{+37.01}$ \\
 \midrule
-\multicolumn{5}{l}{\textbf{Other clutter.} Obstacles per environment}\\
-            & $8$            & 61.4 & 90.8 & $+29.4$ \\
-            & $24$           & 24.8 & 66.0 & $\mathbf{+41.2}$ \\
-            & $40$ (trained) & 13.5 & 46.4 & $+32.9$ \\
 \bottomrule
 \end{tabular}
 \caption{The effect survives a change of state space, a change of generative
-objective, and a $5\times$ range of clutter. The rigid body is an L-shaped union
+objective. The rigid body is an L-shaped union
 of five spheres whose state is a full pose, chosen to have trivial symmetry so
 the domain is not secretly easier; both models are below their own floor at $20$
 epochs and only the reduced one clears it. The second column is each model's
 own best-validation checkpoint, epoch $155$ for the world frame and $159$ for the
-reduction, so neither had stopped improving when the runs ended. The density rows are freshly generated
-layouts at densities neither model was trained on. Single seed except the DDPM
-$20$-epoch row.}
+reduction, so neither had stopped improving when the runs ended. Single seed except the DDPM $20$-epoch row.}
 \label{tab:replications}
 \end{table}
 
@@ -863,9 +835,10 @@ Five of the six degrees of freedom of $\SE$ were removable exactly, at
 initialisation and at no cost, by a frame the planning query already supplied.
 That was worth $+36.5$ points of held-out collision-free rate, against a
 world-frame model that did not beat a straight line. The sixth was not removable
-by any continuous rule. Of the three mechanisms available for it, neither of the
-two run to convergence recovered a point, and the third was already not
-significant at a fixed budget. The constrained architecture was not idle: it reached any given
+by any continuous rule. Frame averaging and the constrained architecture were
+trained to convergence, and neither recovered a point. Roll augmentation was
+measured only at a fixed budget, where its $+0.8$ already sat inside the spread
+across three seeds. The constrained architecture was not idle: it reached any given
 level two to three times sooner, so the symmetry bought optimisation and not
 accuracy. Two models with indistinguishable residuals differed by $28$ points,
 so the residual was not sufficient to predict what a mechanism was worth.
@@ -900,16 +873,6 @@ untrained networks and include negative controls.
 
 \small
 \begin{thebibliography}{99}
-
-\bibitem{albergo2023interpolants}
-M.~S. Albergo and E.~Vanden-Eijnden.
-\newblock Building normalizing flows with stochastic interpolants.
-\newblock In {\em ICLR}, 2023.
-
-\bibitem{bronstein2021gdl}
-M.~M. Bronstein, J.~Bruna, T.~Cohen, and P.~Veli\v{c}kovi\'{c}.
-\newblock Geometric deep learning: Grids, groups, graphs, geodesics, and gauges.
-\newblock {\em arXiv:2104.13478}, 2021.
 
 \bibitem{carvalho2023mpd}
 J.~Carvalho, A.~T. Le, M.~Baierl, D.~Koert, and J.~Peters.
@@ -948,11 +911,6 @@ F.~B. Fuchs, D.~E. Worrall, V.~Fischer, and M.~Welling.
   networks.
 \newblock In {\em NeurIPS}, 2020.
 
-\bibitem{geiger2022e3nn}
-M.~Geiger and T.~Smidt.
-\newblock e3nn: Euclidean neural networks.
-\newblock {\em arXiv:2207.09453}, 2022.
-
 \bibitem{gruver2023lie}
 N.~Gruver, M.~Finzi, M.~Goldblum, and A.~G. Wilson.
 \newblock The {L}ie derivative for measuring learned equivariance.
@@ -978,17 +936,11 @@ Y.~Lipman, R.~T.~Q. Chen, H.~Ben-Hamu, M.~Nickel, and M.~Le.
 \newblock Flow matching for generative modeling.
 \newblock In {\em ICLR}, 2023.
 
-\bibitem{liu2023rectified}
-X.~Liu, C.~Gong, and Q.~Liu.
-\newblock Flow straight and fast: Learning to generate and transfer data with
-  rectified flow.
-\newblock In {\em ICLR}, 2023.
-
 \bibitem{milnor1978hairy}
 J.~Milnor.
 \newblock Analytic proofs of the ``hairy ball theorem'' and the {B}rouwer fixed
   point theorem.
-\newblock {\em American Mathematical Monthly}, 85(7):521--524, 1978.
+\newblock {\em Amer. Math. Monthly}, 1978.
 
 \bibitem{oord2016wavenet}
 A.~van~den Oord, S.~Dieleman, H.~Zen, K.~Simonyan, O.~Vinyals, A.~Graves,
@@ -1029,14 +981,7 @@ J.~Schulman, Y.~Duan, J.~Ho, A.~Lee, I.~Awwal, H.~Bradlow, J.~Pan, S.~Patil,
   K.~Goldberg, and P.~Abbeel.
 \newblock Motion planning with sequential convex optimization and convex
   collision checking.
-\newblock {\em IJRR}, 33(9):1251--1270, 2014.
-
-\bibitem{simeonov2022ndf}
-A.~Simeonov, Y.~Du, A.~Tagliasacchi, J.~B. Tenenbaum, A.~Rodriguez, P.~Agrawal,
-  and V.~Sitzmann.
-\newblock Neural descriptor fields: {SE(3)}-equivariant object representations
-  for manipulation.
-\newblock In {\em ICRA}, 2022.
+\newblock {\em IJRR}, 2014.
 
 \bibitem{thomas2018tfn}
 N.~Thomas, T.~Smidt, S.~Kearnes, L.~Yang, L.~Li, K.~Kohlhoff, and P.~Riley.
@@ -1044,29 +989,17 @@ N.~Thomas, T.~Smidt, S.~Kearnes, L.~Yang, L.~Li, K.~Kohlhoff, and P.~Riley.
   networks for 3{D} point clouds.
 \newblock {\em arXiv:1802.08219}, 2018.
 
-\bibitem{urain2023se3dif}
-J.~Urain, N.~Funk, J.~Peters, and G.~Chalvatzaki.
-\newblock {SE(3)}-{D}iffusion{F}ields: Learning smooth cost functions for joint
-  grasp and motion optimization through diffusion.
-\newblock In {\em ICRA}, 2023.
-
 \bibitem{wang2024equidp}
 D.~Wang, S.~Hart, D.~Surovik, T.~Kelestemur, H.~Huang, H.~Zhao, M.~Yeatman,
   J.~Wang, R.~Walters, and R.~Platt.
 \newblock Equivariant diffusion policy.
 \newblock In {\em CoRL}, 2024.
 
-\bibitem{yang2024equibot}
-J.~Yang, Z.~Cao, C.~Deng, R.~Antonova, S.~Song, and J.~Bohg.
-\newblock {E}qui{B}ot: {SIM(3)}-equivariant diffusion policy for generalizable
-  and data efficient learning.
-\newblock In {\em CoRL}, 2024.
-
 \bibitem{zucker2013chomp}
 M.~Zucker, N.~Ratliff, A.~D. Dragan, M.~Pivtoraiko, M.~Klingensmith, C.~M.
   Dellin, J.~A. Bagnell, and S.~S. Srinivasa.
 \newblock {CHOMP}: Covariant Hamiltonian optimization for motion planning.
-\newblock {\em IJRR}, 32(9-10):1164--1193, 2013.
+\newblock {\em IJRR}, 2013.
 
 \end{thebibliography}
 
